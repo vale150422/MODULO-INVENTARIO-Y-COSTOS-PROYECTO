@@ -1,0 +1,335 @@
+/* ================================================
+   PROVEEDOR PAGE  ·  src/pages/ProveedorPage/ProveedorPage.css
+================================================ */
+
+.pp-root {
+  max-width: 100%;
+  padding: 32px 40px;
+}
+
+.pp-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.pp-title {
+  font-family: var(--font-principal);
+  font-size: 2rem;
+  font-weight: var(--font-semibold);
+  color: var(--texto-principal);
+  line-height: 1.1;
+  margin-bottom: 0;
+}
+
+.pp-subtitle {
+  font-family: var(--font-principal);
+  font-size: 1rem;
+  color: var(--texto-secundario);
+  margin-top: 2px;
+}
+
+.pp-header-right {
+  display: flex;
+  align-items: center;
+}
+
+.pp-btn-nuevo {
+  height: 42px;
+  padding: 0 24px;
+  border-radius: 8px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-family: var(--font-principal);
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  margin-right: 40px;
+}
+
+.pp-btn-nuevo:hover {
+  background: var(--btn-primary-hover);
+}
+
+/* ── STAT CARDS ── */
+.pp-stats-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.pp-stat-card {
+  background: var(--bg-card);
+  border: 1.5px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 18px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.pp-stat-label {
+  font-family: var(--font-principal);
+  font-size: 0.82rem;
+  color: var(--texto-secundario);
+  font-weight: 500;
+}
+
+.pp-stat-number {
+  font-family: var(--font-principal);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--texto-principal);
+  line-height: 1;
+}
+
+/* ── TABLE ── */
+.pp-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1.5px solid #9e9d9d;
+  border-radius: 8px;
+}
+
+.pp-table-header {
+  padding: 12px 14px 10px 14px;
+  border-bottom: 1.5px solid #9e9d9d;
+}
+
+.pp-list-title {
+  font-family: var(--font-principal);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--texto-principal);
+  margin: 0;
+}
+
+.pp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-principal);
+  border: none;
+}
+
+.pp-table thead tr {
+  border-bottom: 1.5px solid var(--borde-color);
+}
+
+.pp-table th {
+  text-align: left;
+  padding: 9px 13px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--texto-secundario);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pp-table tbody tr {
+  border-bottom: 1px solid var(--borde-color);
+  transition: background var(--transition-fast);
+}
+
+.pp-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.pp-table tbody tr:hover {
+  background: var(--bg-card);
+}
+
+.pp-table td {
+  padding: 10px 13px;
+  font-size: 0.8rem;
+  color: var(--texto-principal);
+}
+
+.pp-td-nombre {
+  font-weight: 600;
+}
+
+.pp-td-correo {
+  font-size: 0.7rem;
+  color: var(--texto-secundario);
+  margin-top: 2px;
+}
+
+.pp-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--color-secundario);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.pp-td-acciones {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pp-btn-editar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 13px;
+  border-radius: 6px;
+  background: #f68d42fc;
+  color: white;
+  font-family: var(--font-principal);
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.pp-btn-editar:hover {
+  background: #ea6c0a;
+}
+
+.pp-btn-eliminar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 13px;
+  border-radius: 6px;
+  background: transparent;
+  color: #dc2626;
+  font-family: var(--font-principal);
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.pp-btn-eliminar:hover {
+  color: #b91c1c;
+}
+
+/* ── MODAL ── */
+.pp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.pp-modal {
+  background: var(--bg-card);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 440px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.pp-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.pp-modal-title {
+  font-family: var(--font-principal);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--texto-principal);
+  margin-bottom: 0;
+}
+
+.pp-modal-subtitle {
+  font-family: var(--font-principal);
+  font-size: 0.85rem;
+  color: var(--texto-secundario);
+  margin-top: 2px;
+}
+
+.pp-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pp-label {
+  font-family: var(--font-principal);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--texto-secundario);
+}
+
+.pp-input {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  font-family: var(--font-principal);
+  font-size: 0.95rem;
+  color: var(--texto-principal);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.pp-input:focus {
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 3px rgba(164, 172, 134, 0.18);
+}
+
+.pp-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.pp-btn-cancelar {
+  height: 38px;
+  padding: 0 20px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--borde-color);
+  color: var(--texto-secundario);
+  font-family: var(--font-principal);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.pp-btn-guardar {
+  height: 38px;
+  padding: 0 20px;
+  border-radius: 8px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-family: var(--font-principal);
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.pp-btn-guardar:hover {
+  background: var(--btn-primary-hover);
+}
+
+.pp-empty-row {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--texto-secundario);
+  font-size: 0.9rem;
+}

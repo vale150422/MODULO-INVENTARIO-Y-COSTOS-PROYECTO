@@ -1,0 +1,255 @@
+/* ================================================
+   SIDEBAR — Finca System
+   Archivo: src/components/layout/sidebar.css
+================================================ */
+.sb-root {
+  width: 240px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #3a5430;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.sb-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sb-logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: rgba(164, 172, 134, 0.20);
+  border: 1px solid rgba(164, 172, 134, 0.28);
+  color: #a4ac86;
+}
+
+.sb-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #f0ede6;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.sb-subtitle {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(240, 237, 230, 0.38);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 2px;
+}
+
+.sb-section {
+  margin-top: 20px;
+  padding: 0 12px;
+}
+
+.sb-section-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: rgba(240, 237, 230, 0.28);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 0 4px;
+  margin-bottom: 6px;
+}
+
+.sb-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sb-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-decoration: none;
+  background: transparent;
+  transition: background 0.18s ease;
+}
+
+.sb-nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sb-nav-item--active {
+  background: rgba(164, 172, 134, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(164, 172, 134, 0.25);
+}
+
+.sb-nav-item--active:hover {
+  background: rgba(164, 172, 134, 0.22);
+}
+
+.sb-nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: #a4ac86;
+}
+
+.sb-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  color: rgba(240, 237, 230, 0.45);
+  transition: color 0.18s ease;
+}
+
+.sb-nav-icon--active {
+  color: #a4ac86;
+}
+
+.sb-nav-label {
+  font-size: 13.5px;
+  font-weight: 400;
+  color: rgba(240, 237, 230, 0.55);
+  letter-spacing: 0.01em;
+  flex: 1;
+  transition: color 0.18s ease;
+}
+
+.sb-nav-label--active {
+  color: #f0ede6;
+  font-weight: 500;
+}
+
+.sb-nav-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: #a4ac86;
+  color: #3a5430;
+}
+
+.sb-footer {
+  margin-top: auto;
+  margin: auto 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sb-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(164, 172, 134, 0.22);
+  border: 1px solid rgba(164, 172, 134, 0.28);
+  color: #a4ac86;
+}
+
+.sb-user-name {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(240, 237, 230, 0.6);
+  line-height: 1.3;
+}
+
+.sb-user-role {
+  font-size: 11px;
+  color: rgba(240, 237, 230, 0.28);
+  line-height: 1.3;
+}
+
+/* ── Submenú ── */
+.sb-nav-item--btn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sb-nav-chevron {
+  margin-left: auto;
+  color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+}
+
+.sb-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 8px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.sb-submenu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background 0.18s ease;
+  color: rgba(240, 237, 230, 0.55);
+  width: 100%;
+}
+
+.sb-submenu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(240, 237, 230, 0.9);
+}
+
+.sb-submenu-item--active {
+  background: rgba(164, 172, 134, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(164, 172, 134, 0.25);
+  color: #f0ede6;
+}
+
+.sb-submenu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.sb-submenu-label {
+  font-size: 13.5px;
+  font-weight: 400;
+  color: inherit;
+  letter-spacing: 0.01em;
+}
