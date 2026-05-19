@@ -9,6 +9,7 @@ import FincaPage from './pages/FincaPage/FincaPage';
 import ProductoPage from './pages/ProductoPage/ProductosPage';
 import ProveedorPage from './pages/ProveedorPage/ProveedorPage';
 import TrabajadorPage from './pages/TrabajadorPage/TrabajadorPage';
+import Reportes from './pages/Reportes';
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/productos" element={<ProtectedLayout><ProductoPage /></ProtectedLayout>} />
         <Route path="/proveedores" element={<ProtectedLayout><ProveedorPage /></ProtectedLayout>} />
         <Route path="/trabajadores" element={<ProtectedLayout><TrabajadorPage /></ProtectedLayout>} />
+        <Route path="/reportes" element={<ProtectedLayout><Reportes /></ProtectedLayout>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

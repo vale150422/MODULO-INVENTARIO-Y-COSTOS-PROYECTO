@@ -8,7 +8,8 @@ const adminItems = [
   { to: '/trabajadores',label: 'Usuarios',    icon: '👥' },
   { to: '/kardex',      label: 'Kardex',      icon: '📦' },
   { to: '/productos', label: 'Productos', icon: '🛒' },
-  { to: '/proveedores', label: 'Reportes',    icon: '📈' },
+  { to: '/proveedores', label: 'Proveedores', icon: '🏪' },
+  { to: '/reportes', label: 'Reportes', icon: '📈' },
 ];
 
 const empleadoItems = [

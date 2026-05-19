@@ -37,8 +37,8 @@ export default function Login() {
         <div className="text-center z-10">
           <img src="/logo.png" alt="Logo"
             className="w-44 h-44 object-contain mx-auto mb-4 rounded-full" />
-          <h1 className="text-4xl font-bold text-[#f5f0e0] mb-3">Inventario</h1>
-          <p className="text-[#8fae5a] text-lg">Sistema de Inventario</p>
+          <h1 className="text-4xl font-bold text-[#f5f0e0] mb-3">INVENTARIO AGROGESTIÓN</h1>
+          <p className="text-[#8fae5a] text-lg">Bienvenid@ al Sistema de Inventario</p>
           <div className="mt-10 grid grid-cols-2 gap-4 text-center">
             {[
               { icon:'🌿', label:'Gestión de Fincas'   },
