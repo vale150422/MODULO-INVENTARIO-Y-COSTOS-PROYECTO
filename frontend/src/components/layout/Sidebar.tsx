@@ -5,7 +5,7 @@ import { useTheme } from '../../hooks/useTheme';
 const adminItems = [
   { to: '/',            label: 'Dashboard',   icon: '📊' },
   { to: '/fincas',      label: 'Fincas',      icon: '🌿' },
-  { to: '/trabajadores',label: 'Usuarios',    icon: '👥' },
+  { to: '/trabajadores',label: 'Trabajadores',    icon: '👥' },
   { to: '/kardex',      label: 'Kardex',      icon: '📦' },
   { to: '/productos', label: 'Productos', icon: '🛒' },
   { to: '/proveedores', label: 'Proveedores', icon: '🏪' },
