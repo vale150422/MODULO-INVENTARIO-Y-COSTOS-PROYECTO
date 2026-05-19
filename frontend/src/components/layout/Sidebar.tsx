@@ -1,143 +1,105 @@
-import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Leaf, LucideIcon, ChevronDown, ChevronRight, Building2, Truck, HardHat, Warehouse } from 'lucide-react';
-import { useState } from 'react';
-import './sidebar.css';
+import { NavLink } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../hooks/useTheme';
 
-interface MenuItem {
-  name: string;
-  path: string;
-  icon: LucideIcon;
-  badge?: string | null;
-  submenu?: SubMenuItem[];
-}
-
-interface SubMenuItem {
-  name: string;
-  path: string;
-  icon: LucideIcon;
-}
-
-const menuItems: MenuItem[] = [
-  { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  {
-    name: 'La Finca',
-    path: '/finca',
-    icon: Leaf,
-    submenu: [
-      { name: 'Fincas', path: '/finca', icon: Building2 },
-      { name: 'Proveedores', path: '/proveedores', icon: Truck },
-      { name: 'Trabajadores', path: '/trabajadores', icon: HardHat },
-    ],
-  },
-  {
-    name: 'Bodega',
-    path: '/bodega',
-    icon: Warehouse,
-    submenu: [
-      { name: 'Productos', path: '/productos', icon: Package },
-    ],
-  },
+const adminItems = [
+  { to: '/',            label: 'Dashboard',   icon: '📊' },
+  { to: '/fincas',      label: 'Fincas',      icon: '🌿' },
+  { to: '/trabajadores',label: 'Usuarios',    icon: '👥' },
+  { to: '/kardex',      label: 'Kardex',      icon: '📦' },
+  { to: '/productos', label: 'Productos', icon: '🛒' },
+  { to: '/proveedores', label: 'Reportes',    icon: '📈' },
 ];
 
-const Sidebar = () => {
-  const location = useLocation();
-  const [submenuAbierto, setSubmenuAbierto] = useState<string | null>(null);
+const empleadoItems = [
+  { to: '/',       label: 'Mi Panel', icon: '🏠' },
+  { to: '/fincas', label: 'Cultivos', icon: '🌱' },
+];
 
-  const toggleSubmenu = (path: string) => {
-    setSubmenuAbierto(submenuAbierto === path ? null : path);
-  };
-
-  const NavItem = ({ item }: { item: MenuItem }) => {
-    const active = location.pathname === item.path;
-    const Icon = item.icon;
-    const tieneSubmenu = item.submenu && item.submenu.length > 0;
-    const abierto = submenuAbierto === item.path;
-    const submenuActivo = item.submenu?.some(s => location.pathname === s.path);
-
-    if (tieneSubmenu) {
-      return (
-        <div>
-          <button
-            className={`sb-nav-item sb-nav-item--btn ${submenuActivo ? 'sb-nav-item--active' : ''}`}
-            onClick={() => toggleSubmenu(item.path)}
-          >
-            {submenuActivo && <span className="sb-nav-indicator" />}
-            <span className={`sb-nav-icon ${submenuActivo ? 'sb-nav-icon--active' : ''}`}>
-              <Icon size={17} strokeWidth={1.75} />
-            </span>
-            <span className={`sb-nav-label ${submenuActivo ? 'sb-nav-label--active' : ''}`}>
-              {item.name}
-            </span>
-            <span className="sb-nav-chevron">
-              {abierto ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            </span>
-          </button>
-
-          {abierto && (
-            <div className="sb-submenu">
-              {item.submenu!.map((sub) => {
-                const subActivo = location.pathname === sub.path;
-                const SubIcon = sub.icon;
-                return (
-                  <Link
-                    key={sub.path}
-                    to={sub.path}
-                    className={`sb-submenu-item ${subActivo ? 'sb-submenu-item--active' : ''}`}
-                  >
-                    <span className="sb-submenu-icon">
-                      <SubIcon size={17} strokeWidth={1.75} />
-                    </span>
-                    <span className="sb-submenu-label">{sub.name}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <Link
-        to={item.path}
-        className={`sb-nav-item ${active ? 'sb-nav-item--active' : ''}`}
-      >
-        {active && <span className="sb-nav-indicator" />}
-        <span className={`sb-nav-icon ${active ? 'sb-nav-icon--active' : ''}`}>
-          <Icon size={17} strokeWidth={1.75} />
-        </span>
-        <span className={`sb-nav-label ${active ? 'sb-nav-label--active' : ''}`}>
-          {item.name}
-        </span>
-        {item.badge && (
-          <span className="sb-nav-badge">{item.badge}</span>
-        )}
-      </Link>
-    );
-  };
+export default function Sidebar() {
+  const { logout, user } = useAuth();
+  const { dark, toggle } = useTheme();
+  const isAdmin = user?.role === 'admin';
+  const items = isAdmin ? adminItems : empleadoItems;
 
   return (
-    <aside className="sb-root">
-      <div className="sb-header">
-        <div className="sb-logo-icon">
-          <Leaf size={18} strokeWidth={1.75} />
+    <aside className={`w-52 flex flex-col h-screen flex-shrink-0 border-r transition-colors duration-200
+      ${dark
+        ? 'bg-[#1e3512] border-[#2d4a1e]'
+        : 'bg-[#2d4a1e] border-[#4a7c3f]'
+      }`}>
+
+      {/* Logo */}
+      <div className="p-4 border-b border-[#4a7c3f]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#f5f0e0] border-2 border-[#d4a843]
+                flex items-center justify-center overflow-hidden">
+            <img src="/logo.png" alt="Logo"
+            className="w-8 h-8 object-contain" />
         </div>
-        <div>
-          <h1 className="sb-title">Inventario</h1>
-          <p className="sb-subtitle">Sistema de Gestion</p>
+          <div>
+            <p className="text-sm font-bold text-[#f5f0e0]">Inventario</p>
+            <p className="text-xs text-[#8fae5a]">
+              Rol: {isAdmin ? 'Administrador' : 'Empleado'}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="sb-section">
-        <p className="sb-section-label">Principal</p>
-        <nav className="sb-nav">
-          {menuItems.map((item) => (
-            <NavItem key={item.path} item={item} />
-          ))}
-        </nav>
+      {/* Nav */}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest
+                      px-2 pt-2 pb-2">
+          {isAdmin ? 'Principal' : 'Mi Panel'}
+        </p>
+        {items.map(item => (
+          <NavLink key={item.to} to={item.to} end={item.to === '/'}
+            className={({ isActive }) =>
+              `flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all
+               ${isActive
+                 ? 'bg-[#4a7c3f] text-[#f5f0e0] font-semibold'
+                 : 'text-[#c8d9a0] hover:bg-[#3d6b2e] hover:text-[#f5f0e0]'
+               }`
+            }>
+            <span>{item.icon}</span>
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* Theme toggle */}
+      <div className="px-3 pb-2">
+        <button onClick={toggle}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-lg
+                     bg-[#3d6b2e] text-sm hover:bg-[#4a7c3f] transition-colors">
+          <span className="text-[#c8d9a0] text-xs font-semibold">
+            {dark ? '🌙 Modo oscuro' : '☀️ Modo claro'}
+          </span>
+          <div className={`w-9 h-5 rounded-full transition-colors duration-300 relative
+                          ${dark ? 'bg-[#d4a843]' : 'bg-[#8fae5a]'}`}>
+            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow
+                            transition-transform duration-300
+                            ${dark ? 'translate-x-4' : 'translate-x-0.5'}`}/>
+          </div>
+        </button>
+      </div>
+
+      {/* Footer */}
+      <div className="p-3 border-t border-[#4a7c3f]">
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-[#3d6b2e]">
+          <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center
+                          justify-content text-xs font-bold text-[#2d4a1e] flex-shrink-0
+                          flex items-center justify-center">
+            {user?.email?.[0]?.toUpperCase() ?? 'U'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-[#f5f0e0] truncate">{user?.email ?? 'Usuario'}</p>
+            <p className="text-xs text-[#8fae5a]">{isAdmin ? 'Administrador' : 'Empleado'}</p>
+          </div>
+          <button onClick={logout} title="Cerrar sesión"
+            className="text-[#8fae5a] hover:text-red-400 transition-colors text-xs">✕</button>
+        </div>
       </div>
     </aside>
   );
-};
-
-export default Sidebar;
+}

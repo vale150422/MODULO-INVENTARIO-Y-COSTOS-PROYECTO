@@ -1,15 +1,11 @@
-import Sidebar from './Sidebar';
-import { Outlet } from 'react-router-dom';
+interface Props {
+  children: React.ReactNode;
+}
 
-const DashboardLayout = () => {
+export default function DashboardLayout({ children }: Props) {
   return (
-    <div className="min-h-screen">
-      <Sidebar />
-      <div style={{ marginLeft: '240px', padding: '24px' }}>
-        <Outlet />
-      </div>
+    <div className="flex-1 overflow-auto">
+      {children}
     </div>
   );
-};
-
-export default DashboardLayout;
+}

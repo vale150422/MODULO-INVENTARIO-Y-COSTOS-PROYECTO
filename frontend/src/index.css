@@ -1,163 +1,141 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@300;400;500;600;700&display=swap');
-:root {
-
-  /* ======================================================
-     COLORES BASE
-  ====================================================== */
-
-  --bg-principal: #f5f2e9;
-  --bg-secundario: #ffffff;
-  --bg-sidebar: #47663c;
-  --bg-navbar: #ffffff;
-  --bg-card: #ffffff;
-  --bg-hover: #eef2eb;
-
-  --color-primario: #47663c;
-  --color-secundario: #5f7c52;
-  --color-acento: #a4ac86;
-
-  --texto-principal: #2b2b2b;
-  --texto-secundario: #6b7280;
-  --texto-blanco: #ffffff;
-
-  --borde-color: #dcdcdc;
-
-  --success-color: #16a34a;
-  --danger-color: #dc2626;
-  --warning-color: #f59e0b;
-
-  /* ======================================================
-     TIPOGRAFÍA
-  ====================================================== */
-
-  --font-principal: 'Poppins', sans-serif;
-
-  --text-xs: 12px;
-  --text-sm: 14px;
-  --text-base: 16px;
-  --text-lg: 18px;
-  --text-xl: 22px;
-  --text-2xl: 28px;
-  --text-3xl: 36px;
-
-  --font-normal: 400;
-  --font-medium: 500;
-  --font-semibold: 600;
-  --font-bold: 700;
-
-  --line-height: 1.5;
-
-  /* ======================================================
-     ESPACIADOS
-  ====================================================== */
-
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-
-  /* ======================================================
-     BORDES
-  ====================================================== */
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
-
-  /* ======================================================
-     SOMBRAS
-  ====================================================== */
-
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
-  --shadow-md: 0 6px 18px rgba(0,0,0,0.08);
-
-  /* ======================================================
-     TRANSICIONES
-  ====================================================== */
-
-  --transition-fast: 0.2s ease;
-  --transition-slow: 0.3s ease;
-
-  /* ======================================================
-     SIDEBAR
-  ====================================================== */
-
-  --sidebar-width: 240px;
-  --sidebar-item-hover: rgba(255,255,255,0.08);
-  --sidebar-item-active: rgba(164,172,134,0.22);
-
-  /* ======================================================
-     NAVBAR
-  ====================================================== */
-
-  --navbar-height: 70px;
-
-  /* ======================================================
-     BOTONES
-  ====================================================== */
-
-  --btn-primary-bg: #47663c;
-  --btn-primary-hover: #5f7c52;
-  --btn-primary-text: #ffffff;
-
-  --btn-danger-bg: #dc2626;
-  --btn-danger-text: #ffffff;
-
-  /* ======================================================
-     INPUTS
-  ====================================================== */
-
-  --input-bg: #ffffff;
-  --input-border: #dcdcdc;
-  --input-focus: #5f7c52;
-
-  /* ======================================================
-     TABLAS
-  ====================================================== */
-
-  --table-header-bg: #47663c;
-  --table-header-text: #ffffff;
-
-  --table-row-hover: #f3f4f6;
-
-}
-
-
-/* ======================================================
-   TIPOGRAFÍA GLOBAL
-====================================================== */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 * {
-  font-family: var(--font-principal);
-  box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
-  font-family: var(--font-principal);
-  font-size: var(--text-base);
-  color: var(--texto-principal);
-  margin: 0;
-  padding: 0;
-  line-height: var(--line-height);
+    font-family: 'DM Sans', sans-serif;
+    transition: background-color 0.2s, color 0.2s;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-principal);
-  margin: 0;
+
+/* ===== MODO OSCURO ===== */
+
+.dark body {
+    background-color: #1a2e12;
+    color: #f0ead6;
 }
 
-p {
-  font-family: var(--font-principal);
-  margin: 0;
+
+/* ===== MODO CLARO ===== */
+
+html:not(.dark) body {
+    background-color: #f5f0e0;
+    color: #2d4a1e;
 }
 
-button {
-  font-family: var(--font-principal);
+
+/* Sidebar */
+
+html:not(.dark) aside {
+    background-color: #2d4a1e !important;
+    border-color: #4a7c3f !important;
 }
 
-input, select, textarea {
-  font-family: var(--font-principal);
+
+/* Cards */
+
+html:not(.dark) .bg-\[\#1a2e22\],
+html:not(.dark) .bg-\[\#111c17\],
+html:not(.dark) .bg-\[\#162a1e\],
+html:not(.dark) .bg-\[\#0d1f14\] {
+    background-color: #ffffff !important;
+    border-color: #c8d9a0 !important;
+}
+
+
+/* Bordes */
+
+html:not(.dark) .border-\[\#264d35\],
+html:not(.dark) .border-\[\#1a2e22\] {
+    border-color: #c8d9a0 !important;
+}
+
+
+/* Textos */
+
+html:not(.dark) .text-white {
+    color: #2d4a1e !important;
+}
+
+html:not(.dark) .text-green-400 {
+    color: #4a7c3f !important;
+}
+
+html:not(.dark) .text-green-300 {
+    color: #6b8c3e !important;
+}
+
+html:not(.dark) .text-green-700 {
+    color: #4a7c3f !important;
+}
+
+html:not(.dark) .text-green-800 {
+    color: #3d6b2e !important;
+}
+
+html:not(.dark) .text-green-900 {
+    color: #2d4a1e !important;
+}
+
+html:not(.dark) .text-red-400 {
+    color: #dc2626 !important;
+}
+
+html:not(.dark) .text-red-300 {
+    color: #ef4444 !important;
+}
+
+html:not(.dark) .text-purple-400 {
+    color: #7c3aed !important;
+}
+
+
+/* Nav hover */
+
+html:not(.dark) .hover\:bg-\[\#162a1e\]:hover {
+    background-color: #e8f0d0 !important;
+}
+
+
+/* Tabla hover */
+
+html:not(.dark) .hover\:bg-\[\#111c17\]:hover {
+    background-color: #f5f0e0 !important;
+}
+
+
+/* Inputs */
+
+html:not(.dark) input {
+    background-color: #ffffff !important;
+    border-color: #8fae5a !important;
+    color: #2d4a1e !important;
+}
+
+
+/* Pills */
+
+html:not(.dark) .bg-green-900\/60 {
+    background-color: #d4e8b0 !important;
+}
+
+html:not(.dark) .bg-red-900\/40 {
+    background-color: #fee2e2 !important;
+}
+
+html:not(.dark) .bg-purple-900\/40 {
+    background-color: #ede9fe !important;
+}
+
+
+/* Nav activo */
+
+html:not(.dark) .bg-green-900\/40 {
+    background-color: #c8d9a0 !important;
+    border-color: #8fae5a !important;
 }

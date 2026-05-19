@@ -1,3 +1,4 @@
+require('../config/db');
 import express from 'express';
 import cors from 'cors';
 import './database';
@@ -21,6 +22,6 @@ app.use('/api/fincas', fincaRoutes);
 app.use('/api/proveedores', proveedorRoutes);
 app.use('/api/trabajadores', trabajadorRoutes);
 
-app.listen(3001, () => {
-  console.log('Servidor corriendo en http://localhost:3001');
+app.listen(4000, () => {
+  console.log('Servidor corriendo en http://localhost:4000');
 });
