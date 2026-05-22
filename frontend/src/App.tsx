@@ -1,7 +1,6 @@
 import { useAuth } from './hooks/useAuth';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Kardex from './pages/Kardex';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/layout/Sidebar';
 import Topbar from './components/layout/Topbar';
@@ -10,6 +9,9 @@ import ProductoPage from './pages/ProductoPage/ProductosPage';
 import ProveedorPage from './pages/ProveedorPage/ProveedorPage';
 import TrabajadorPage from './pages/TrabajadorPage/TrabajadorPage';
 import Reportes from './pages/Reportes';
+import MiPanelPage from './pages/MiPanelPage';
+import ReporteKardex from './pages/ReporteKardex';
+import Kardex from './pages/Kardex';
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -38,13 +40,19 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
-        <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+        <Route path="/" element={
+          <ProtectedLayout>
+            {user?.role === 'admin' ? <Dashboard /> : <MiPanelPage />}
+          </ProtectedLayout>
+        } />
         <Route path="/kardex" element={<ProtectedLayout><Kardex /></ProtectedLayout>} />
         <Route path="/fincas" element={<ProtectedLayout><FincaPage /></ProtectedLayout>} />
         <Route path="/productos" element={<ProtectedLayout><ProductoPage /></ProtectedLayout>} />
         <Route path="/proveedores" element={<ProtectedLayout><ProveedorPage /></ProtectedLayout>} />
         <Route path="/trabajadores" element={<ProtectedLayout><TrabajadorPage /></ProtectedLayout>} />
         <Route path="/reportes" element={<ProtectedLayout><Reportes /></ProtectedLayout>} />
+        <Route path="/mi-panel" element={<ProtectedLayout><MiPanelPage /></ProtectedLayout>} />
+        <Route path="/reporte-kardex" element={<ProtectedLayout><ReporteKardex /></ProtectedLayout>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

@@ -15,16 +15,18 @@ export function useAuth() {
   const loading = false;
 
   const login = async (email: string, password: string) => {
-    const { token, user } = await api.login(email, password);
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    setUser(user);
+  const { token, user } = await api.login(email, password);
+  localStorage.setItem('token', token);
+  localStorage.setItem('user', JSON.stringify(user));
+  setUser(user);
+  window.location.href = '/';
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  setUser(null);
+  window.location.href = '/login';
   };
 
   return { user, loading, login, logout };

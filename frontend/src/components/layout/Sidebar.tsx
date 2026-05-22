@@ -13,8 +13,10 @@ const adminItems = [
 ];
 
 const empleadoItems = [
-  { to: '/',       label: 'Mi Panel', icon: '🏠' },
-  { to: '/fincas', label: 'Cultivos', icon: '🌱' },
+  { to: '/mi-panel',       label: 'Mi Panel',      icon: '🏠' },
+  { to: '/fincas',         label: 'Mis Fincas',    icon: '🌿' },
+  { to: '/kardex',         label: 'Kardex',        icon: '📦' },
+  { to: '/reporte-kardex', label: 'Reporte',       icon: '📊' },
 ];
 
 export default function Sidebar() {
