@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
-import { getProducts, createProduct, getProductById, updateProduct, deleteProduct } from '../models/productoModels';
+import {
+  getProducts, createProduct, getProductById,
+  updateProduct, inactivarProduct, activarProduct
+} from '../models/productoModels';
 
 export const getAllProducts = async (_req: Request, res: Response) => {
   try {
@@ -15,6 +18,7 @@ export const addProduct = async (req: Request, res: Response) => {
     const newProduct = await createProduct(req.body);
     res.json(newProduct);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Error al crear producto' });
   }
 };
@@ -42,9 +46,29 @@ export const editProduct = async (req: Request, res: Response) => {
 export const removeProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    await deleteProduct(Number(id));
-    res.json({ message: 'Producto eliminado' });
+    await inactivarProduct(Number(id));
+    res.json({ message: 'Producto inactivado' });
   } catch (error) {
     res.status(500).json({ message: 'Error al eliminar producto' });
+  }
+};
+
+export const inactivarProductController = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await inactivarProduct(Number(id));
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al inactivar producto' });
+  }
+};
+
+export const activarProductController = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await activarProduct(Number(id));
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al activar producto' });
   }
 };

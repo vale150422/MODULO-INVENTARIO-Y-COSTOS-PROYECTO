@@ -12,6 +12,8 @@ import Reportes from './pages/Reportes';
 import MiPanelPage from './pages/MiPanelPage';
 import ReporteKardex from './pages/ReporteKardex';
 import Kardex from './pages/Kardex';
+import CategoriaPage from './pages/CategoriaPage/CategoriaPage';
+import PerfilAdmin from './pages/PerfilAdmin';
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -53,6 +55,8 @@ export default function App() {
         <Route path="/reportes" element={<ProtectedLayout><Reportes /></ProtectedLayout>} />
         <Route path="/mi-panel" element={<ProtectedLayout><MiPanelPage /></ProtectedLayout>} />
         <Route path="/reporte-kardex" element={<ProtectedLayout><ReporteKardex /></ProtectedLayout>} />
+        <Route path="/categorias" element={<ProtectedLayout><CategoriaPage /></ProtectedLayout>} />
+        <Route path="/perfil" element={<ProtectedLayout><PerfilAdmin /></ProtectedLayout>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

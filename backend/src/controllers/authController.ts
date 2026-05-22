@@ -3,6 +3,28 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../database/connection';
 
+export const cambiarPassword = async (req: Request, res: Response) => {
+  const { actual, nueva } = req.body;
+  const id = (req as any).user?.id;
+  try {
+    const result = await pool.query(
+      'SELECT password FROM usuario WHERE id_usuario = $1', [id]
+    );
+    const user = result.rows[0];
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const valid = await bcrypt.compare(actual, user.password);
+    if (!valid) return res.status(400).json({ error: 'Contraseña actual incorrecta' });
+
+    const hash = await bcrypt.hash(nueva, 10);
+    await pool.query(
+      'UPDATE usuario SET password = $1 WHERE id_usuario = $2', [hash, id]
+    );
+    res.json({ message: 'Contraseña actualizada' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error del servidor' });
+  }
+};
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
   try {

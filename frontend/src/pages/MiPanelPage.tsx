@@ -12,14 +12,11 @@ export default function MiPanelPage() {
   const cambiarPassword = (e: React.FormEvent) => {
     e.preventDefault();
     if (passNueva !== passConfirm) {
-      setMsgPass('Las contraseñas no coinciden');
-      return;
+      setMsgPass('Las contraseñas no coinciden'); return;
     }
     if (passNueva.length < 6) {
-      setMsgPass('La contraseña debe tener al menos 6 caracteres');
-      return;
+      setMsgPass('La contraseña debe tener al menos 6 caracteres'); return;
     }
-    // Aquí conectarás con el backend
     setMsgPass('✓ Contraseña actualizada correctamente');
     setPassActual(''); setPassNueva(''); setPassConfirm('');
     setTimeout(() => { setMsgPass(''); setShowCambiarPass(false); }, 2000);
@@ -31,17 +28,17 @@ export default function MiPanelPage() {
       {/* Header con logo */}
       <div className="bg-[#2d4a1e] rounded-2xl p-6 mb-6 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10"
-          style={{background:'radial-gradient(circle at 80% 50%, #6b8c3e, transparent 60%)'}}/>
+          style={{ background: 'radial-gradient(circle at 80% 50%, #6b8c3e, transparent 60%)' }} />
         <div className="flex items-center gap-6 z-10 relative">
-          <img src="/logo.png" alt="Logo"
-            className="w-20 h-20 object-contain rounded-full
-                       border-2 border-[#d4a843] flex-shrink-0"/>
+          <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#d4a843] flex-shrink-0 bg-[#f5f0e0]">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-[1.35]" />
+          </div>
           <div>
             <p className="text-xs text-[#8fae5a] uppercase tracking-widest mb-1">
               Sistema de Inventario AgroGestión
             </p>
             <h1 className="text-2xl font-bold text-white">
-              ¡Bienvenido, {user?.email?.split('@')[0]}!
+              ¡Bienvenid@, {user?.email?.split('@')[0]}!
             </h1>
             <p className="text-[#c8d9a0] text-sm mt-1">
               Panel de Empleado · Módulo de Inventario
@@ -59,17 +56,14 @@ export default function MiPanelPage() {
           </h2>
           <div className="space-y-3">
             {[
-              { label:'Correo',     value: user?.email ?? '—'      },
-              { label:'Rol',        value: 'Empleado'               },
-              { label:'Estado',     value: 'Activo'                 },
-              { label:'Módulo',     value: 'Inventario / Kardex'    },
+              { label: 'Correo',  value: user?.email ?? '—'   },
+              { label: 'Rol',     value: 'Empleado'            },
+              { label: 'Estado',  value: 'Activo'              },
+              { label: 'Módulo',  value: 'Inventario / Kardex' },
             ].map(item => (
               <div key={item.label}
-                className="flex items-center justify-between py-2
-                           border-b border-[#264d35] last:border-0">
-                <span className="text-xs text-[#8fae5a] uppercase tracking-widest">
-                  {item.label}
-                </span>
+                className="flex items-center justify-between py-2 border-b border-[#264d35] last:border-0">
+                <span className="text-xs text-[#8fae5a] uppercase tracking-widest">{item.label}</span>
                 <span className="text-sm text-white font-medium">{item.value}</span>
               </div>
             ))}
@@ -83,8 +77,7 @@ export default function MiPanelPage() {
               🔒 Seguridad
             </h2>
             <button onClick={() => setShowCambiarPass(!showCambiarPass)}
-              className="text-xs px-3 py-1.5 bg-[#3d6b2e] text-[#c8d9a0]
-                         rounded-lg hover:bg-[#4a7c3f] transition-colors">
+              className="text-xs px-3 py-1.5 bg-[#3d6b2e] text-[#c8d9a0] rounded-lg hover:bg-[#4a7c3f] transition-colors">
               {showCambiarPass ? 'Cancelar' : 'Cambiar contraseña'}
             </button>
           </div>
@@ -100,17 +93,16 @@ export default function MiPanelPage() {
           ) : (
             <form onSubmit={cambiarPassword} className="space-y-3">
               {[
-                { label:'Contraseña actual',   val:passActual,  set:setPassActual  },
-                { label:'Nueva contraseña',    val:passNueva,   set:setPassNueva   },
-                { label:'Confirmar contraseña',val:passConfirm, set:setPassConfirm },
+                { label: 'Contraseña actual',    val: passActual,  set: setPassActual  },
+                { label: 'Nueva contraseña',     val: passNueva,   set: setPassNueva   },
+                { label: 'Confirmar contraseña', val: passConfirm, set: setPassConfirm },
               ].map(f => (
                 <div key={f.label}>
                   <label className="block text-xs text-[#8fae5a] mb-1">{f.label}</label>
                   <input type="password" value={f.val}
                     onChange={e => f.set(e.target.value)} required
                     className="w-full bg-[#111c17] border border-[#264d35] rounded-lg
-                               px-3 py-2 text-sm text-white outline-none
-                               focus:border-[#4a7c3f] transition-colors"/>
+                               px-3 py-2 text-sm text-white outline-none focus:border-[#4a7c3f] transition-colors" />
                 </div>
               ))}
               {msgPass && (
@@ -119,8 +111,8 @@ export default function MiPanelPage() {
                 </p>
               )}
               <button type="submit"
-                className="w-full py-2 bg-[#4a7c3f] text-white rounded-lg
-                           text-sm font-semibold hover:bg-[#3d6b2e] transition-colors">
+                className="w-full py-2 bg-[#4a7c3f] text-white rounded-lg text-sm font-semibold
+                           hover:bg-[#3d6b2e] transition-colors">
                 Actualizar contraseña
               </button>
             </form>
@@ -134,19 +126,16 @@ export default function MiPanelPage() {
           </h2>
           <div className="grid grid-cols-3 gap-4">
             {[
-              { icon:'📦', label:'Kardex PEPS',     sub:'Registrar movimientos',  to:'/kardex'          },
-              { icon:'🌿', label:'Mis Fincas',       sub:'Ver fincas asignadas',   to:'/fincas'          },
-              { icon:'📊', label:'Reporte Kardex',   sub:'Imprimir inventario',    to:'/reporte-kardex'  },
+              { icon: '📦', label: 'Kardex PEPS',   sub: 'Registrar movimientos', to: '/kardex'         },
+              { icon: '🌿', label: 'Mis Fincas',     sub: 'Ver fincas asignadas',  to: '/fincas'         },
+              { icon: '📊', label: 'Reporte Kardex', sub: 'Imprimir inventario',   to: '/reporte-kardex' },
             ].map(item => (
               <a key={item.label} href={item.to}
                 className="flex items-center gap-3 p-4 bg-[#111c17] border border-[#264d35]
-                           rounded-xl hover:border-[#4a7c3f] hover:bg-[#162a1e] transition-all
-                           cursor-pointer group">
+                           rounded-xl hover:border-[#4a7c3f] hover:bg-[#162a1e] transition-all cursor-pointer group">
                 <div className="text-3xl">{item.icon}</div>
                 <div>
-                  <p className="text-sm font-semibold text-white group-hover:text-[#c8d9a0]">
-                    {item.label}
-                  </p>
+                  <p className="text-sm font-semibold text-white group-hover:text-[#c8d9a0]">{item.label}</p>
                   <p className="text-xs text-[#8fae5a]">{item.sub}</p>
                 </div>
               </a>

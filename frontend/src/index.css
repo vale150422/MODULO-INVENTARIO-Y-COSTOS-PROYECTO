@@ -139,3 +139,19 @@ html:not(.dark) .bg-green-900\/40 {
     background-color: #c8d9a0 !important;
     border-color: #8fae5a !important;
 }
+/* Forzar texto claro en banners verdes oscuros */
+html:not(.dark) .bg-\[\#2d4a1e\] h1,
+html:not(.dark) .bg-\[\#2d4a1e\] h2,
+html:not(.dark) .bg-\[\#2d4a1e\] p,
+html:not(.dark) .bg-\[\#2d4a1e\] span {
+  color: #f5f0e0 !important;
+}
+
+/* Topbar claro */
+html:not(.dark) .bg-\[\#111c17\].h-14 {
+  background-color: #2d4a1e !important;
+}
+
+html:not(.dark) .bg-\[\#111c17\].h-14 p {
+  color: #f5f0e0 !important;
+}

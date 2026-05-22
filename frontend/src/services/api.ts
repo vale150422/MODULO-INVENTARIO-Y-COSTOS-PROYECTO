@@ -72,4 +72,9 @@ export const api = {
     if (!r.ok) throw new Error('Error al cargar reporte');
     return r.json();
   },
+  async getDashboard() {
+  const r = await fetch(`${BASE}/kardex/dashboard`, { headers: getHeaders() });
+  if (!r.ok) throw new Error('Error al cargar dashboard');
+  return r.json();
+  },
 };

@@ -4,7 +4,8 @@ import {
   getKardex,
   getLotes,
   registrarMovimiento,
-  getReporteConsolidado
+  getReporteConsolidado,
+  getDashboard
 } from '../controllers/kardexController';
 import { authenticate } from '../middleware/authMiddleware';
 
@@ -13,8 +14,10 @@ router.use(authenticate);
 
 router.get('/productos',          getProductos);
 router.get('/reporte',            getReporteConsolidado);
+router.get('/dashboard',          getDashboard);
+router.post('/movimiento',        registrarMovimiento);
 router.get('/:id_producto',       getKardex);
 router.get('/:id_producto/lotes', getLotes);
-router.post('/movimiento',        registrarMovimiento);
+
 
 export default router;

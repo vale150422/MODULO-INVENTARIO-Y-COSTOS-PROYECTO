@@ -2,9 +2,13 @@ import { useEffect, useState } from 'react';
 import { getFincas, createFinca, updateFinca, deleteFinca } from '../../services/fincaService';
 import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
+import { useAuth } from '../../hooks/useAuth';
 import './FincaPage.css';
 
 const FincasPage = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   const [fincas, setFincas] = useState<any[]>([]);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
@@ -36,9 +40,7 @@ const FincasPage = () => {
     try {
       await createFinca({ nombre, municipio, vereda });
       showToast('Finca creada exitosamente', 'success');
-      setNombre('');
-      setMunicipio('');
-      setVereda('');
+      setNombre(''); setMunicipio(''); setVereda('');
       setModalAbierto(false);
       cargarFincas();
     } catch {
@@ -83,9 +85,7 @@ const FincasPage = () => {
 
   const cerrarModal = () => {
     setModalAbierto(false);
-    setNombre('');
-    setMunicipio('');
-    setVereda('');
+    setNombre(''); setMunicipio(''); setVereda('');
   };
 
   const cerrarModalEditar = () => {
@@ -98,11 +98,16 @@ const FincasPage = () => {
       <div className="pp-header">
         <div>
           <h1 className="pp-title">Fincas</h1>
-          <p className="pp-subtitle">Gestión de fincas registradas</p>
+          <p className="pp-subtitle">
+            {isAdmin ? 'Gestión de fincas registradas' : 'Fincas disponibles'}
+          </p>
         </div>
-        <button className="pp-btn-nuevo" onClick={() => setModalAbierto(true)}>
-          + Nueva Finca
-        </button>
+        {/* Botón Nueva Finca solo para admin */}
+        {isAdmin && (
+          <button className="pp-btn-nuevo" onClick={() => setModalAbierto(true)}>
+            + Nueva Finca
+          </button>
+        )}
       </div>
 
       <div className="pp-table-wrapper">
@@ -116,13 +121,14 @@ const FincasPage = () => {
               <th>Municipio</th>
               <th>Vereda</th>
               <th>Fecha Creación</th>
-              <th>Acciones</th>
+              {/* Columna Acciones solo para admin */}
+              {isAdmin && <th>Acciones</th>}
             </tr>
           </thead>
           <tbody>
             {fincas.length === 0 ? (
               <tr>
-                <td colSpan={5} className="pp-empty-row">
+                <td colSpan={isAdmin ? 5 : 4} className="pp-empty-row">
                   No hay fincas registradas aún
                 </td>
               </tr>
@@ -133,10 +139,13 @@ const FincasPage = () => {
                   <td>{f.municipio || '—'}</td>
                   <td>{f.vereda || '—'}</td>
                   <td>{f.created_at ? new Date(f.created_at).toLocaleDateString('es-CO') : '—'}</td>
-                  <td className="pp-td-acciones">
-                    <button className="pp-btn-editar" onClick={() => abrirEditar(f)}>Editar</button>
-                    <button className="pp-btn-eliminar" onClick={() => handleEliminar(f.id_finca)}>Eliminar</button>
-                  </td>
+                  {/* Botones solo para admin */}
+                  {isAdmin && (
+                    <td className="pp-td-acciones">
+                      <button className="pp-btn-editar" onClick={() => abrirEditar(f)}>Editar</button>
+                      <button className="pp-btn-eliminar" onClick={() => handleEliminar(f.id_finca)}>Eliminar</button>
+                    </td>
+                  )}
                 </tr>
               ))
             )}
@@ -144,8 +153,8 @@ const FincasPage = () => {
         </table>
       </div>
 
-      {/* MODAL CREAR */}
-      {modalAbierto && (
+      {/* MODAL CREAR — solo admin llega aquí */}
+      {modalAbierto && isAdmin && (
         <div className="pp-modal-overlay" onClick={cerrarModal}>
           <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
             <div className="pp-modal-header">
@@ -156,26 +165,14 @@ const FincasPage = () => {
             </div>
             <div className="pp-modal-body">
               <label className="pp-label">Nombre</label>
-              <input
-                className="pp-input"
-                placeholder="Ej: Miraflores"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-              />
+              <input className="pp-input" placeholder="Ej: Miraflores"
+                value={nombre} onChange={(e) => setNombre(e.target.value)} />
               <label className="pp-label">Municipio</label>
-              <input
-                className="pp-input"
-                placeholder="Ej: Caicedonia"
-                value={municipio}
-                onChange={(e) => setMunicipio(e.target.value)}
-              />
+              <input className="pp-input" placeholder="Ej: Caicedonia"
+                value={municipio} onChange={(e) => setMunicipio(e.target.value)} />
               <label className="pp-label">Vereda</label>
-              <input
-                className="pp-input"
-                placeholder="Ej: La Esmeralda"
-                value={vereda}
-                onChange={(e) => setVereda(e.target.value)}
-              />
+              <input className="pp-input" placeholder="Ej: La Esmeralda"
+                value={vereda} onChange={(e) => setVereda(e.target.value)} />
             </div>
             <div className="pp-modal-footer">
               <button className="pp-btn-cancelar" onClick={cerrarModal}>Cancelar</button>
@@ -185,8 +182,8 @@ const FincasPage = () => {
         </div>
       )}
 
-      {/* MODAL EDITAR */}
-      {modalEditarAbierto && (
+      {/* MODAL EDITAR — solo admin */}
+      {modalEditarAbierto && isAdmin && (
         <div className="pp-modal-overlay" onClick={cerrarModalEditar}>
           <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
             <div className="pp-modal-header">
@@ -197,26 +194,14 @@ const FincasPage = () => {
             </div>
             <div className="pp-modal-body">
               <label className="pp-label">Nombre</label>
-              <input
-                className="pp-input"
-                placeholder="Ej: Miraflores"
-                value={nombreEditar}
-                onChange={(e) => setNombreEditar(e.target.value)}
-              />
+              <input className="pp-input" placeholder="Ej: Miraflores"
+                value={nombreEditar} onChange={(e) => setNombreEditar(e.target.value)} />
               <label className="pp-label">Municipio</label>
-              <input
-                className="pp-input"
-                placeholder="Ej: Caicedonia"
-                value={municipioEditar}
-                onChange={(e) => setMunicipioEditar(e.target.value)}
-              />
+              <input className="pp-input" placeholder="Ej: Caicedonia"
+                value={municipioEditar} onChange={(e) => setMunicipioEditar(e.target.value)} />
               <label className="pp-label">Vereda</label>
-              <input
-                className="pp-input"
-                placeholder="Ej: La Esmeralda"
-                value={veredaEditar}
-                onChange={(e) => setVeredaEditar(e.target.value)}
-              />
+              <input className="pp-input" placeholder="Ej: La Esmeralda"
+                value={veredaEditar} onChange={(e) => setVeredaEditar(e.target.value)} />
             </div>
             <div className="pp-modal-footer">
               <button className="pp-btn-cancelar" onClick={cerrarModalEditar}>Cancelar</button>

@@ -29,12 +29,19 @@ interface Producto {
   unidadmedida: Unidad;
   categoria: string;
   finca: string;
+  id_finca: number;
   saldo_cantidad: number;
   saldo_valor: number;
 }
 
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO');
 const fmtU = (n: number, u: string) => Number(n).toLocaleString('es-CO') + ' ' + u;
+
+// Convierte "5.000" o "5000" a número 5000
+const parseCOP = (val: string): number => {
+  const limpio = val.replace(/\./g, '').replace(/,/g, '.');
+  return parseFloat(limpio) || 0;
+};
 
 export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -44,7 +51,6 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const [loadingProd, setLoadingProd] = useState(true);
   const [loadingMov, setLoadingMov] = useState(false);
 
-  // Formulario movimiento
   const [showForm, setShowForm] = useState(false);
   const [tipo, setTipo] = useState<'ENTRADA' | 'SALIDA'>('ENTRADA');
   const [detalle, setDetalle] = useState('');
@@ -56,12 +62,10 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const producto = productos.find(p => p.id_producto === selectedId);
   const totalInventario = productos.reduce((acc, p) => acc + Number(p.saldo_valor), 0);
 
-  // Cargar productos al montar
   useEffect(() => {
     cargarProductos();
   }, []);
 
-  // Cargar movimientos y lotes cuando cambia el producto
   useEffect(() => {
     if (selectedId) {
       cargarMovimientos(selectedId);
@@ -105,8 +109,8 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
 
   const registrar = async () => {
     setError('');
-    const qty = parseFloat(cantidad);
-    const cost = parseFloat(costo);
+    const qty = parseCOP(cantidad);
+    const cost = parseCOP(costo);
     if (!detalle.trim()) return setError('Ingresa un detalle');
     if (!qty || qty <= 0) return setError('Cantidad inválida');
     if (tipo === 'ENTRADA' && (!cost || cost <= 0)) return setError('Costo inválido');
@@ -120,9 +124,8 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
         cantidad: qty,
         costo_unitario: tipo === 'SALIDA' ? 0 : cost,
         detalle,
-        id_finca: 1, // TODO: obtener de la sesión del usuario
+        id_finca: producto.id_finca,
       });
-      // Recargar datos
       await cargarProductos();
       await cargarMovimientos(selectedId!);
       await cargarLotes(selectedId!);
@@ -143,7 +146,6 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-semibold text-white">Kardex PEPS</h1>
@@ -177,8 +179,6 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
         </div>
       ) : (
         <div className="grid grid-cols-4 gap-4">
-
-          {/* Lista productos + consolidado */}
           <div className="col-span-1">
             <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-3 mb-3">
               <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-3">
@@ -201,12 +201,11 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
               </div>
             </div>
 
-            {/* Consolidado */}
             <div className="bg-[#1a2e22] border border-[#d4a843]/40 rounded-xl p-3">
               <p className="text-xs font-semibold text-[#d4a843] uppercase tracking-widest mb-3">
                 Inventario consolidado
               </p>
-              <p className="text-xs text-[#8fae5a] mb-1">Total en pesos:</p>
+              <p className="text-xs text-[#8fae5a] mb-1">Valor total (COP $):</p>
               <p className="text-lg font-bold text-[#d4a843] font-mono">
                 {fmt(totalInventario)}
               </p>
@@ -214,26 +213,20 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                 {productos.map(p => (
                   <div key={p.id_producto} className="flex justify-between text-[10px]">
                     <span className="text-[#8fae5a] truncate">{p.nombre}</span>
-                    <span className="text-white font-mono ml-2">
-                      {fmt(p.saldo_valor)}
-                    </span>
+                    <span className="text-white font-mono ml-2">{fmt(p.saldo_valor)}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Kardex producto */}
           <div className="col-span-3">
             {producto ? (
               <>
-                {/* Info producto */}
                 <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4 mb-4">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <h2 className="text-base font-semibold text-white">
-                        {producto.nombre}
-                      </h2>
+                      <h2 className="text-base font-semibold text-white">{producto.nombre}</h2>
                       <div className="flex gap-2 mt-1 flex-wrap">
                         <span className="px-2 py-0.5 bg-[#3d6b2e] text-[#c8d9a0]
                                          rounded text-[10px] font-semibold">
@@ -264,7 +257,6 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                     </div>
                   </div>
 
-                  {/* Lotes disponibles */}
                   {lotes.length > 0 && (
                     <div>
                       <p className="text-xs font-semibold text-[#8fae5a] mb-2">
@@ -290,7 +282,6 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                   )}
                 </div>
 
-                {/* Formulario movimiento */}
                 {canEdit && showForm && (
                   <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4 mb-4">
                     <h3 className="text-sm font-semibold text-[#4a7c3f] mb-4">
@@ -340,9 +331,20 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                             </span>
                           )}
                         </label>
-                        <input type="number" value={cantidad}
-                          onChange={e => setCantidad(e.target.value)}
-                          placeholder="0" min="1"
+                        {/* INPUT CANTIDAD — acepta puntos de miles colombianos */}
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={cantidad}
+                          onChange={e => {
+                            const val = e.target.value.replace(/[^\d.]/g, '');
+                            setCantidad(val);
+                          }}
+                          onBlur={e => {
+                            const num = parseCOP(e.target.value);
+                            if (!isNaN(num) && num > 0) setCantidad(String(num));
+                          }}
+                          placeholder="Ej: 10"
                           className="w-full bg-[#111c17] border border-[#264d35] rounded-lg
                                      px-3 py-2 text-sm text-white outline-none
                                      focus:border-[#4a7c3f] font-mono"/>
@@ -354,12 +356,26 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                                             uppercase tracking-widest mb-2">
                             Costo unitario ($/{producto.unidadmedida})
                           </label>
-                          <input type="number" value={costo}
-                            onChange={e => setCosto(e.target.value)}
-                            placeholder="0"
+                          {/* INPUT COSTO — acepta puntos de miles colombianos */}
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={costo}
+                            onChange={e => {
+                              const val = e.target.value.replace(/[^\d.]/g, '');
+                              setCosto(val);
+                            }}
+                            onBlur={e => {
+                              const num = parseCOP(e.target.value);
+                              if (!isNaN(num) && num > 0) setCosto(String(num));
+                            }}
+                            placeholder="Ej: 5.000"
                             className="w-full bg-[#111c17] border border-[#264d35] rounded-lg
                                        px-3 py-2 text-sm text-white outline-none
                                        focus:border-[#4a7c3f] font-mono"/>
+                          <p className="text-[10px] text-[#8fae5a] mt-1">
+                            Puedes escribir 5.000 o 5000
+                          </p>
                         </div>
                       ) : (
                         <div className="bg-[#111c17] border border-[#264d35] rounded-lg p-3">
@@ -389,7 +405,6 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                   </div>
                 )}
 
-                {/* Tabla Kardex */}
                 <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4
                                 overflow-x-auto">
                   <h3 className="text-sm font-semibold text-[#4a7c3f] mb-4">
@@ -428,32 +443,23 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                               {new Date(m.fecha).toLocaleDateString('es-CO')}
                             </td>
                             <td className="py-2 px-2 text-white">{m.detalle}</td>
-                            <td className="py-2 px-2 text-[#8fae5a] text-[10px]">
-                              {m.usuario}
-                            </td>
+                            <td className="py-2 px-2 text-[#8fae5a] text-[10px]">{m.usuario}</td>
                             <td className="py-2 px-2">
                               {m.tipo === 'ENTRADA' && (
                                 <span className="px-2 py-0.5 bg-green-900/60 text-green-400
-                                                 rounded text-[10px] font-semibold">
-                                  ENTRADA
-                                </span>
+                                                 rounded text-[10px] font-semibold">ENTRADA</span>
                               )}
                               {m.tipo === 'SALIDA' && (
                                 <span className="px-2 py-0.5 bg-red-900/40 text-red-400
-                                                 rounded text-[10px] font-semibold">
-                                  SALIDA
-                                </span>
+                                                 rounded text-[10px] font-semibold">SALIDA</span>
                               )}
                               {m.tipo === 'INICIO' && (
                                 <span className="px-2 py-0.5 bg-purple-900/40 text-purple-400
-                                                 rounded text-[10px] font-semibold">
-                                  INICIO
-                                </span>
+                                                 rounded text-[10px] font-semibold">INICIO</span>
                               )}
                             </td>
                             <td className="py-2 px-2 text-right text-green-400">
-                              {m.tipo !== 'SALIDA'
-                                ? fmtU(m.cantidad, producto.unidadmedida) : '—'}
+                              {m.tipo !== 'SALIDA' ? fmtU(m.cantidad, producto.unidadmedida) : '—'}
                             </td>
                             <td className="py-2 px-2 text-right text-green-300">
                               {m.tipo !== 'SALIDA' ? fmt(m.costo_unitario) : '—'}
@@ -462,8 +468,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                               {m.tipo !== 'SALIDA' ? fmt(m.total) : '—'}
                             </td>
                             <td className="py-2 px-2 text-right text-red-400">
-                              {m.tipo === 'SALIDA'
-                                ? fmtU(m.cantidad, producto.unidadmedida) : '—'}
+                              {m.tipo === 'SALIDA' ? fmtU(m.cantidad, producto.unidadmedida) : '—'}
                             </td>
                             <td className="py-2 px-2 text-right text-red-300">
                               {m.tipo === 'SALIDA' ? fmt(m.costo_unitario) : '—'}
@@ -502,9 +507,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
             ) : (
               <div className="flex items-center justify-center bg-[#1a2e22]
                               border border-[#264d35] rounded-xl py-20">
-                <p className="text-[#8fae5a] text-sm">
-                  Selecciona un insumo de la lista
-                </p>
+                <p className="text-[#8fae5a] text-sm">Selecciona un insumo de la lista</p>
               </div>
             )}
           </div>

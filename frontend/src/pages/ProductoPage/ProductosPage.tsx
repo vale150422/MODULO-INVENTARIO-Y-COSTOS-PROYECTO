@@ -1,21 +1,16 @@
 import { useEffect, useState } from 'react';
-import { getProductos, createProducto, updateProducto, deleteProducto } from '../../services/productoService';
+import { getProductos, createProducto, updateProducto, deleteProducto, reactivarProducto } from '../../services/productoService';
 import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
+import { getCategorias } from '../../services/categoriaService';
 import "./ProductoPage.css";
-
-const CATEGORIAS = [
-  { id: 1, nombre: 'Café' },
-  { id: 2, nombre: 'Plátano' },
-  { id: 3, nombre: 'Banano' },
-  { id: 4, nombre: 'Cítricos' },
-];
 
 const UNIDADES = ['kg', 'unidad', 'litro', 'arroba', 'bulto'];
 
 const ProductosPage = () => {
   const [productos, setProductos] = useState<any[]>([]);
   const [fincas, setFincas] = useState<any[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState<any>(null);
@@ -49,25 +44,27 @@ const ProductosPage = () => {
     }
   };
 
+  const cargarCategorias = async () => {
+    try {
+      const res = await getCategorias();
+      setCategorias(Array.isArray(res) ? res : []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   useEffect(() => {
     cargarProductos();
     cargarFincas();
+    cargarCategorias();
   }, []);
 
   const handleCrear = async () => {
     if (!nombre.trim() || !idCategoria || !unidadMedida || !idFinca) return;
     try {
-      await createProducto({
-        nombre,
-        id_categoria: Number(idCategoria),
-        unidadMedida,
-        id_finca: Number(idFinca),
-      });
+      await createProducto({ nombre, id_categoria: Number(idCategoria), unidadMedida, id_finca: Number(idFinca) });
       showToast('Producto creado exitosamente', 'success');
-      setNombre('');
-      setIdCategoria('');
-      setUnidadMedida('');
-      setIdFinca('');
+      setNombre(''); setIdCategoria(''); setUnidadMedida(''); setIdFinca('');
       setModalAbierto(false);
       cargarProductos();
     } catch {
@@ -78,10 +75,20 @@ const ProductosPage = () => {
   const handleEliminar = async (id: number) => {
     try {
       await deleteProducto(id);
-      showToast('Producto eliminado', 'warning');
+      showToast('Producto inactivado', 'warning');
       cargarProductos();
     } catch {
-      showToast('Error al eliminar el producto', 'error');
+      showToast('Error al inactivar el producto', 'error');
+    }
+  };
+
+  const handleActivar = async (id: number) => {
+    try {
+      await reactivarProducto(id);
+      showToast('Producto activado', 'success');
+      cargarProductos();
+    } catch {
+      showToast('Error al activar el producto', 'error');
     }
   };
 
@@ -114,10 +121,7 @@ const ProductosPage = () => {
 
   const cerrarModal = () => {
     setModalAbierto(false);
-    setNombre('');
-    setIdCategoria('');
-    setUnidadMedida('');
-    setIdFinca('');
+    setNombre(''); setIdCategoria(''); setUnidadMedida(''); setIdFinca('');
   };
 
   const cerrarModalEditar = () => {
@@ -149,27 +153,55 @@ const ProductosPage = () => {
               <th>Unidad</th>
               <th>Finca</th>
               <th>Fecha Creación</th>
+              <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {productos.length === 0 ? (
               <tr>
-                <td colSpan={6} className="pp-empty-row">
+                <td colSpan={7} className="pp-empty-row">
                   No hay productos registrados aún
                 </td>
               </tr>
             ) : (
               productos.map((p) => (
-                <tr key={p.id_producto}>
+                <tr key={p.id_producto} style={{ opacity: p.activo ? 1 : 0.5 }}>
                   <td className="pp-td-nombre">{p.nombre}</td>
                   <td><span className="pp-badge">{p.categoria_nombre || '—'}</span></td>
                   <td>{p.unidadmedida}</td>
                   <td>{p.finca_nombre || '—'}</td>
                   <td>{p.created_at ? new Date(p.created_at).toLocaleDateString('es-CO') : '—'}</td>
+                  <td>
+                    <span style={{
+                      padding: '3px 10px',
+                      borderRadius: '20px',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      background: p.activo ? '#dcfce7' : '#fee2e2',
+                      color: p.activo ? '#166534' : '#991b1b',
+                    }}>
+                      {p.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </td>
                   <td className="pp-td-acciones">
-                    <button className="pp-btn-editar" onClick={() => abrirEditar(p)}>Editar</button>
-                    <button className="pp-btn-eliminar" onClick={() => handleEliminar(p.id_producto)}>Eliminar</button>
+                    <button className="pp-btn-editar"
+                      onClick={() => abrirEditar(p)}
+                      disabled={!p.activo}
+                      style={{ opacity: p.activo ? 1 : 0.4, cursor: p.activo ? 'pointer' : 'not-allowed' }}>
+                      Editar
+                    </button>
+                    {p.activo ? (
+                      <button className="pp-btn-eliminar"
+                        onClick={() => handleEliminar(p.id_producto)}>
+                        Inactivar
+                      </button>
+                    ) : (
+                      <button className="pp-btn-activar"
+                        onClick={() => handleActivar(p.id_producto)}>
+                        Activar
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))
@@ -190,17 +222,13 @@ const ProductosPage = () => {
             </div>
             <div className="pp-modal-body">
               <label className="pp-label">Nombre</label>
-              <input
-                className="pp-input"
-                placeholder="Ej: Café Pergamino"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-              />
+              <input className="pp-input" placeholder="Ej: Café Pergamino"
+                value={nombre} onChange={(e) => setNombre(e.target.value)} />
               <label className="pp-label">Categoría</label>
               <select className="pp-input" value={idCategoria} onChange={(e) => setIdCategoria(e.target.value)}>
                 <option value="">Selecciona una categoría</option>
-                {CATEGORIAS.map((c) => (
-                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                {categorias.map((c) => (
+                  <option key={c.id_categoria} value={c.id_categoria}>{c.nombre}</option>
                 ))}
               </select>
               <label className="pp-label">Unidad de medida</label>
@@ -238,17 +266,13 @@ const ProductosPage = () => {
             </div>
             <div className="pp-modal-body">
               <label className="pp-label">Nombre</label>
-              <input
-                className="pp-input"
-                placeholder="Ej: Café Pergamino"
-                value={nombreEditar}
-                onChange={(e) => setNombreEditar(e.target.value)}
-              />
+              <input className="pp-input" placeholder="Ej: Café Pergamino"
+                value={nombreEditar} onChange={(e) => setNombreEditar(e.target.value)} />
               <label className="pp-label">Categoría</label>
               <select className="pp-input" value={idCategoriaEditar} onChange={(e) => setIdCategoriaEditar(e.target.value)}>
                 <option value="">Selecciona una categoría</option>
-                {CATEGORIAS.map((c) => (
-                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                {categorias.map((c) => (
+                  <option key={c.id_categoria} value={c.id_categoria}>{c.nombre}</option>
                 ))}
               </select>
               <label className="pp-label">Unidad de medida</label>

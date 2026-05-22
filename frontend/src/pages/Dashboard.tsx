@@ -1,24 +1,82 @@
+import { useEffect, useState } from 'react';
+import { api } from '../services/api';
+
+const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO');
+
 export default function Dashboard() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getDashboard()
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div className="p-6 flex items-center justify-center py-20">
+      <p className="text-[#8fae5a]">Cargando dashboard...</p>
+    </div>
+  );
+
+  const entradas = data?.movimientosHoy?.entradas ?? 0;
+  const salidas = data?.movimientosHoy?.salidas ?? 0;
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold text-white mb-2">Dashboard General</h1>
       <p className="text-sm text-[#8fae5a]">Bienvenido al sistema de inventario</p>
 
       <div className="grid grid-cols-4 gap-4 mt-6">
-        {[
-          { label:'Total Productos',  value:'0',  sub:'Sin productos aún',     color:'text-white'     },
-          { label:'Bajo Stock',       value:'0',  sub:'Sin alertas',            color:'text-[#d4a843]' },
-          { label:'Valor Inventario', value:'$0', sub:'Sin movimientos',        color:'text-white'     },
-          { label:'Movimientos Hoy',  value:'0',  sub:'0 entradas · 0 salidas', color:'text-white'     },
-        ].map(k => (
-          <div key={k.label} className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
-            <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-2">
-              {k.label}
-            </p>
-            <p className={`text-2xl font-semibold font-mono ${k.color}`}>{k.value}</p>
-            <p className="text-xs text-[#8fae5a] mt-1">{k.sub}</p>
-          </div>
-        ))}
+        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
+          <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-2">
+            Total Productos
+          </p>
+          <p className="text-2xl font-semibold font-mono text-white">
+            {data?.totalProductos ?? 0}
+          </p>
+          <p className="text-xs text-[#8fae5a] mt-1">
+            {data?.totalProductos > 0 ? 'Productos registrados' : 'Sin productos aún'}
+          </p>
+        </div>
+
+        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
+          <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-2">
+            Bajo Stock
+          </p>
+          <p className={`text-2xl font-semibold font-mono
+            ${data?.bajoStock > 0 ? 'text-red-400' : 'text-[#d4a843]'}`}>
+            {data?.bajoStock ?? 0}
+          </p>
+          <p className="text-xs text-[#8fae5a] mt-1">
+            {data?.bajoStock > 0 ? 'Requieren atención' : 'Sin alertas'}
+          </p>
+        </div>
+
+        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
+          <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-2">
+            Valor Inventario
+          </p>
+          <p className="text-2xl font-semibold font-mono text-white">
+            {fmt(data?.valorInventario ?? 0)}
+          </p>
+          <p className="text-xs text-[#8fae5a] mt-1">
+            {data?.valorInventario > 0 ? 'Valor total PEPS' : 'Sin movimientos'}
+          </p>
+        </div>
+
+        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
+          <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-2">
+            Movimientos Hoy
+          </p>
+          <p className="text-2xl font-semibold font-mono text-white">
+            {entradas + salidas}
+          </p>
+          <p className="text-xs text-[#8fae5a] mt-1">
+            {entradas} entradas · {salidas} salidas
+          </p>
+        </div>
       </div>
 
       <div className="mt-6 bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
@@ -33,12 +91,38 @@ export default function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td colSpan={6} className="py-10 text-center text-[#8fae5a] text-xs">
-                No hay movimientos registrados aún.
-                <br/>Los movimientos aparecerán aquí cuando uses el módulo Kardex.
-              </td>
-            </tr>
+            {!data?.ultimosMovimientos?.length ? (
+              <tr>
+                <td colSpan={6} className="py-10 text-center text-[#8fae5a] text-xs">
+                  No hay movimientos registrados aún.
+                  <br/>Los movimientos aparecerán aquí cuando uses el módulo Kardex.
+                </td>
+              </tr>
+            ) : (
+              data.ultimosMovimientos.map((m: any, i: number) => (
+                <tr key={i} className="border-b border-[#1a2e2244] hover:bg-[#111c17]">
+                  <td className="py-2 px-2 text-[#8fae5a]">
+                    {new Date(m.fecha).toLocaleDateString('es-CO')}
+                  </td>
+                  <td className="py-2 px-2 text-white font-semibold">{m.producto}</td>
+                  <td className="py-2 px-2">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-semibold
+                      ${m.tipo === 'ENTRADA'
+                        ? 'bg-green-900/60 text-green-400'
+                        : 'bg-red-900/40 text-red-400'}`}>
+                      {m.tipo}
+                    </span>
+                  </td>
+                  <td className="py-2 px-2 text-white font-mono">
+                    {Number(m.cantidad).toLocaleString('es-CO')} {m.unidadmedida}
+                  </td>
+                  <td className="py-2 px-2 text-white font-mono">{fmt(m.costo_unitario)}</td>
+                  <td className="py-2 px-2 text-[#d4a843] font-mono font-semibold">
+                    {fmt(m.total)}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

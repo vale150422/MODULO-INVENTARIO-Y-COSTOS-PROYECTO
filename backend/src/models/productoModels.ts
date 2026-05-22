@@ -17,15 +17,16 @@ export const getProducts = async () => {
       p.created_at,
       p.id_categoria,
       p.id_finca,
+      p.activo,
       c.nombre AS categoria_nombre,
       f.nombre AS finca_nombre
     FROM producto p
     LEFT JOIN categoria c ON p.id_categoria = c.id_categoria
     LEFT JOIN finca f ON p.id_finca = f.id_finca
+    ORDER BY p.activo DESC, p.nombre ASC
   `);
   return result.rows;
 };
-
 
 export const getProductById = async (id: number) => {
   const result = await pool.query(
@@ -58,9 +59,18 @@ export const updateProduct = async (id: number, producto: Producto) => {
   return result.rows[0];
 };
 
-export const deleteProduct = async (id: number) => {
-  await pool.query(
-    'DELETE FROM producto WHERE id_producto = $1',
+export const inactivarProduct = async (id: number) => {
+  const result = await pool.query(
+    `UPDATE producto SET activo = false WHERE id_producto = $1 RETURNING *`,
     [id]
   );
+  return result.rows[0];
+};
+
+export const activarProduct = async (id: number) => {
+  const result = await pool.query(
+    `UPDATE producto SET activo = true WHERE id_producto = $1 RETURNING *`,
+    [id]
+  );
+  return result.rows[0];
 };

@@ -139,7 +139,7 @@
   gap: 5px;
   padding: 5px 13px;
   border-radius: 6px;
-  background: #f68d42fc;
+  background: #32b418fc;
   color: white;
   font-family: var(--font-principal);
   font-size: 0.75rem;
@@ -291,4 +291,21 @@
   padding: 40px 16px;
   color: var(--texto-secundario);
   font-size: 0.9rem;
+}
+
+.pp-btn-activar {
+  padding: 5px 13px;
+  border-radius: 6px;
+  background: #2d4a1e;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pp-btn-activar:hover {
+  background: #4a7c3f;
+
 }

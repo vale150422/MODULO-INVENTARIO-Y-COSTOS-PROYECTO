@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
 import { pool } from '../database/connection';
 
-// Obtener todos los productos con su último saldo
 export const getProductos = async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`
       SELECT 
         p.id_producto, p.nombre, p.unidadmedida,
+        p.id_finca,
         c.nombre as categoria, f.nombre as finca,
         COALESCE((
           SELECT k.saldo_cantidad 
@@ -32,7 +32,6 @@ export const getProductos = async (req: Request, res: Response) => {
   }
 };
 
-// Obtener kardex de un producto (PEPS)
 export const getKardex = async (req: Request, res: Response) => {
   const { id_producto } = req.params;
   try {
@@ -56,7 +55,6 @@ export const getKardex = async (req: Request, res: Response) => {
   }
 };
 
-// Obtener lotes disponibles (para PEPS)
 export const getLotes = async (req: Request, res: Response) => {
   const { id_producto } = req.params;
   try {
@@ -73,7 +71,6 @@ export const getLotes = async (req: Request, res: Response) => {
   }
 };
 
-// Registrar movimiento PEPS
 export const registrarMovimiento = async (req: Request, res: Response) => {
   const { id_producto, tipo, cantidad, costo_unitario, detalle, id_finca } = req.body;
   const id_usuario = (req as any).user?.id;
@@ -82,7 +79,6 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
   try {
     await client.query('BEGIN');
 
-    // Obtener saldo actual
     const saldoResult = await client.query(`
       SELECT saldo_cantidad, saldo_valor 
       FROM kardex 
@@ -101,19 +97,16 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
       nuevaSaldoCant = Number(saldoActual.saldo_cantidad) + cantidad;
       nuevaSaldoValor = Number(saldoActual.saldo_valor) + total;
 
-      // Agregar lote PEPS
       await client.query(`
         INSERT INTO kardex_lote (id_producto, id_finca, cantidad, costo_unitario, factura)
         VALUES ($1, $2, $3, $4, $5)
       `, [id_producto, id_finca, cantidad, costo_unitario, detalle]);
 
     } else {
-      // SALIDA — consumir lotes PEPS (más antiguos primero)
       if (cantidad > saldoActual.saldo_cantidad) {
         throw new Error(`Stock insuficiente. Disponible: ${saldoActual.saldo_cantidad}`);
       }
 
-      // Obtener lotes ordenados por fecha (PEPS)
       const lotesResult = await client.query(`
         SELECT id_lote, cantidad, costo_unitario
         FROM kardex_lote
@@ -130,7 +123,6 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
         costoTotal += consumir * lote.costo_unitario;
         restante -= consumir;
 
-        // Actualizar lote
         await client.query(`
           UPDATE kardex_lote 
           SET cantidad = cantidad - $1 
@@ -144,7 +136,6 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
       nuevaSaldoValor = Number(saldoActual.saldo_valor) - costoTotal;
     }
 
-    // Insertar en kardex
     const kardexResult = await client.query(`
       INSERT INTO kardex 
         (id_producto, id_finca, id_usuario, tipo, cantidad, 
@@ -170,7 +161,6 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
   }
 };
 
-// Reporte consolidado
 export const getReporteConsolidado = async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`
@@ -201,13 +191,75 @@ export const getReporteConsolidado = async (req: Request, res: Response) => {
       FROM kardex WHERE tipo = 'SALIDA'
     `);
 
+    const movimientos = await pool.query(`
+      SELECT 
+        COUNT(*) FILTER (WHERE tipo = 'ENTRADA' OR tipo = 'INICIO') as entradas,
+        COUNT(*) FILTER (WHERE tipo = 'SALIDA') as salidas
+      FROM kardex
+    `);
+
     res.json({
       productos: result.rows,
       totalInventario,
       costoVentas: costoVentas.rows[0].total,
+      totalEntradas: Number(movimientos.rows[0].entradas),
+      totalSalidas: Number(movimientos.rows[0].salidas),
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error al generar reporte' });
+  }
+};
+
+export const getDashboard = async (req: Request, res: Response) => {
+  try {
+    const totalProductos = await pool.query('SELECT COUNT(*) FROM producto');
+
+    const valorInventario = await pool.query(`
+      SELECT COALESCE(SUM(k.saldo_valor), 0) as total
+      FROM (
+        SELECT DISTINCT ON (id_producto) saldo_valor
+        FROM kardex ORDER BY id_producto, fecha DESC
+      ) k
+    `);
+
+    const movimientosHoy = await pool.query(`
+      SELECT 
+        COUNT(*) FILTER (WHERE tipo = 'ENTRADA') as entradas,
+        COUNT(*) FILTER (WHERE tipo = 'SALIDA') as salidas
+      FROM kardex
+      WHERE DATE(fecha) = CURRENT_DATE
+    `);
+
+    const ultimosMovimientos = await pool.query(`
+      SELECT 
+        k.fecha, p.nombre as producto, k.tipo,
+        k.cantidad, k.costo_unitario, k.total,
+        p.unidadmedida
+      FROM kardex k
+      JOIN producto p ON p.id_producto = k.id_producto
+      ORDER BY k.fecha DESC LIMIT 10
+    `);
+
+    const bajoStock = await pool.query(`
+      SELECT COUNT(*) FROM (
+        SELECT DISTINCT ON (id_producto) saldo_cantidad
+        FROM kardex ORDER BY id_producto, fecha DESC
+      ) k WHERE saldo_cantidad < 10
+    `);
+
+    res.json({
+      totalProductos: Number(totalProductos.rows[0].count),
+      valorInventario: Number(valorInventario.rows[0].total),
+      movimientosHoy: {
+        entradas: Number(movimientosHoy.rows[0].entradas),
+        salidas: Number(movimientosHoy.rows[0].salidas),
+      },
+      ultimosMovimientos: ultimosMovimientos.rows,
+      bajoStock: Number(bajoStock.rows[0].count),
+    });
+  } catch (error) {
+    console.error('ERROR DASHBOARD:', error);
+    res.status(500).json({ error: 'Error al cargar dashboard' });
   }
 };
