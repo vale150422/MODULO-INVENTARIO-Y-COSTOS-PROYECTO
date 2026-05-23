@@ -347,7 +347,7 @@ El módulo implementa el método **PEPS** para la valuación de inventarios:
 
 ## 🏫 Contexto Académico
 
-Proyecto desarrollado como trabajo de la asignatura Desarrollo De Sotfware 2 / proyecto académico para la gestión de las fincas **Monterrey** y **Miraflores**. El sistema completo integra tres módulos desarrollados por diferentes equipos de estudiantes, siendo este el **Módulo de Inventario**.
+Proyecto desarrollado como trabajo de la asignatura Desarrollo De Software 2 / proyecto académico para la gestión de las fincas **Monterrey** y **Miraflores**. El sistema completo integra tres módulos desarrollados por diferentes equipos de estudiantes, siendo este el **Módulo de Inventario**.
 
 ---
 
