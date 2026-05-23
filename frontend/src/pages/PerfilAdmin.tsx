@@ -11,7 +11,6 @@ export default function PerfilAdmin() {
   const [msgTipo, setMsgTipo] = useState<'ok' | 'error'>('ok');
   const [loading, setLoading] = useState(false);
 
-  // Nombre editable
   const [nombreEdit, setNombreEdit] = useState(false);
   const [nombre, setNombre] = useState(user?.nombre ?? user?.email?.split('@')[0] ?? '');
   const [nombreTemp, setNombreTemp] = useState(nombre);
@@ -33,12 +32,10 @@ export default function PerfilAdmin() {
         setMsgNombre('✓ Nombre actualizado');
         setTimeout(() => { setMsgNombre(''); setNombreEdit(false); }, 1500);
       } else {
-        // Si el endpoint no existe aún, igual guardamos localmente
         setNombre(nombreTemp.trim());
         setNombreEdit(false);
       }
     } catch {
-      // Guardamos localmente aunque falle el backend
       setNombre(nombreTemp.trim());
       setNombreEdit(false);
     }
@@ -46,20 +43,15 @@ export default function PerfilAdmin() {
 
   const cambiarPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passNueva !== passConfirm) {
-      setMsgTipo('error'); setMsg('Las contraseñas no coinciden'); return;
-    }
-    if (passNueva.length < 6) {
-      setMsgTipo('error'); setMsg('Mínimo 6 caracteres'); return;
-    }
+    if (passNueva !== passConfirm) { setMsgTipo('error'); setMsg('Las contraseñas no coinciden'); return; }
+    if (passNueva.length < 6) { setMsgTipo('error'); setMsg('Mínimo 6 caracteres'); return; }
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const res = await fetch('http://localhost:3001/api/auth/cambiar-password', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
         body: JSON.stringify({ actual: passActual, nueva: passNueva }),
       });
@@ -71,9 +63,7 @@ export default function PerfilAdmin() {
       setTimeout(() => { setMsg(''); setShowPass(false); }, 2500);
     } catch (err: any) {
       setMsgTipo('error');
-      setMsg(err.message === 'Failed to fetch'
-        ? 'No se pudo conectar al servidor. Verifica que el backend esté corriendo.'
-        : err.message);
+      setMsg(err.message === 'Failed to fetch' ? 'No se pudo conectar al servidor.' : err.message);
     } finally {
       setLoading(false);
     }
@@ -82,16 +72,57 @@ export default function PerfilAdmin() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
 
-      {/* Header */}
-      <div className="bg-[#2d4a1e] rounded-2xl p-6 mb-6 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10"
-          style={{ background: 'radial-gradient(circle at 80% 50%, #6b8c3e, transparent 60%)' }} />
+      {/* Header con hojas decorativas */}
+      <div className="rounded-2xl p-6 mb-6 relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #1e3d10 0%, #2d4a1e 50%, #1a3a0e 100%)' }}>
+
+        <div className="absolute inset-0"
+          style={{ background: 'radial-gradient(circle at 80% 50%, rgba(107,140,62,0.25), transparent 60%)' }} />
+
+        <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 800 200" preserveAspectRatio="xMidYMid slice">
+          <g opacity="0.12" fill="#a8d97f">
+            <path d="M750 -10 Q800 40 780 100 Q750 60 750 -10Z" />
+            <path d="M760 -5 Q820 50 795 115 Q762 72 760 -5Z" />
+          </g>
+          <g opacity="0.1" fill="#8fba5a" transform="translate(680, 80) rotate(20)">
+            <path d="M0 0 Q50 40 35 100 Q5 65 0 0Z" />
+            <path d="M0 0 Q-30 45 -10 100 Q18 70 0 0Z" />
+          </g>
+          <g opacity="0.08" fill="#c8e096">
+            <path d="M20 180 Q60 140 80 80 Q40 110 20 180Z" transform="rotate(10 50 130)" />
+            <path d="M-10 160 Q30 120 55 60 Q20 90 -10 160Z" transform="rotate(5 25 110)" />
+          </g>
+          <g opacity="0.1" fill="#a8d97f" transform="translate(600, -20) rotate(-15)">
+            <path d="M0 0 Q40 50 25 110 Q0 75 0 0Z" />
+          </g>
+          <g opacity="0.15" fill="#c8e096">
+            <circle cx="720" cy="30" r="2" /><circle cx="740" cy="50" r="1.5" />
+            <circle cx="700" cy="55" r="1" /><circle cx="50" cy="150" r="2" />
+            <circle cx="70" cy="165" r="1.5" />
+          </g>
+        </svg>
+
         <div className="flex items-center gap-6 relative z-10">
-          <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#d4a843] flex-shrink-0 bg-[#f5f0e0]">
-            <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-[1.35]" />
+          {/* Logo corregido con scale centrado */}
+          <div style={{
+            width: '80px', height: '80px', borderRadius: '50%',
+            overflow: 'hidden', flexShrink: 0,
+            border: '2px solid #d4a843',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+            background: '#2d4a1e',
+            position: 'relative',
+          }}>
+            <img src="/logo.png" alt="Logo" style={{
+              position: 'absolute',
+              top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%) scale(1.3)',
+              width: '100%', height: '100%',
+              objectFit: 'cover',
+            }} />
           </div>
           <div>
-            <p className="text-xs text-[#8fae5a] uppercase tracking-widest mb-1">
+            <p className="text-xs uppercase tracking-widest mb-1" style={{ color: '#8fae5a' }}>
               Sistema de Inventario AgroGestión
             </p>
             <h1 className="text-2xl font-bold" style={{ color: '#f5f0e0' }}>
@@ -107,50 +138,42 @@ export default function PerfilAdmin() {
       <div className="grid grid-cols-2 gap-6">
 
         {/* Info personal */}
-        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-[#4a7c3f] mb-4 uppercase tracking-widest">
-            📋 Mi información
+        <div className="bg-white border border-[#e0ead0] rounded-xl p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-[#2d4a1e] mb-4 uppercase tracking-widest flex items-center gap-2">
+            <span>📋</span> Mi información
           </h2>
           <div className="space-y-3">
-
-            {/* Nombre editable */}
-            <div className="py-2 border-b border-[#264d35]">
+            <div className="py-2 border-b border-[#e8f0d8]">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-[#8fae5a] uppercase tracking-widest">Nombre</span>
+                <span className="text-xs text-[#6b8c3e] uppercase tracking-widest font-semibold">Nombre</span>
                 {!nombreEdit && (
                   <button onClick={() => { setNombreTemp(nombre); setNombreEdit(true); }}
-                    className="text-[10px] px-2 py-1 bg-[#3d6b2e] text-[#c8d9a0] rounded hover:bg-[#4a7c3f] transition-colors">
+                    className="text-[10px] px-2 py-1 rounded-lg font-semibold transition-colors"
+                    style={{ background: '#2d4a1e', color: '#ffffff' }}>
                     ✏️ Editar
                   </button>
                 )}
               </div>
               {nombreEdit ? (
                 <div className="mt-2 flex gap-2">
-                  <input
-                    type="text"
-                    value={nombreTemp}
+                  <input type="text" value={nombreTemp}
                     onChange={e => setNombreTemp(e.target.value)}
-                    className="flex-1 bg-[#111c17] border border-[#4a7c3f] rounded-lg px-3 py-1.5
-                               text-sm text-white outline-none"
-                    placeholder="Tu nombre completo"
-                    autoFocus
-                  />
+                    className="flex-1 border border-[#4a7c3f] rounded-lg px-3 py-1.5 text-sm outline-none"
+                    style={{ color: '#2d4a1e' }}
+                    placeholder="Tu nombre completo" autoFocus />
                   <button onClick={guardarNombre}
-                    className="px-3 py-1.5 bg-[#4a7c3f] text-white rounded-lg text-xs font-semibold hover:bg-[#3d6b2e]">
-                    ✓
-                  </button>
+                    className="px-3 py-1.5 text-white rounded-lg text-xs font-semibold"
+                    style={{ background: '#4a7c3f' }}>✓</button>
                   <button onClick={() => setNombreEdit(false)}
-                    className="px-3 py-1.5 bg-[#264d35] text-[#8fae5a] rounded-lg text-xs hover:bg-[#3d6b2e]">
-                    ✕
-                  </button>
+                    className="px-3 py-1.5 rounded-lg text-xs"
+                    style={{ background: '#f0f0f0', color: '#666' }}>✕</button>
                 </div>
               ) : (
-                <p className="text-sm text-white font-medium mt-1">{nombre || '—'}</p>
+                <p className="text-sm font-semibold mt-1" style={{ color: '#1a3a0e' }}>{nombre || '—'}</p>
               )}
-              {msgNombre && <p className="text-xs text-green-400 mt-1">{msgNombre}</p>}
+              {msgNombre && <p className="text-xs text-green-600 mt-1">{msgNombre}</p>}
             </div>
 
-            {/* Resto de campos */}
             {[
               { label: 'Correo', value: user?.email ?? '—' },
               { label: 'Rol',    value: 'Administrador' },
@@ -158,22 +181,33 @@ export default function PerfilAdmin() {
               { label: 'Acceso', value: 'Total — todos los módulos' },
             ].map(item => (
               <div key={item.label}
-                className="flex items-center justify-between py-2 border-b border-[#264d35] last:border-0">
-                <span className="text-xs text-[#8fae5a] uppercase tracking-widest">{item.label}</span>
-                <span className="text-sm text-white font-medium">{item.value}</span>
+                className="flex items-center justify-between py-2 border-b border-[#e8f0d8] last:border-0">
+                <span className="text-xs text-[#6b8c3e] uppercase tracking-widest font-semibold">{item.label}</span>
+                <span className="text-sm font-medium" style={{ color: '#1a3a0e' }}>{item.value}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Seguridad */}
-        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-5">
+        {/* Seguridad — botón siempre visible */}
+        <div className="bg-white border border-[#e0ead0] rounded-xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-[#4a7c3f] uppercase tracking-widest">
-              🔒 Seguridad
+            <h2 className="text-sm font-semibold text-[#2d4a1e] uppercase tracking-widest flex items-center gap-2">
+              <span>🔒</span> Seguridad
             </h2>
-            <button onClick={() => { setShowPass(!showPass); setMsg(''); }}
-              className="text-xs px-3 py-1.5 bg-[#3d6b2e] text-[#c8d9a0] rounded-lg hover:bg-[#4a7c3f] transition-colors">
+            <button
+              onClick={() => { setShowPass(!showPass); setMsg(''); }}
+              style={{
+                background: showPass ? '#6b7280' : '#2d4a1e',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}>
               {showPass ? 'Cancelar' : 'Cambiar contraseña'}
             </button>
           </div>
@@ -181,8 +215,8 @@ export default function PerfilAdmin() {
           {!showPass ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <div className="text-4xl mb-3">🔐</div>
-              <p className="text-sm text-[#8fae5a]">Tu contraseña está protegida</p>
-              <p className="text-xs text-[#264d35] mt-1">
+              <p className="text-sm font-semibold" style={{ color: '#2d4a1e' }}>Tu contraseña está protegida</p>
+              <p className="text-xs mt-1" style={{ color: '#6b8c3e' }}>
                 Haz clic en "Cambiar contraseña" para actualizarla
               </p>
             </div>
@@ -194,35 +228,47 @@ export default function PerfilAdmin() {
                 { label: 'Confirmar contraseña', val: passConfirm, set: setPassConfirm },
               ].map(f => (
                 <div key={f.label}>
-                  <label className="block text-xs text-[#8fae5a] mb-1">{f.label}</label>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: '#6b8c3e' }}>
+                    {f.label}
+                  </label>
                   <input type="password" value={f.val}
                     onChange={e => f.set(e.target.value)} required
-                    className="w-full bg-[#111c17] border border-[#264d35] rounded-lg
-                               px-3 py-2 text-sm text-white outline-none focus:border-[#4a7c3f] transition-colors" />
+                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors"
+                    style={{ border: '1px solid #c8d9a0', color: '#2d4a1e', background: '#fafff5' }} />
                 </div>
               ))}
               {msg && (
                 <p className={`text-xs px-3 py-2 rounded-lg ${
                   msgTipo === 'ok'
-                    ? 'text-green-400 bg-green-900/20 border border-green-900/40'
-                    : 'text-red-400 bg-red-900/20 border border-red-900/40'
+                    ? 'text-green-700 bg-green-50 border border-green-200'
+                    : 'text-red-600 bg-red-50 border border-red-200'
                 }`}>{msg}</p>
               )}
               <button type="submit" disabled={loading}
-                className="w-full py-2 bg-[#4a7c3f] text-white rounded-lg text-sm font-semibold
-                           hover:bg-[#3d6b2e] transition-colors disabled:opacity-50">
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  background: 'linear-gradient(135deg, #2d4a1e 0%, #4a7c3f 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.5 : 1,
+                }}>
                 {loading ? 'Actualizando...' : 'Actualizar contraseña'}
               </button>
             </form>
           )}
         </div>
 
-        {/* Módulos del sistema */}
-        <div className="col-span-2 bg-[#1a2e22] border border-[#264d35] rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-[#4a7c3f] mb-4 uppercase tracking-widest">
-            ⚡ Módulos del sistema
+        {/* Módulos */}
+        <div className="col-span-2 bg-white border border-[#e0ead0] rounded-xl p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-[#2d4a1e] mb-4 uppercase tracking-widest flex items-center gap-2">
+            <span>⚡</span> Módulos del sistema
           </h2>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 gap-3">
             {[
               { icon: '📊', label: 'Dashboard',   sub: 'Resumen general',     to: '/'             },
               { icon: '🌿', label: 'Fincas',       sub: 'Gestión de fincas',   to: '/fincas'       },
@@ -234,18 +280,25 @@ export default function PerfilAdmin() {
               { icon: '🏷️', label: 'Categorías',   sub: 'Tipos de productos',  to: '/categorias'   },
             ].map(item => (
               <a key={item.label} href={item.to}
-                className="flex items-center gap-3 p-3 bg-[#111c17] border border-[#264d35]
-                           rounded-xl hover:border-[#4a7c3f] hover:bg-[#162a1e] transition-all cursor-pointer group">
+                className="flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer"
+                style={{ background: '#f5faf0', border: '1px solid #d4e8b8', textDecoration: 'none' }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.background = '#e8f5d8';
+                  (e.currentTarget as HTMLElement).style.borderColor = '#4a7c3f';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.background = '#f5faf0';
+                  (e.currentTarget as HTMLElement).style.borderColor = '#d4e8b8';
+                }}>
                 <div className="text-2xl">{item.icon}</div>
                 <div>
-                  <p className="text-xs font-semibold text-white group-hover:text-[#c8d9a0]">{item.label}</p>
-                  <p className="text-[10px] text-[#8fae5a]">{item.sub}</p>
+                  <p className="text-xs font-semibold" style={{ color: '#2d4a1e' }}>{item.label}</p>
+                  <p className="text-[10px]" style={{ color: '#6b8c3e' }}>{item.sub}</p>
                 </div>
               </a>
             ))}
           </div>
         </div>
-
       </div>
     </div>
   );

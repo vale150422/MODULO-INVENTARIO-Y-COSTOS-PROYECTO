@@ -75,244 +75,301 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
 
-      {/* Panel izquierdo */}
-      <div className="hidden md:flex w-1/2 bg-[#2d4a1e] flex-col items-center justify-center p-10 relative overflow-hidden">
+      {/* ===== PANEL IZQUIERDO ===== */}
+      <div className="hidden md:flex w-1/2 flex-col items-center
+                      justify-center p-10 relative overflow-hidden"
+        style={{background:'linear-gradient(160deg, #1a3a0f 0%, #2d4a1e 40%, #1e3d12 100%)'}}>
 
-        <div className="absolute inset-0 opacity-20"
-          style={{ background: 'radial-gradient(circle at 30% 50%, #6b8c3e 0%, transparent 60%)' }} />
-
+        {/* Hojas SVG de fondo */}
         <svg className="absolute inset-0 w-full h-full"
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 500 800" preserveAspectRatio="xMidYMid slice">
-          <g opacity="0.13" fill="#a8d97f">
-            <path d="M-30 20 Q40 80 20 160 Q-10 120 -30 20Z" transform="rotate(-20 0 80)" />
-            <path d="M-20 10 Q60 90 30 180 Q-5 130 -20 10Z" transform="rotate(-10 10 90)" />
-            <path d="M10 -10 Q80 60 60 150 Q20 110 10 -10Z" transform="rotate(5 40 70)" />
+          <g opacity="0.18" fill="#d8e7d1">
+            <path d="M-40 -20 Q60 80 20 200 Q-20 140 -40 -20Z"/>
+            <path d="M-10 -30 Q90 70 50 190 Q10 130 -10 -30Z"/>
+            <path d="M30 -40 Q120 60 80 180 Q40 120 30 -40Z"/>
+            <path d="M-60 60 Q20 140 0 240 Q-40 190 -60 60Z"/>
           </g>
-          <g opacity="0.12" fill="#8fba5a" transform="translate(420, -10) rotate(30)">
-            <path d="M0 0 Q-50 60 -20 130 Q10 90 0 0Z" />
-            <path d="M0 0 Q30 70 10 140 Q-20 100 0 0Z" />
-            <path d="M5 20 Q-40 80 -15 150 Q15 110 5 20Z" />
-            <line x1="0" y1="0" x2="-5" y2="150" stroke="#8fba5a" strokeWidth="1.5" opacity="0.4" />
+          <g opacity="0.16" fill="#d8e7d1" transform="translate(500, 0) scale(-1,1)">
+            <path d="M-40 -20 Q60 80 20 200 Q-20 140 -40 -20Z"/>
+            <path d="M-10 -30 Q90 70 50 190 Q10 130 -10 -30Z"/>
+            <path d="M30 -10 Q110 80 70 190 Q30 140 30 -10Z"/>
           </g>
-          <g opacity="0.1" fill="#b5d47a" transform="translate(-20, 320) rotate(-35)">
-            <path d="M0 0 Q60 50 40 120 Q0 80 0 0Z" />
-            <path d="M0 0 Q-30 55 -10 120 Q20 85 0 0Z" />
-            <line x1="0" y1="0" x2="15" y2="115" stroke="#b5d47a" strokeWidth="1" opacity="0.35" />
+          <g opacity="0.14" fill="#d8e7d1">
+            <path d="M-30 280 Q70 350 40 460 Q0 400 -30 280Z"/>
+            <path d="M-50 320 Q40 390 15 490 Q-25 440 -50 320Z"/>
+            <path d="M-10 350 Q80 410 55 510 Q15 460 -10 350Z"/>
           </g>
-          <g opacity="0.09" fill="#c8e096">
-            <path d="M380 200 Q420 240 400 290 Q370 260 380 200Z" transform="rotate(15 400 245)" />
-            <path d="M60 500 Q100 530 85 575 Q58 555 60 500Z" transform="rotate(-25 80 537)" />
-            <path d="M440 480 Q470 510 455 550 Q432 532 440 480Z" transform="rotate(40 455 515)" />
+          <g opacity="0.14" fill="#d8e7d1" transform="translate(500, 300) scale(-1,1)">
+            <path d="M-30 0 Q70 70 40 180 Q0 120 -30 0Z"/>
+            <path d="M-50 40 Q40 110 15 210 Q-25 160 -50 40Z"/>
           </g>
-          <g opacity="0.11" fill="#8fba5a" transform="translate(460, 680) rotate(-140)">
-            <path d="M0 0 Q-45 55 -18 120 Q12 85 0 0Z" />
-            <path d="M0 0 Q25 60 8 125 Q-18 92 0 0Z" />
-            <line x1="0" y1="0" x2="-5" y2="120" stroke="#8fba5a" strokeWidth="1.5" opacity="0.35" />
+          <g opacity="0.16" fill="#d8e7d1">
+            <path d="M-40 600 Q60 670 30 780 Q-10 720 -40 600Z"/>
+            <path d="M-20 640 Q80 700 50 800 Q10 750 -20 640Z"/>
+            <path d="M20 620 Q110 690 80 790 Q40 740 20 620Z"/>
           </g>
-          <g opacity="0.1" fill="#a8d97f" transform="translate(-10, 700) rotate(20)">
-            <path d="M0 0 Q70 60 50 140 Q5 100 0 0Z" />
-            <path d="M0 0 Q-35 65 -12 140 Q25 105 0 0Z" />
+          <g opacity="0.15" fill="#d8e7d1" transform="translate(500, 600) scale(-1,1)">
+            <path d="M-40 0 Q60 70 30 180 Q-10 120 -40 0Z"/>
+            <path d="M-20 40 Q80 100 50 200 Q10 150 -20 40Z"/>
+            <path d="M10 20 Q100 90 70 190 Q30 140 10 20Z"/>
           </g>
-          <g opacity="0.15" fill="#c8e096">
-            <circle cx="390" cy="150" r="2" />
-            <circle cx="410" cy="170" r="1.5" />
-            <circle cx="80" cy="420" r="2" />
-            <circle cx="460" cy="380" r="2" />
+          <g opacity="0.1" stroke="#d8e7d1" strokeWidth="1" fill="none">
+            <path d="M-20 0 Q40 80 20 180"/>
+            <path d="M480 0 Q420 80 440 180"/>
+            <path d="M-30 620 Q30 700 10 780"/>
+            <path d="M490 620 Q430 700 450 780"/>
           </g>
         </svg>
 
+        {/* Overlay */}
+        <div className="absolute inset-0"
+          style={{background:'radial-gradient(ellipse at center, rgba(45,74,30,0.3) 0%, rgba(15,30,8,0.6) 100%)'}}/>
+
         {/* Contenido */}
         <div className="text-center z-10 relative">
-          {/* Logo grande circular */}
-          <div className="w-44 h-44 rounded-full mx-auto mb-6 overflow-hidden border-4 border-[#d4a843] shadow-lg"
-            style={{ background: '#f5f0e0' }}>
-            <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-[1.35]" />
+
+          {/* Logo doble borde dorado */}
+          <div className="mx-auto mb-6 rounded-full overflow-hidden"
+            style={{
+              width:'200px', height:'200px',
+              border:'4px solid #d4a843',
+              boxShadow:'0 0 0 3px #2d4a1e, 0 0 0 7px #d4a843, 0 8px 32px rgba(0,0,0,0.5)',
+              background:'#f5f0e0',
+            }}>
+            <img src="/logo.png" alt="Logo"
+              className="w-full h-full object-cover"/>
           </div>
-          <h1 className="text-4xl font-bold mb-3" style={{ color: '#f5f0e0' }}>
-            INVENTARIO AGROGESTIÓN
+
+          {/* Título dorado */}
+          <h1 className="font-bold mb-3 uppercase"
+            style={{
+              color:'#d4a843',
+              fontSize:'2.4rem',
+              textShadow:'0 2px 8px rgba(0,0,0,0.5)',
+              fontFamily:'Georgia, serif',
+              lineHeight:1.2,
+              letterSpacing:'0.05em',
+            }}>
+            INVENTARIO<br/>AGROGESTIÓN
           </h1>
-          <p style={{ color: '#8fae5a' }} className="text-lg">
-            Bienvenid@ al Sistema de Inventario
+
+          {/* Subtítulo cursiva */}
+          <p style={{
+            color:'#c8d9a0',
+            fontSize:'1rem',
+            fontStyle:'italic',
+            fontFamily:'Georgia, serif',
+            textShadow:'0 1px 4px rgba(0,0,0,0.4)',
+            maxWidth:'300px',
+            lineHeight:1.6,
+          }}>
+            Bienvenid@ al Sistema de Inventario<br/>
+            
           </p>
+
+          {/* Línea decorativa dorada */}
+          <div className="flex items-center gap-3 mt-5 justify-center">
+            <div style={{height:'1px', width:'60px',
+              background:'linear-gradient(to right, transparent, #d4a843)'}}/>
+            <div style={{width:'6px', height:'6px',
+              borderRadius:'50%', background:'#d4a843'}}/>
+            <div style={{height:'1px', width:'60px',
+              background:'linear-gradient(to left, transparent, #d4a843)'}}/>
+          </div>
         </div>
       </div>
 
-      {/* Panel derecho */}
+      {/* ===== PANEL DERECHO — glassmorphism ===== */}
       <div className="flex-1 flex items-center justify-center p-8 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 35%, #e0f2f1 65%, #e8f5e9 100%)' }}>
+        style={{background:'linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 35%, #e0f2f1 65%, #e8f5e9 100%)'}}>
 
+        {/* Blobs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div style={{
-            position: 'absolute', top: '-60px', right: '-60px',
-            width: '300px', height: '300px', borderRadius: '50%',
-            background: 'rgba(56,142,60,0.2)', filter: 'blur(50px)',
-          }} />
+            position:'absolute', top:'-60px', right:'-60px',
+            width:'300px', height:'300px', borderRadius:'50%',
+            background:'rgba(56,142,60,0.2)', filter:'blur(50px)',
+          }}/>
           <div style={{
-            position: 'absolute', bottom: '0px', left: '-40px',
-            width: '220px', height: '220px', borderRadius: '50%',
-            background: 'rgba(104,159,56,0.18)', filter: 'blur(40px)',
-          }} />
+            position:'absolute', bottom:'0px', left:'-40px',
+            width:'220px', height:'220px', borderRadius:'50%',
+            background:'rgba(104,159,56,0.18)', filter:'blur(40px)',
+          }}/>
           <div style={{
-            position: 'absolute', top: '40%', left: '55%',
-            width: '160px', height: '160px', borderRadius: '50%',
-            background: 'rgba(129,199,132,0.22)', filter: 'blur(36px)',
-          }} />
+            position:'absolute', top:'40%', left:'55%',
+            width:'160px', height:'160px', borderRadius:'50%',
+            background:'rgba(129,199,132,0.22)', filter:'blur(36px)',
+          }}/>
         </div>
 
-        {/* Tarjeta */}
+        {/* Tarjeta vidrio */}
         <div className="w-full max-w-sm relative z-10" style={{
-          background: 'rgba(255,255,255,0.58)',
-          backdropFilter: 'blur(22px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(22px) saturate(160%)',
-          borderRadius: '24px',
-          border: '1px solid rgba(255,255,255,0.88)',
-          boxShadow: '0 8px 32px rgba(46,125,50,0.12), 0 2px 8px rgba(0,0,0,0.06)',
-          padding: '2rem',
+          background:'rgba(255,255,255,0.58)',
+          backdropFilter:'blur(22px) saturate(160%)',
+          WebkitBackdropFilter:'blur(22px) saturate(160%)',
+          borderRadius:'24px',
+          border:'1px solid rgba(255,255,255,0.88)',
+          boxShadow:'0 8px 32px rgba(46,125,50,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+          padding:'2rem',
         }}>
 
-          {/* Logo pequeño circular */}
+          {/* Logo pequeño */}
           <div className="text-center mb-6">
-            <div className="w-24 h-24 rounded-full mx-auto mb-3 overflow-hidden border-2 border-[#4a7c3f] shadow-md"
-              style={{ background: '#f5f0e0' }}>
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-[1.35]" />
+            <div className="mx-auto mb-3 rounded-full overflow-hidden"
+              style={{
+                width:'72px', height:'72px',
+                border:'2px solid #d4a843',
+                boxShadow:'0 0 0 2px #4a7c3f',
+                background:'#f5f0e0',
+              }}>
+              <img src="/logo.png" alt="Logo"
+                className="w-full h-full object-cover"/>
             </div>
-            <h2 className="text-2xl font-bold" style={{ color: '#2d4a1e' }}>
+            <h2 className="text-2xl font-bold" style={{color:'#2d4a1e'}}>
               {vista === 'login' ? 'Iniciar sesión' : 'Registro de empleado'}
             </h2>
-            <p className="text-sm mt-1" style={{ color: '#6b8c3e' }}>
-              Sistema de Inventario AgroGestión
+            <p className="text-sm mt-1" style={{color:'#6b8c3e'}}>
+              Inventario Agrogestión
             </p>
           </div>
 
           {/* Tabs */}
           <div className="flex gap-1 p-1 mb-6"
-            style={{ background: 'rgba(46,125,50,0.1)', borderRadius: '12px' }}>
-            {(['login', 'registro'] as Vista[]).map(v => (
+            style={{background:'rgba(46,125,50,0.1)', borderRadius:'12px'}}>
+            {(['login','registro'] as Vista[]).map(v => (
               <button key={v}
                 onClick={() => { setVista(v); setError(''); setRegError(''); }}
                 className="flex-1 py-2 text-sm transition-all"
                 style={{
-                  borderRadius: '9px', border: 'none', cursor: 'pointer',
+                  borderRadius:'9px', border:'none', cursor:'pointer',
                   background: vista === v ? '#2d4a1e' : 'transparent',
                   color: vista === v ? '#ffffff' : '#2d4a1e',
                   boxShadow: vista === v ? '0 2px 8px rgba(45,74,30,0.35)' : 'none',
-                  fontWeight: 600,
+                  fontWeight:600,
                 }}>
                 {v === 'login' ? 'Iniciar sesión' : 'Registrarse'}
               </button>
             ))}
           </div>
 
-          {/* FORMULARIO LOGIN */}
+          {/* LOGIN */}
           {vista === 'login' && (
-            <div className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-widest mb-2"
-                  style={{ color: '#2d4a1e' }}>
+                <label className="block text-xs font-semibold uppercase
+                                  tracking-widest mb-2" style={{color:'#2d4a1e'}}>
                   Correo electrónico
                 </label>
                 <input type="email" value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="Ingrese su correo"
-                  className="w-full rounded-lg px-4 py-3 text-sm outline-none transition-colors placeholder-[#b5c99a]"
+                  placeholder="Ingrese su correo" required
+                  className="w-full rounded-lg px-4 py-3 text-sm outline-none
+                             transition-colors placeholder-[#b5c99a]"
                   style={{
-                    background: 'rgba(255,255,255,0.75)',
-                    border: '1px solid rgba(143,174,90,0.45)',
-                    color: '#2d4a1e',
-                  }} />
+                    background:'rgba(255,255,255,0.75)',
+                    border:'1px solid rgba(143,174,90,0.45)',
+                    color:'#2d4a1e',
+                  }}/>
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-widest mb-2"
-                  style={{ color: '#2d4a1e' }}>
+                <label className="block text-xs font-semibold uppercase
+                                  tracking-widest mb-2" style={{color:'#2d4a1e'}}>
                   Contraseña
                 </label>
                 <input type="password" value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="Ingrese su contraseña"
-                  className="w-full rounded-lg px-4 py-3 text-sm outline-none transition-colors placeholder-[#b5c99a]"
+                  placeholder="Ingrese su contraseña" required
+                  className="w-full rounded-lg px-4 py-3 text-sm outline-none
+                             transition-colors placeholder-[#b5c99a]"
                   style={{
-                    background: 'rgba(255,255,255,0.75)',
-                    border: '1px solid rgba(143,174,90,0.45)',
-                    color: '#2d4a1e',
-                  }} />
+                    background:'rgba(255,255,255,0.75)',
+                    border:'1px solid rgba(143,174,90,0.45)',
+                    color:'#2d4a1e',
+                  }}/>
               </div>
               {error && (
-                <p className="text-red-600 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  {error}
-                </p>
+                <p className="text-red-600 text-xs bg-red-50 border border-red-200
+                              rounded-lg px-3 py-2">{error}</p>
               )}
-              <button type="button" disabled={loading} onClick={handleLogin}
-                className="w-full py-3 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+              <button type="submit" disabled={loading}
+                className="w-full py-3 text-white rounded-lg text-sm font-semibold
+                           disabled:opacity-50"
                 style={{
-                  background: 'linear-gradient(135deg, #2d4a1e 0%, #4a7c3f 100%)',
-                  boxShadow: '0 4px 14px rgba(45,74,30,0.35)',
-                  border: 'none',
+                  background:'linear-gradient(135deg, #2d4a1e 0%, #4a7c3f 100%)',
+                  boxShadow:'0 4px 14px rgba(45,74,30,0.35)',
+                  border:'none', cursor:'pointer',
                 }}>
                 {loading ? 'Iniciando...' : 'Iniciar sesión'}
               </button>
               <button type="button"
-                className="w-full py-2 text-sm hover:opacity-80 transition-colors"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b8c3e' }}>
+                className="w-full py-2 text-sm hover:opacity-80"
+                style={{background:'none', border:'none',
+                  cursor:'pointer', color:'#6b8c3e'}}>
                 ¿Olvidaste tu contraseña?
               </button>
-            </div>
+            </form>
           )}
 
-          {/* FORMULARIO REGISTRO */}
+          {/* REGISTRO */}
           {vista === 'registro' && (
-            <div className="space-y-4">
+            <form onSubmit={handleRegistro} className="space-y-4">
               {regExito ? (
                 <div className="text-center py-8">
                   <div className="text-5xl mb-3">✅</div>
-                  <p className="font-semibold" style={{ color: '#2d4a1e' }}>¡Registro exitoso!</p>
-                  <p className="text-sm mt-1" style={{ color: '#6b8c3e' }}>Redirigiendo al login...</p>
+                  <p className="font-semibold" style={{color:'#2d4a1e'}}>
+                    ¡Registro exitoso!
+                  </p>
+                  <p className="text-sm mt-1" style={{color:'#6b8c3e'}}>
+                    Redirigiendo al login...
+                  </p>
                 </div>
               ) : (
                 <>
                   {[
-                    { label: 'Nombre completo',     type: 'text',     val: regNombre,   set: setRegNombre,   ph: 'Tu nombre completo'   },
-                    { label: 'Correo electrónico',  type: 'email',    val: regEmail,    set: setRegEmail,    ph: 'Tu correo electrónico' },
-                    { label: 'Contraseña',          type: 'password', val: regPassword, set: setRegPassword, ph: 'Mínimo 6 caracteres'  },
-                    { label: 'Confirmar contraseña',type: 'password', val: regConfirm,  set: setRegConfirm,  ph: 'Repite tu contraseña'  },
+                    { label:'Nombre completo',     type:'text',     val:regNombre,   set:setRegNombre,   ph:'Tu nombre completo'    },
+                    { label:'Correo electrónico',  type:'email',    val:regEmail,    set:setRegEmail,    ph:'Tu correo electrónico'  },
+                    { label:'Contraseña',          type:'password', val:regPassword, set:setRegPassword, ph:'Mínimo 6 caracteres'   },
+                    { label:'Confirmar contraseña',type:'password', val:regConfirm,  set:setRegConfirm,  ph:'Repite tu contraseña'  },
                   ].map(f => (
                     <div key={f.label}>
-                      <label className="block text-xs font-semibold uppercase tracking-widest mb-2"
-                        style={{ color: '#2d4a1e' }}>
+                      <label className="block text-xs font-semibold uppercase
+                                        tracking-widest mb-2" style={{color:'#2d4a1e'}}>
                         {f.label}
                       </label>
                       <input type={f.type} value={f.val}
                         onChange={e => f.set(e.target.value)}
-                        placeholder={f.ph}
-                        className="w-full rounded-lg px-4 py-3 text-sm outline-none transition-colors placeholder-[#b5c99a]"
+                        placeholder={f.ph} required
+                        className="w-full rounded-lg px-4 py-3 text-sm outline-none
+                                   transition-colors placeholder-[#b5c99a]"
                         style={{
-                          background: 'rgba(255,255,255,0.75)',
-                          border: '1px solid rgba(143,174,90,0.45)',
-                          color: '#2d4a1e',
-                        }} />
+                          background:'rgba(255,255,255,0.75)',
+                          border:'1px solid rgba(143,174,90,0.45)',
+                          color:'#2d4a1e',
+                        }}/>
                     </div>
                   ))}
                   {regError && (
-                    <p className="text-red-600 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                      {regError}
-                    </p>
+                    <p className="text-red-600 text-xs bg-red-50 border border-red-200
+                                  rounded-lg px-3 py-2">{regError}</p>
                   )}
-                  <button type="button" disabled={regLoading} onClick={handleRegistro}
-                    className="w-full py-3 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                  <button type="submit" disabled={regLoading}
+                    className="w-full py-3 text-white rounded-lg text-sm font-semibold
+                               disabled:opacity-50"
                     style={{
-                      background: 'linear-gradient(135deg, #2d4a1e 0%, #4a7c3f 100%)',
-                      boxShadow: '0 4px 14px rgba(45,74,30,0.35)',
-                      border: 'none',
+                      background:'linear-gradient(135deg, #2d4a1e 0%, #4a7c3f 100%)',
+                      boxShadow:'0 4px 14px rgba(45,74,30,0.35)',
+                      border:'none', cursor:'pointer',
                     }}>
                     {regLoading ? 'Registrando...' : 'Crear cuenta'}
                   </button>
-                  <p className="text-xs text-center" style={{ color: '#8fae5a' }}>
+                  <p className="text-xs text-center" style={{color:'#8fae5a'}}>
                     Al registrarte entras como <strong>Empleado</strong>.
                     El administrador gestiona los roles.
                   </p>
                 </>
               )}
-            </div>
+            </form>
           )}
         </div>
       </div>
