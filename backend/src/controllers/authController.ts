@@ -75,4 +75,5 @@ export const cambiarPassword = async (req: Request, res: Response) => {
     console.error(error);
     res.status(500).json({ error: 'Error del servidor' });
   }
+
 };
