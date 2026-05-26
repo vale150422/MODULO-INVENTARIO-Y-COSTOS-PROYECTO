@@ -25,6 +25,7 @@ export const getProducts = async () => {
     LEFT JOIN finca f ON p.id_finca = f.id_finca
     ORDER BY p.activo DESC, p.nombre ASC
   `);
+
   return result.rows;
 };
 
@@ -38,17 +39,20 @@ export const getProductById = async (id: number) => {
 
 export const createProduct = async (producto: Producto) => {
   const { nombre, id_categoria, unidadMedida, id_finca } = producto;
+
   const result = await pool.query(
     `INSERT INTO producto (nombre, id_categoria, "unidadmedida", id_finca)
      VALUES ($1, $2, $3, $4)
      RETURNING *`,
     [nombre, id_categoria, unidadMedida, id_finca]
   );
+
   return result.rows[0];
 };
 
 export const updateProduct = async (id: number, producto: Producto) => {
   const { nombre, id_categoria, unidadMedida, id_finca } = producto;
+
   const result = await pool.query(
     `UPDATE producto 
      SET nombre = $1, id_categoria = $2, "unidadmedida" = $3, id_finca = $4
@@ -56,6 +60,7 @@ export const updateProduct = async (id: number, producto: Producto) => {
      RETURNING *`,
     [nombre, id_categoria, unidadMedida, id_finca, id]
   );
+
   return result.rows[0];
 };
 
@@ -64,6 +69,7 @@ export const inactivarProduct = async (id: number) => {
     `UPDATE producto SET activo = false WHERE id_producto = $1 RETURNING *`,
     [id]
   );
+
   return result.rows[0];
 };
 
@@ -72,5 +78,6 @@ export const activarProduct = async (id: number) => {
     `UPDATE producto SET activo = true WHERE id_producto = $1 RETURNING *`,
     [id]
   );
+
   return result.rows[0];
 };
