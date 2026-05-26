@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { getCategorias, createCategoria, deleteCategoria } from '../../services/categoriaService';
 import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
+import { usePageTitle } from '../../hooks/usePageTitle';
 import '../FincaPage/FincaPage.css';
 
 const CategoriaPage = () => {
+  usePageTitle('Categoria');
   const [categorias, setCategorias] = useState<any[]>([]);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [nombre, setNombre] = useState('');

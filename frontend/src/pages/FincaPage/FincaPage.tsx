@@ -3,9 +3,11 @@ import { getFincas, createFinca, updateFinca, deleteFinca } from '../../services
 import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
 import { useAuth } from '../../hooks/useAuth';
+import { usePageTitle } from '../../hooks/usePageTitle';
 import './FincaPage.css';
 
 const FincasPage = () => {
+  usePageTitle('Fincas');
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 

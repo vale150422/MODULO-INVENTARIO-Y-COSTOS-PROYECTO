@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { getProveedores, createProveedor, updateProveedor, deleteProveedor } from '../../services/proveedorService';
 import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
+import { usePageTitle } from '../../hooks/usePageTitle';
 import './ProveedorPage.css';
 
 const ProveedoresPage = () => {
+  usePageTitle('Proveedor');
   const [proveedores, setProveedores] = useState<any[]>([]);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);

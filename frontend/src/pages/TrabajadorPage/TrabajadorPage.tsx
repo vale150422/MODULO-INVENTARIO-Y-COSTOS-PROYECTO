@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { getTrabajadores, createTrabajador, updateTrabajador, deleteTrabajador } from '../../services/trabajadoresService';
 import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
+import { usePageTitle } from '../../hooks/usePageTitle';
 import './TrabajadorPage.css';
 
 const TrabajadoresPage = () => {
+  usePageTitle('Trabajadores');
   const [trabajadores, setTrabajadores] = useState<any[]>([]);
   const [fincas, setFincas] = useState<any[]>([]);
   const [modalAbierto, setModalAbierto] = useState(false);
