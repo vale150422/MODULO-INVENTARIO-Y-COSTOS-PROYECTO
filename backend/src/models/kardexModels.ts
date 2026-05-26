@@ -60,7 +60,7 @@ export const getKardexByProducto = async (id_producto: number) => {
 
 export const getLotesByProducto = async (id_producto: number) => {
   const result = await pool.query(`
-    SELECT id_lote, cantidad, costo_unitario, factura, fecha_entrada
+    SELECT id_lote, cantidad, costo_unitario, factura, fecha_entrada, fecha_vencimiento
     FROM kardex_lote
     WHERE id_producto = $1 AND cantidad > 0
     ORDER BY fecha_entrada ASC
@@ -76,8 +76,9 @@ export const registrarMovimientoModel = async (data: {
   cantidad: number;
   costo_unitario: number;
   detalle: string;
+  fecha_vencimiento?: string | null;
 }) => {
-  const { id_producto, id_finca, id_usuario, tipo, cantidad, costo_unitario, detalle } = data;
+  const { id_producto, id_finca, id_usuario, tipo, cantidad, costo_unitario, detalle, fecha_vencimiento } = data;
   const client = await pool.connect();
 
   try {
@@ -102,9 +103,9 @@ export const registrarMovimientoModel = async (data: {
       nuevaSaldoValor = Number(saldoActual.saldo_valor) + total;
 
       await client.query(`
-        INSERT INTO kardex_lote (id_producto, id_finca, cantidad, costo_unitario, factura)
-        VALUES ($1, $2, $3, $4, $5)
-      `, [id_producto, id_finca, cantidad, costo_unitario, detalle]);
+        INSERT INTO kardex_lote (id_producto, id_finca, cantidad, costo_unitario, factura, fecha_vencimiento)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [id_producto, id_finca, cantidad, costo_unitario, detalle, fecha_vencimiento || null]);
 
     } else {
       if (cantidad > saldoActual.saldo_cantidad) {

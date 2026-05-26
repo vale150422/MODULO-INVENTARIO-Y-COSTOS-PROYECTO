@@ -32,7 +32,6 @@ export const api = {
     return r.json();
   },
 
-  // KARDEX
   async getKardexProductos() {
     const r = await fetch(`${BASE}/kardex/productos`, { headers: getHeaders() });
     if (!r.ok) throw new Error('Error al cargar productos');
@@ -52,29 +51,31 @@ export const api = {
   },
 
   async registrarMovimiento(data: {
-    id_producto: number; tipo: string; cantidad: number;
-    costo_unitario: number; detalle: string; id_finca: number;
-  }) {
-    const r = await fetch(`${BASE}/kardex/movimiento`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!r.ok) {
-      const d = await r.json();
-      throw new Error(d.error || 'Error al registrar');
-    }
-    return r.json();
-  },
+  id_producto: number; tipo: string; cantidad: number;
+  costo_unitario: number; detalle: string; id_finca: number;
+  fecha_vencimiento?: string | null;
+}) {
+  const r = await fetch(`${BASE}/kardex/movimiento`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) {
+    const d = await r.json();
+    throw new Error(d.error || 'Error al registrar');
+  }
+  return r.json();
+},
 
   async getReporteKardex() {
     const r = await fetch(`${BASE}/kardex/reporte`, { headers: getHeaders() });
     if (!r.ok) throw new Error('Error al cargar reporte');
     return r.json();
   },
+
   async getDashboard() {
-  const r = await fetch(`${BASE}/kardex/dashboard`, { headers: getHeaders() });
-  if (!r.ok) throw new Error('Error al cargar dashboard');
-  return r.json();
+    const r = await fetch(`${BASE}/kardex/dashboard`, { headers: getHeaders() });
+    if (!r.ok) throw new Error('Error al cargar dashboard');
+    return r.json();
   },
 };
