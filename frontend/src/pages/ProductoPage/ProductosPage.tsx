@@ -4,10 +4,12 @@ import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
 import { getCategorias } from '../../services/categoriaService';
 import "./ProductoPage.css";
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 const UNIDADES = ['kg', 'unidad', 'litro', 'arroba', 'bulto'];
 
 const ProductosPage = () => {
+   usePageTitle('Productos');
   const [productos, setProductos] = useState<any[]>([]);
   const [fincas, setFincas] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);

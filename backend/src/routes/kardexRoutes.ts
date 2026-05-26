@@ -1,12 +1,5 @@
 import { Router } from 'express';
-import {
-  getProductos,
-  getKardex,
-  getLotes,
-  registrarMovimiento,
-  getReporteConsolidado,
-  getDashboard
-} from '../controllers/kardexController';
+import { getProductos, getKardex, getLotes, registrarMovimiento, getReporteConsolidado, getDashboard } from '../controllers/kardexController';
 import { authenticate } from '../middleware/authMiddleware';
 
 const router = Router();
