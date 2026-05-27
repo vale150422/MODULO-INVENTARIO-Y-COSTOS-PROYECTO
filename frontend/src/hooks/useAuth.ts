@@ -13,6 +13,7 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(
     stored ? JSON.parse(stored) : null
   );
+
   const loading = false;
 
   const login = async (email: string, password: string) => {

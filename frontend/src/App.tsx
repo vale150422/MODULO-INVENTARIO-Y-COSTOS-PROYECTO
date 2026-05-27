@@ -1,5 +1,5 @@
 import { useAuth } from './hooks/useAuth';
-import Login from './pages/Login';
+import Login from './pages/LoginPage/Login';
 import Dashboard from './pages/Dashboard';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/layout/Sidebar';
