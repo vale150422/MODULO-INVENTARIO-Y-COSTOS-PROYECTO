@@ -2,8 +2,21 @@ import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import './LoginPage.css';
 
-const emailValido = (email: string) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const getEmailError = (email: string): string => {
+  if (!email.includes('@') && !email.includes('.')) {
+    return 'El correo debe contener @ y un punto (ej: usuario@correo.com)';
+  }
+  if (!email.includes('@')) {
+    return 'Le falta el @ (ej: usuario@correo.com)';
+  }
+  if (!email.includes('.')) {
+    return 'Le falta el punto (ej: .com, .co)';
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return 'Formato inválido (ej: usuario@correo.com)';
+  }
+  return '';
+};
 
 export default function Login() {
   const { login } = useAuth();
@@ -17,17 +30,14 @@ export default function Login() {
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setEmail(val);
-    if (val && !emailValido(val)) {
-      setEmailError('Correo inválido. Ej: usuario@correo.com');
-    } else {
-      setEmailError('');
-    }
+    setEmailError(val ? getEmailError(val) : '');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!emailValido(email)) {
-      setEmailError('Correo inválido. Ej: usuario@correo.com');
+    const err = getEmailError(email);
+    if (err) {
+      setEmailError(err);
       return;
     }
     setLoading(true);
@@ -128,7 +138,7 @@ export default function Login() {
             <div>
               <label className="login-form__label">Correo electrónico</label>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={handleEmailChange}
                 placeholder="Ingrese su correo"
@@ -136,7 +146,7 @@ export default function Login() {
                 className={`login-form__input ${emailError ? 'login-form__input--error' : ''}`}
               />
               {emailError && (
-                <p className="login-form__field-error">{emailError}</p>
+                <p className="login-form__field-error">⚠ {emailError}</p>
               )}
             </div>
             <div>
@@ -145,7 +155,7 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="Ingrese su contraseña"
+                placeholder="Contraseña o número de cédula"
                 required
                 className="login-form__input"
               />
