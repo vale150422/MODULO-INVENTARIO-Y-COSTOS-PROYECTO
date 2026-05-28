@@ -56,6 +56,24 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
   try {
     await client.query('BEGIN');
 
+    // ✅ Validar que el producto esté activo
+    const productoResult = await client.query(
+      'SELECT nombre, activo FROM producto WHERE id_producto = $1',
+      [id_producto]
+    );
+
+    if (productoResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Producto no encontrado' });
+    }
+
+    if (!productoResult.rows[0].activo) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: `El producto "${productoResult.rows[0].nombre}" está inactivo y no permite movimientos`
+      });
+    }
+
     const saldoResult = await client.query(`
       SELECT saldo_cantidad, saldo_valor 
       FROM kardex 

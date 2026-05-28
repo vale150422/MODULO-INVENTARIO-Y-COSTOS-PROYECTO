@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { api } from '../services/api';
 
 type Unidad = 'GRS' | 'ML' | string;
@@ -40,6 +41,7 @@ const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO') + ' COP';
 const fmtU = (n: number, u: string) => Number(n).toLocaleString('es-CO') + ' ' + u;
 
 const parseCOP = (val: string): number => {
+  
   const limpio = val.replace(/\./g, '').replace(/,/g, '.');
   return parseFloat(limpio) || 0;
 };
@@ -63,6 +65,7 @@ const generarNumFactura = (): string => {
 };
 
 export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
+  usePageTitle('Kardex');
   const [productos, setProductos] = useState<Producto[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
