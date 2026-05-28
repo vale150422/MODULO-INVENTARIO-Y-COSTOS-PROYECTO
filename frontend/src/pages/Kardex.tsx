@@ -53,6 +53,15 @@ const diasParaVencer = (fecha: string | null): number | null => {
   return Math.ceil((vence.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 };
 
+const generarNumFactura = (): string => {
+  const now = new Date();
+  const fecha = now.getFullYear().toString() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0');
+  const rand = String(Math.floor(Math.random() * 900) + 100);
+  return `FAC-${fecha}-${rand}`;
+};
+
 export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -64,22 +73,25 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const [showForm, setShowForm] = useState(false);
   const [tipo, setTipo] = useState<'ENTRADA' | 'SALIDA'>('ENTRADA');
   const [detalle, setDetalle] = useState('');
+  const [loteSeleccionado, setLoteSeleccionado] = useState<Lote | null>(null);
   const [cantidad, setCantidad] = useState('');
   const [costo, setCosto] = useState('');
   const [fechaVenc, setFechaVenc] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showFacturas, setShowFacturas] = useState(false);
 
   const producto = productos.find(p => p.id_producto === selectedId);
   const totalInventario = productos.reduce((acc, p) => acc + Number(p.saldo_valor), 0);
+  const facturasHistorial = Array.from(
+    new Set(movimientos.map(m => m.detalle).filter(Boolean))
+  );
 
   const cargarLotes = useCallback(async (id: number) => {
     try {
       const data = await api.getLotes(id);
       setLotes(data);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }, []);
 
   const cargarMovimientos = useCallback(async (id: number) => {
@@ -87,11 +99,8 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     try {
       const data = await api.getKardex(id);
       setMovimientos(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingMov(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoadingMov(false); }
   }, []);
 
   const cargarProductos = useCallback(async () => {
@@ -100,31 +109,49 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
       const data = await api.getKardexProductos();
       setProductos(data);
       if (data.length > 0) setSelectedId(prev => prev ?? data[0].id_producto);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingProd(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoadingProd(false); }
   }, []);
 
-  useEffect(() => {
-    void cargarProductos();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
+  useEffect(() => { void cargarProductos(); }, []); // eslint-disable-line
   useEffect(() => {
     if (selectedId) {
       void cargarMovimientos(selectedId);
       void cargarLotes(selectedId);
     }
-  }, [selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedId]); // eslint-disable-line
+
+  const abrirForm = () => {
+    if (!showForm) {
+      setDetalle(generarNumFactura());
+      setTipo('ENTRADA');
+      setCantidad(''); setCosto(''); setFechaVenc('');
+      setLoteSeleccionado(null); setError('');
+    }
+    setShowForm(!showForm);
+    setShowFacturas(false);
+  };
+
+  const cambiarTipo = (t: 'ENTRADA' | 'SALIDA') => {
+    setTipo(t);
+    setLoteSeleccionado(null);
+    setCantidad(''); setError('');
+    // Al cambiar a SALIDA, preseleccionar el primer lote (el que vence primero)
+    if (t === 'SALIDA' && lotes.length > 0) {
+      setLoteSeleccionado(lotes[0]);
+    }
+  };
 
   const registrar = async () => {
     setError('');
     const qty = parseCOP(cantidad);
     const cost = parseCOP(costo);
-    if (!detalle.trim()) return setError('Ingresa un detalle');
+    if (!detalle.trim()) return setError('Ingresa un número de factura');
     if (!qty || qty <= 0) return setError('Cantidad inválida');
     if (tipo === 'ENTRADA' && (!cost || cost <= 0)) return setError('Costo inválido');
+    if (tipo === 'SALIDA' && !loteSeleccionado) return setError('Selecciona el lote a consumir');
+    if (tipo === 'SALIDA' && qty > loteSeleccionado!.cantidad)
+      return setError(`Stock insuficiente en este lote. Disponible: ${loteSeleccionado!.cantidad} ${producto?.unidadmedida}`);
     if (!producto) return;
 
     setSaving(true);
@@ -142,7 +169,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
       await cargarMovimientos(selectedId!);
       await cargarLotes(selectedId!);
       setDetalle(''); setCantidad(''); setCosto(''); setFechaVenc('');
-      setShowForm(false);
+      setLoteSeleccionado(null); setShowForm(false);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -165,19 +192,76 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
             Primeras en Entrar — Primeras en Salir · Insumos Agrícolas
           </p>
           {!canEdit && (
-            <span className="inline-block mt-1 px-2 py-0.5 bg-blue-900/40
-                             text-blue-400 rounded text-[10px] font-semibold">
+            <span className="inline-block mt-1 px-2 py-0.5 bg-blue-800
+                             text-blue-200 rounded text-[10px] font-semibold">
               👁 Modo visualización — solo lectura
             </span>
           )}
         </div>
-        {canEdit && producto && (
-          <button onClick={() => setShowForm(!showForm)}
-            className="px-4 py-2 bg-[#4a7c3f] text-white rounded-lg text-sm
-                       font-semibold hover:bg-[#3d6b2e] transition-colors">
-            {showForm ? '✕ Cancelar' : '+ Movimiento'}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {producto && movimientos.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => { setShowFacturas(!showFacturas); setShowForm(false); }}
+                className="px-4 py-2 bg-[#264d35] text-[#c8d9a0] rounded-lg text-sm
+                           font-semibold hover:bg-[#3d6b2e] transition-colors border border-[#4a7c3f]">
+                📋 Facturas ({facturasHistorial.length})
+              </button>
+              {showFacturas && (
+                <div className="absolute right-0 top-10 z-50 w-72 bg-[#111c17] border border-[#4a7c3f]
+                                rounded-xl shadow-2xl overflow-hidden">
+                  <div className="px-3 py-2 border-b border-[#264d35]">
+                    <p className="text-xs font-bold text-[#4a7c3f] uppercase tracking-widest">
+                      Historial de Facturas
+                    </p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {facturasHistorial.map((f, i) => {
+                      const movsFac = movimientos.filter(m => m.detalle === f);
+                      const lotesFac = lotes.filter(l => l.factura === f);
+                      const diasMin = lotesFac
+                        .map(l => diasParaVencer(l.fecha_vencimiento))
+                        .filter((d): d is number => d !== null)
+                        .sort((a, b) => a - b)[0];
+                      const vencido = diasMin !== undefined && diasMin < 0;
+                      const urgente = diasMin !== undefined && diasMin >= 0 && diasMin <= 15;
+                      return (
+                        <div key={i}
+                          className={`px-3 py-2 border-b border-[#1a2e22] flex items-center justify-between
+                            ${vencido ? 'bg-red-950' : urgente ? 'bg-orange-950' : 'hover:bg-[#1a2e22]'}`}>
+                          <div>
+                            <p className={`text-xs font-bold font-mono
+                              ${vencido ? 'text-red-400' : urgente ? 'text-orange-400' : 'text-white'}`}>
+                              {f}
+                            </p>
+                            <p className="text-[10px] text-[#8fae5a]">
+                              {movsFac.length} mov. · {movsFac.filter(m => m.tipo === 'ENTRADA').length} entradas
+                            </p>
+                          </div>
+                          {diasMin !== undefined && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded
+                              ${vencido ? 'bg-red-700 text-white'
+                              : urgente ? 'bg-orange-700 text-white'
+                              : 'bg-[#264d35] text-[#8fae5a]'}`}>
+                              {vencido ? '⚠ Vencida' : urgente ? `🔴 ${diasMin}d` : `✓ ${diasMin}d`}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {canEdit && producto && (
+            <button onClick={abrirForm}
+              className="px-4 py-2 bg-[#4a7c3f] text-white rounded-lg text-sm
+                         font-semibold hover:bg-[#3d6b2e] transition-colors">
+              {showForm ? '✕ Cancelar' : '+ Movimiento'}
+            </button>
+          )}
+        </div>
       </div>
 
       {productos.length === 0 ? (
@@ -185,13 +269,10 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                         bg-[#1a2e22] border border-[#264d35] rounded-xl mt-4">
           <div className="text-5xl mb-4">📦</div>
           <p className="text-white font-semibold">No hay insumos registrados</p>
-          <p className="text-sm text-[#8fae5a] mt-1">
-            Registra productos desde el módulo Productos
-          </p>
+          <p className="text-sm text-[#8fae5a] mt-1">Registra productos desde el módulo Productos</p>
         </div>
       ) : (
         <div className="grid grid-cols-4 gap-4">
-          {/* Panel izquierdo */}
           <div className="col-span-1">
             <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-3 mb-3">
               <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-3">
@@ -200,7 +281,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
               <div className="space-y-1">
                 {productos.map(p => (
                   <button key={p.id_producto}
-                    onClick={() => setSelectedId(p.id_producto)}
+                    onClick={() => { setSelectedId(p.id_producto); setShowFacturas(false); setShowForm(false); }}
                     className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all
                       ${selectedId === p.id_producto
                         ? 'bg-[#4a7c3f] text-white'
@@ -219,9 +300,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                 Inventario consolidado
               </p>
               <p className="text-xs text-[#8fae5a] mb-1">Valor total (COP $):</p>
-              <p className="text-lg font-bold text-[#d4a843] font-mono">
-                {fmt(totalInventario)}
-              </p>
+              <p className="text-lg font-bold text-[#d4a843] font-mono">{fmt(totalInventario)}</p>
               <div className="mt-3 space-y-1">
                 {productos.map(p => (
                   <div key={p.id_producto} className="flex justify-between text-[10px]">
@@ -233,26 +312,25 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
             </div>
           </div>
 
-          {/* Panel derecho */}
           <div className="col-span-3">
             {producto ? (
               <>
-                {/* Info producto + lotes */}
+                {/* Info + lotes */}
                 <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4 mb-4">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <h2 className="text-base font-semibold text-white">{producto.nombre}</h2>
                       <div className="flex gap-2 mt-1 flex-wrap">
-                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-[#c8d9a0] rounded text-[10px] font-semibold">
+                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-white rounded text-[10px] font-semibold">
                           {producto.categoria}
                         </span>
-                        <span className="px-2 py-0.5 bg-[#d4a843]/20 text-[#d4a843] rounded text-[10px] font-semibold">
+                        <span className="px-2 py-0.5 bg-[#d4a843] text-[#1a1a1a] rounded text-[10px] font-semibold">
                           {producto.unidadmedida}
                         </span>
-                        <span className="px-2 py-0.5 bg-blue-900/40 text-blue-400 rounded text-[10px] font-semibold">
+                        <span className="px-2 py-0.5 bg-blue-700 text-white rounded text-[10px] font-semibold">
                           MÉTODO PEPS
                         </span>
-                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-[#c8d9a0] rounded text-[10px]">
+                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-white rounded text-[10px]">
                           🌿 {producto.finca}
                         </span>
                       </div>
@@ -262,13 +340,10 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                       <p className="text-xl font-bold text-white font-mono">
                         {fmtU(producto.saldo_cantidad, producto.unidadmedida)}
                       </p>
-                      <p className="text-sm text-[#d4a843] font-mono">
-                        {fmt(producto.saldo_valor)}
-                      </p>
+                      <p className="text-sm text-[#d4a843] font-mono">{fmt(producto.saldo_valor)}</p>
                     </div>
                   </div>
 
-                  {/* Lotes FEFO */}
                   {lotes.length > 0 && (
                     <div>
                       <p className="text-xs font-semibold text-[#8fae5a] mb-2">
@@ -277,30 +352,25 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                       <div className="space-y-2">
                         {lotes.map((l, i) => {
                           const dias = diasParaVencer(l.fecha_vencimiento);
-                          const vencido  = dias !== null && dias < 0;
-                          const urgente  = dias !== null && dias >= 0 && dias <= 15;
-                          const proximo  = dias !== null && dias > 15 && dias <= 30;
-                          // Es el primero que hay que usar:
-                          // - si hay más de 1 lote → siempre el índice 0
-                          // - si hay 1 solo lote con fecha de vencimiento → también lo marcamos
+                          const vencido = dias !== null && dias < 0;
+                          const urgente = dias !== null && dias >= 0 && dias <= 15;
+                          const proximo = dias !== null && dias > 15 && dias <= 30;
                           const esElPrimero = i === 0;
 
                           return (
                             <div key={l.id_lote}
                               className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs border
-                                ${esElPrimero
-                                  ? vencido
-                                    ? 'bg-red-900/40 border-red-500'
-                                    : urgente
-                                      ? 'bg-orange-900/40 border-orange-400'
-                                      : 'bg-[#1a3d1a] border-[#4a7c3f]'
-                                  : 'bg-[#111c17] border-[#264d35]'}`}>
-
+                                ${vencido ? 'bg-red-950 border-red-600'
+                                : urgente ? 'bg-orange-950 border-orange-600'
+                                : esElPrimero ? 'bg-[#1a3d1a] border-[#4a7c3f]'
+                                : 'bg-[#111c17] border-[#264d35]'}`}>
                               <div className="flex items-center gap-3">
-                                {/* Número de lote */}
                                 <span className={`w-5 h-5 rounded-full flex items-center justify-center
                                                   text-[10px] font-bold flex-shrink-0
-                                  ${esElPrimero ? 'bg-[#4a7c3f] text-white' : 'bg-[#264d35] text-[#8fae5a]'}`}>
+                                  ${vencido ? 'bg-red-700 text-white'
+                                  : urgente ? 'bg-orange-700 text-white'
+                                  : esElPrimero ? 'bg-[#4a7c3f] text-white'
+                                  : 'bg-[#264d35] text-[#8fae5a]'}`}>
                                   {i + 1}
                                 </span>
                                 <div>
@@ -310,35 +380,28 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                                   <span className="text-[#8fae5a] mx-1">@</span>
                                   <span className="text-[#d4a843] font-mono">{fmt(l.costo_unitario)}</span>
                                   <span className="text-[#8fae5a] ml-2 text-[10px]">
-                                    Ingreso: {new Date(l.fecha_entrada).toLocaleDateString('es-CO')}
-                                    {l.factura && ` · FAC: ${l.factura}`}
+                                    {new Date(l.fecha_entrada).toLocaleDateString('es-CO')}
+                                    {l.factura && ` · ${l.factura}`}
                                   </span>
                                 </div>
                               </div>
-
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                {/* Badge vencimiento */}
                                 {l.fecha_vencimiento ? (
                                   <span className={`px-2 py-0.5 rounded text-[10px] font-semibold
-                                    ${vencido  ? 'bg-red-900/60 text-red-300'
-                                    : urgente  ? 'bg-orange-900/60 text-orange-300'
-                                    : proximo  ? 'bg-yellow-900/60 text-yellow-300'
-                                               : 'bg-green-900/40 text-green-400'}`}>
-                                    {vencido
-                                      ? `⚠️ Vencido hace ${Math.abs(dias!)} días`
-                                      : urgente
-                                        ? `🔴 Vence en ${dias} días`
-                                        : proximo
-                                          ? `🟡 Vence en ${dias} días`
-                                          : `✓ Vence ${new Date(l.fecha_vencimiento).toLocaleDateString('es-CO')}`}
+                                    ${vencido ? 'bg-red-700 text-white'
+                                    : urgente ? 'bg-orange-700 text-white'
+                                    : proximo ? 'bg-yellow-700 text-white'
+                                    : 'bg-[#264d35] text-[#a8d97f]'}`}>
+                                    {vencido ? `⚠️ Vencido hace ${Math.abs(dias!)} días`
+                                    : urgente ? `🔴 Vence en ${dias} días`
+                                    : proximo ? `🟡 Vence en ${dias} días`
+                                    : `✓ Vence ${new Date(l.fecha_vencimiento).toLocaleDateString('es-CO')}`}
                                   </span>
                                 ) : (
                                   <span className="px-2 py-0.5 rounded text-[10px] bg-[#264d35] text-[#8fae5a]">
                                     Sin fecha venc.
                                   </span>
                                 )}
-
-                                {/* USAR PRIMERO — visible cuando hay 2+ lotes O cuando hay 1 lote con vencimiento */}
                                 {esElPrimero && lotes.length > 1 && (
                                   <span className="px-2 py-0.5 bg-[#4a7c3f] text-white
                                                    rounded text-[10px] font-bold whitespace-nowrap">
@@ -354,25 +417,24 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                   )}
                 </div>
 
-                {/* Formulario movimiento */}
+                {/* Formulario */}
                 {canEdit && showForm && (
                   <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4 mb-4">
                     <h3 className="text-sm font-semibold text-[#4a7c3f] mb-4">
                       Registrar movimiento — {producto.nombre}
                     </h3>
                     <div className="grid grid-cols-2 gap-4 mb-4">
+
                       {/* Tipo */}
                       <div>
                         <label className="block text-xs font-semibold text-[#8fae5a]
                                           uppercase tracking-widest mb-2">Tipo</label>
                         <div className="flex gap-2">
                           {(['ENTRADA', 'SALIDA'] as const).map(t => (
-                            <button key={t} onClick={() => setTipo(t)}
+                            <button key={t} onClick={() => cambiarTipo(t)}
                               className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors
                                 ${tipo === t
-                                  ? t === 'ENTRADA'
-                                    ? 'bg-[#4a7c3f] text-white'
-                                    : 'bg-red-900/60 text-red-300'
+                                  ? t === 'ENTRADA' ? 'bg-[#4a7c3f] text-white' : 'bg-red-700 text-white'
                                   : 'bg-[#111c17] text-[#8fae5a] border border-[#264d35]'}`}>
                               {t === 'ENTRADA' ? '↑ Entrada' : '↓ Salida'}
                             </button>
@@ -380,27 +442,137 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                         </div>
                       </div>
 
-                      {/* Detalle */}
+                      {/* Factura */}
                       <div>
                         <label className="block text-xs font-semibold text-[#8fae5a]
                                           uppercase tracking-widest mb-2">
-                          Detalle / Factura
+                          N° Factura / Detalle
                         </label>
-                        <input value={detalle}
-                          onChange={e => setDetalle(e.target.value)}
-                          placeholder="Ej: Compra FAC#123"
-                          className="w-full bg-[#111c17] border border-[#264d35] rounded-lg
-                                     px-3 py-2 text-sm text-white outline-none focus:border-[#4a7c3f]" />
+                        <div className="flex gap-2">
+                          <input value={detalle}
+                            onChange={e => setDetalle(e.target.value)}
+                            placeholder="Ej: FAC-20260526-001"
+                            className="flex-1 bg-[#111c17] border border-[#264d35] rounded-lg
+                                       px-3 py-2 text-sm text-white outline-none
+                                       focus:border-[#4a7c3f] font-mono" />
+                          <button type="button" onClick={() => setDetalle(generarNumFactura())}
+                            className="px-3 py-2 bg-[#264d35] text-[#a8d97f] rounded-lg text-xs
+                                       hover:bg-[#3d6b2e] transition-colors border border-[#4a7c3f]
+                                       font-semibold">
+                            🔄 Auto
+                          </button>
+                        </div>
                       </div>
+
+                      {/* SALIDA: selector de lote */}
+                      {tipo === 'SALIDA' && (
+                        <div className="col-span-2">
+                          <label className="block text-xs font-semibold text-[#8fae5a]
+                                            uppercase tracking-widest mb-2">
+                            Lote a consumir
+                            <span className="normal-case text-[#4a7c3f] ml-1 font-normal">
+                              — selecciona cuál factura/lote saldrá
+                            </span>
+                          </label>
+                          <div className="space-y-2">
+                            {lotes.length === 0 ? (
+                              <p className="text-xs text-red-400 bg-red-950 border border-red-700
+                                            rounded-lg px-3 py-2">
+                                No hay lotes disponibles para este producto
+                              </p>
+                            ) : (
+                              lotes.map((l, i) => {
+                                const dias = diasParaVencer(l.fecha_vencimiento);
+                                const vencido = dias !== null && dias < 0;
+                                const urgente = dias !== null && dias >= 0 && dias <= 15;
+                                const seleccionado = loteSeleccionado?.id_lote === l.id_lote;
+
+                                return (
+                                  <button key={l.id_lote} type="button"
+                                    onClick={() => setLoteSeleccionado(l)}
+                                    className={`w-full text-left rounded-lg px-3 py-2 text-xs border
+                                                transition-all flex items-center justify-between
+                                      ${seleccionado
+                                        ? 'bg-[#4a7c3f] border-[#6aae5a]'
+                                        : vencido ? 'bg-red-950 border-red-600 hover:border-red-400'
+                                        : urgente ? 'bg-orange-950 border-orange-600 hover:border-orange-400'
+                                        : 'bg-[#111c17] border-[#264d35] hover:border-[#4a7c3f]'}`}>
+                                    <div className="flex items-center gap-3">
+                                      <span className={`w-5 h-5 rounded-full flex items-center justify-center
+                                                        text-[10px] font-bold flex-shrink-0
+                                        ${seleccionado ? 'bg-white text-[#4a7c3f]'
+                                        : vencido ? 'bg-red-700 text-white'
+                                        : urgente ? 'bg-orange-700 text-white'
+                                        : i === 0 ? 'bg-[#4a7c3f] text-white'
+                                        : 'bg-[#264d35] text-[#8fae5a]'}`}>
+                                        {i + 1}
+                                      </span>
+                                      <div>
+                                        <span className="text-white font-mono font-semibold">
+                                          {fmtU(l.cantidad, producto.unidadmedida)} disponibles
+                                        </span>
+                                        {l.factura && (
+                                          <span className="text-[#d4a843] ml-2 font-mono text-[10px]">
+                                            · {l.factura}
+                                          </span>
+                                        )}
+                                        <span className="text-[#8fae5a] ml-2 text-[10px]">
+                                          @ {fmt(l.costo_unitario)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                      {l.fecha_vencimiento ? (
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold
+                                          ${vencido ? 'bg-red-700 text-white'
+                                          : urgente ? 'bg-orange-700 text-white'
+                                          : 'bg-[#264d35] text-[#a8d97f]'}`}>
+                                          {vencido ? `⚠️ Vencido`
+                                          : urgente ? `🔴 Vence en ${dias} días`
+                                          : `✓ Vence ${new Date(l.fecha_vencimiento).toLocaleDateString('es-CO')}`}
+                                        </span>
+                                      ) : (
+                                        <span className="px-2 py-0.5 rounded text-[10px] bg-[#264d35] text-[#8fae5a]">
+                                          Sin venc.
+                                        </span>
+                                      )}
+                                      {i === 0 && lotes.length > 1 && (
+                                        <span className="px-2 py-0.5 bg-[#d4a843] text-[#1a1a1a]
+                                                         rounded text-[10px] font-bold whitespace-nowrap">
+                                          ← USAR PRIMERO
+                                        </span>
+                                      )}
+                                      {seleccionado && (
+                                        <span className="text-white font-bold text-sm">✓</span>
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
+                          {loteSeleccionado && (
+                            <p className="text-xs text-[#a8d97f] mt-2 font-semibold">
+                              ✓ Lote seleccionado: {fmtU(loteSeleccionado.cantidad, producto.unidadmedida)} disponibles
+                              {loteSeleccionado.factura && ` · ${loteSeleccionado.factura}`}
+                            </p>
+                          )}
+                        </div>
+                      )}
 
                       {/* Cantidad */}
                       <div>
                         <label className="block text-xs font-semibold text-[#8fae5a]
                                           uppercase tracking-widest mb-2">
                           Cantidad ({producto.unidadmedida})
-                          {tipo === 'SALIDA' && (
+                          {tipo === 'SALIDA' && loteSeleccionado && (
                             <span className="text-[#d4a843] normal-case ml-1">
-                              máx: {producto.saldo_cantidad}
+                              máx: {loteSeleccionado.cantidad}
+                            </span>
+                          )}
+                          {tipo === 'SALIDA' && !loteSeleccionado && (
+                            <span className="text-red-400 normal-case ml-1">
+                              — selecciona un lote primero
                             </span>
                           )}
                         </label>
@@ -411,15 +583,16 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                             const num = parseCOP(e.target.value);
                             if (!isNaN(num) && num > 0) setCantidad(String(num));
                           }}
+                          disabled={tipo === 'SALIDA' && !loteSeleccionado}
                           placeholder="Ej: 10"
                           className="w-full bg-[#111c17] border border-[#264d35] rounded-lg
                                      px-3 py-2 text-sm text-white outline-none
-                                     focus:border-[#4a7c3f] font-mono" />
+                                     focus:border-[#4a7c3f] font-mono
+                                     disabled:opacity-40 disabled:cursor-not-allowed" />
                       </div>
 
                       {tipo === 'ENTRADA' ? (
                         <>
-                          {/* Costo */}
                           <div>
                             <label className="block text-xs font-semibold text-[#8fae5a]
                                               uppercase tracking-widest mb-2">
@@ -440,13 +613,13 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                               Puedes escribir 5.000 o 5000
                             </p>
                           </div>
-
-                          {/* Fecha vencimiento */}
                           <div className="col-span-2">
                             <label className="block text-xs font-semibold text-[#8fae5a]
                                               uppercase tracking-widest mb-2">
                               Fecha de vencimiento
-                              <span className="normal-case text-[#264d35] ml-1">(opcional)</span>
+                              <span className="normal-case text-[#4a7c3f] ml-1 font-normal">
+                                (opcional)
+                              </span>
                             </label>
                             <input
                               type="date" value={fechaVenc}
@@ -455,27 +628,24 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                               className="w-64 bg-[#111c17] border border-[#264d35] rounded-lg
                                          px-3 py-2 text-sm text-white outline-none
                                          focus:border-[#4a7c3f] [color-scheme:dark]" />
-                            <p className="text-[10px] text-[#8fae5a] mt-1">
-                              El lote que vence antes saldrá primero automáticamente (FEFO)
-                            </p>
                           </div>
                         </>
                       ) : (
-                        <div className="bg-[#111c17] border border-[#264d35] rounded-lg p-3">
-                          <p className="text-xs text-[#8fae5a] mb-1">
+                        <div className="bg-[#111c17] border border-[#4a7c3f] rounded-lg p-3">
+                          <p className="text-xs text-white mb-1 font-semibold">
                             Costo calculado automáticamente (FEFO)
                           </p>
-                          <p className="text-xs text-[#d4a843]">
-                            Se consume el lote que vence antes primero
+                          <p className="text-xs text-[#8fae5a]">
+                            Se descuenta del lote seleccionado arriba
                           </p>
                         </div>
                       )}
                     </div>
 
                     {error && (
-                      <p className="text-red-400 text-xs mb-3 bg-red-900/20
-                                    border border-red-900/40 rounded px-3 py-2">
-                        {error}
+                      <p className="text-white text-xs mb-3 bg-red-700 border border-red-500
+                                    rounded px-3 py-2 font-semibold">
+                        ⚠ {error}
                       </p>
                     )}
 
@@ -502,13 +672,13 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                     <table className="w-full text-xs font-mono min-w-[800px]">
                       <thead>
                         <tr className="border-b border-[#264d35]">
-                          {['Fecha','Detalle','Usuario','Tipo',
+                          {['Fecha','Factura','Usuario','Tipo',
                             'E.Cant','E.Costo','E.Total',
                             'S.Cant','S.Costo','S.Total',
                             'Sal.Cant','Sal.Total'].map(h => (
                             <th key={h}
                               className={`pb-2 px-2 text-[#8fae5a] uppercase text-[10px]
-                                ${['Fecha','Detalle','Usuario','Tipo'].includes(h)
+                                ${['Fecha','Factura','Usuario','Tipo'].includes(h)
                                   ? 'text-left' : 'text-right'}`}>
                               {h}
                             </th>
@@ -522,38 +692,38 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                             <td className="py-2 px-2 text-[#8fae5a]">
                               {new Date(m.fecha).toLocaleDateString('es-CO')}
                             </td>
-                            <td className="py-2 px-2 text-white">{m.detalle}</td>
+                            <td className="py-2 px-2 text-white font-semibold">{m.detalle}</td>
                             <td className="py-2 px-2 text-[#8fae5a] text-[10px]">{m.usuario}</td>
                             <td className="py-2 px-2">
                               {m.tipo === 'ENTRADA' && (
-                                <span className="px-2 py-0.5 bg-green-900/60 text-green-400
+                                <span className="px-2 py-0.5 bg-[#2d5a1e] text-[#7dde5a]
                                                  rounded text-[10px] font-semibold">ENTRADA</span>
                               )}
                               {m.tipo === 'SALIDA' && (
-                                <span className="px-2 py-0.5 bg-red-900/40 text-red-400
+                                <span className="px-2 py-0.5 bg-red-800 text-white
                                                  rounded text-[10px] font-semibold">SALIDA</span>
                               )}
                               {m.tipo === 'INICIO' && (
-                                <span className="px-2 py-0.5 bg-purple-900/40 text-purple-400
+                                <span className="px-2 py-0.5 bg-purple-800 text-white
                                                  rounded text-[10px] font-semibold">INICIO</span>
                               )}
                             </td>
-                            <td className="py-2 px-2 text-right text-green-400">
+                            <td className="py-2 px-2 text-right text-[#7dde5a]">
                               {m.tipo !== 'SALIDA' ? fmtU(m.cantidad, producto.unidadmedida) : '—'}
                             </td>
-                            <td className="py-2 px-2 text-right text-green-300">
+                            <td className="py-2 px-2 text-right text-[#7dde5a]">
                               {m.tipo !== 'SALIDA' ? fmt(m.costo_unitario) : '—'}
                             </td>
-                            <td className="py-2 px-2 text-right text-green-300">
+                            <td className="py-2 px-2 text-right text-[#7dde5a]">
                               {m.tipo !== 'SALIDA' ? fmt(m.total) : '—'}
                             </td>
                             <td className="py-2 px-2 text-right text-red-400">
                               {m.tipo === 'SALIDA' ? fmtU(m.cantidad, producto.unidadmedida) : '—'}
                             </td>
-                            <td className="py-2 px-2 text-right text-red-300">
+                            <td className="py-2 px-2 text-right text-red-400">
                               {m.tipo === 'SALIDA' ? fmt(m.costo_unitario) : '—'}
                             </td>
-                            <td className="py-2 px-2 text-right text-red-300">
+                            <td className="py-2 px-2 text-right text-red-400">
                               {m.tipo === 'SALIDA' ? fmt(m.total) : '—'}
                             </td>
                             <td className="py-2 px-2 text-right text-white font-semibold">
