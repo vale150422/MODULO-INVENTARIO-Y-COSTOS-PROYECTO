@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { api } from '../services/api';
 
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO');
 
 export default function Reportes() {
+  usePageTitle('Reportes');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 

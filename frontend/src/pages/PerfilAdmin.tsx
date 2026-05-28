@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { usePageTitle } from '../hooks/usePageTitle';
 import ModalAyuda from '../components/ModalAyuda';
 
 export default function PerfilAdmin() {
+  usePageTitle('Mi perfil');
   const { user } = useAuth();
   const [showPass, setShowPass] = useState(false);
   const [passActual, setPassActual] = useState('');

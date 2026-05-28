@@ -1,3 +1,4 @@
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useEffect, useState } from 'react';
 
 interface Producto {
@@ -22,6 +23,8 @@ interface ReporteData {
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO');
 
 export default function ReporteKardex() {
+  usePageTitle('Reporte');
+  
   const [data, setData] = useState<ReporteData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

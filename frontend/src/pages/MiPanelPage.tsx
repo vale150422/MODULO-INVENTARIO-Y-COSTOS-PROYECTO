@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { usePageTitle } from '../hooks/usePageTitle';
 import ModalAyuda from '../components/ModalAyuda';
 
 export default function MiPanelPage() {
+  usePageTitle('Mi panel');
+  
+  
   const { user } = useAuth();
   const [showCambiarPass, setShowCambiarPass] = useState(false);
   const [passActual, setPassActual] = useState('');
