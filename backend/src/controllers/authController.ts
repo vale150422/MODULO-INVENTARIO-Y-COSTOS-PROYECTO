@@ -6,25 +6,67 @@ import { pool } from '../database/connection';
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
   try {
-    const result = await pool.query(
-      'SELECT * FROM usuario WHERE email = $1 AND activo = TRUE', [email]
-    );
-    const user = result.rows[0];
-    if (!user) return res.status(401).json({ error: 'Credenciales incorrectas' });
-
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(401).json({ error: 'Credenciales incorrectas' });
-
-    const token = jwt.sign(
-      { id: user.id_usuario, email: user.email, role: user.rol, nombre: user.nombre },
-      process.env.JWT_SECRET || 'secret123',
-      { expiresIn: '8h' }
+    // 1. Buscar en tabla usuario (admin)
+    const resultUsuario = await pool.query(
+      'SELECT * FROM usuario WHERE email = $1 AND activo = TRUE',
+      [email]
     );
 
-    res.json({
-      token,
-      user: { id: user.id_usuario, nombre: user.nombre, email: user.email, role: user.rol }
-    });
+    if (resultUsuario.rows.length > 0) {
+      const user = resultUsuario.rows[0];
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) return res.status(401).json({ error: 'Credenciales incorrectas' });
+
+      const token = jwt.sign(
+        { id: user.id_usuario, email: user.email, role: user.rol, nombre: user.nombre },
+        process.env.JWT_SECRET || 'secret123',
+        { expiresIn: '8h' }
+      );
+
+      return res.json({
+        token,
+        user: { id: user.id_usuario, nombre: user.nombre, email: user.email, role: user.rol }
+      });
+    }
+
+    // 2. Buscar en tabla trabajador (correo + cédula)
+    const resultTrabajador = await pool.query(
+      'SELECT * FROM trabajador WHERE correo = $1 AND LOWER(estado) = $2',
+      [email, 'activo']
+    );
+
+    if (resultTrabajador.rows.length > 0) {
+      const trabajador = resultTrabajador.rows[0];
+
+      if (password.trim() !== trabajador.cedula.trim()) {
+        return res.status(401).json({ error: 'Credenciales incorrectas' });
+      }
+
+      const token = jwt.sign(
+        {
+          id: trabajador.id_trabajador,
+          email: trabajador.correo,
+          role: 'trabajador',
+          nombre: trabajador.nombre
+        },
+        process.env.JWT_SECRET || 'secret123',
+        { expiresIn: '8h' }
+      );
+
+      return res.json({
+        token,
+        user: {
+          id: trabajador.id_trabajador,
+          nombre: trabajador.nombre,
+          email: trabajador.correo,
+          role: 'trabajador'
+        }
+      });
+    }
+
+    // 3. No encontrado en ninguna tabla
+    return res.status(401).json({ error: 'Credenciales incorrectas' });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error del servidor' });
@@ -62,10 +104,8 @@ export const cambiarPassword = async (req: Request, res: Response) => {
     );
     const user = result.rows[0];
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-
     const valid = await bcrypt.compare(actual, user.password);
     if (!valid) return res.status(400).json({ error: 'Contraseña actual incorrecta' });
-
     const hash = await bcrypt.hash(nueva, 10);
     await pool.query(
       'UPDATE usuario SET password = $1 WHERE id_usuario = $2', [hash, id]
@@ -75,5 +115,4 @@ export const cambiarPassword = async (req: Request, res: Response) => {
     console.error(error);
     res.status(500).json({ error: 'Error del servidor' });
   }
-
 };
