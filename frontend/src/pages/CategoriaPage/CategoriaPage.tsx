@@ -109,7 +109,7 @@ const CategoriaPage = () => {
               <label className="pp-label">Nombre</label>
               <input
                 className="pp-input"
-                placeholder="Ej: Café, Plátano, Cítricos..."
+                placeholder="Ej: Fungicidas, fertilizantes, abonos, semillas, etc"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCrear()}
