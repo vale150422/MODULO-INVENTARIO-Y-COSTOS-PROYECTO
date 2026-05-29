@@ -23,7 +23,7 @@ const seccionesAdmin = [
       'Haz clic en "+ Nueva Finca" para agregar una finca.',
       'Completa nombre, municipio y vereda, luego guarda.',
       'Usa "Editar" para modificar los datos de una finca existente.',
-      'Las fincas no se eliminan — se pueden editar en cualquier momento.',
+      'Solo el administrador puede crear, editar o eliminar fincas. Los empleados solo pueden consultarlas.',
     ],
   },
   {
@@ -58,32 +58,46 @@ const seccionesAdmin = [
     ],
   },
   {
-    icon: '🤝',
+    icon: '🏪',
     titulo: 'Proveedores',
-    descripcion: 'Directorio de proveedores de insumos.',
+    descripcion: 'Directorio de proveedores con soporte para múltiples productos.',
     pasos: [
       'Registra proveedores con nombre, NIT, ciudad, teléfono y correo.',
-      'Puedes editar o eliminar proveedores desde la tabla.',
-      'Usa esta información para referenciar compras en el Kardex.',
+      'Un proveedor puede suministrar varios productos — escribe cada uno y presiona Enter o clic en "+ Agregar".',
+      'El sistema sugiere automáticamente productos agrícolas comunes mientras escribes.',
+      'Cada producto aparece como una etiqueta que puedes eliminar con ×.',
+      'Usa "Editar" para modificar los productos que provee en cualquier momento.',
     ],
   },
   {
     icon: '📦',
     titulo: 'Kardex PEPS',
-    descripcion: 'Control de inventario con método Primeras en Entrar, Primeras en Salir.',
+    descripcion: 'Control de inventario con método FEFO — el lote que vence antes sale primero.',
     pasos: [
-      'Selecciona un producto de la lista izquierda para ver su historial.',
+      'Selecciona un producto de la lista izquierda para ver sus lotes y movimientos.',
       'Haz clic en "+ Movimiento" para registrar una entrada o salida.',
-      'ENTRADA: ingresa cantidad, costo unitario y número de factura.',
-      'SALIDA: solo ingresa la cantidad — el costo lo calcula el sistema automáticamente usando los lotes más antiguos.',
-      'El saldo se actualiza en tiempo real después de cada movimiento.',
-      'Los lotes disponibles se muestran en orden PEPS (el más antiguo primero).',
+      'ENTRADA: ingresa cantidad, costo unitario, número de factura y fecha de vencimiento (opcional). El número de factura se genera automáticamente — puedes editarlo.',
+      'SALIDA: selecciona el lote a consumir de la lista — el sistema muestra cuál vence primero con el badge "← USAR PRIMERO". Ingresa la cantidad y el costo se calcula automáticamente.',
+      'Los lotes en ROJO están vencidos, en NARANJA vencen en menos de 15 días, en AMARILLO en menos de 30 días.',
+      'El botón "📋 Facturas" muestra el historial de todas las facturas registradas para ese producto.',
+      'El inventario consolidado en la columna izquierda muestra el valor total en pesos colombianos (COP).',
+    ],
+  },
+  {
+    icon: '📋',
+    titulo: 'Rep. Kardex',
+    descripcion: 'Reporte consolidado del inventario valorado con método PEPS.',
+    pasos: [
+      'Muestra un resumen con 4 indicadores: Valor Inventario, Costo Ventas, Entradas y Salidas totales.',
+      'La tabla lista todos los productos con su categoría, finca, saldo en cantidad y valor.',
+      'Los productos con stock menor a 10 unidades aparecen resaltados en rojo como alerta.',
+      'Haz clic en "🖨️ Imprimir / Exportar PDF" para generar el reporte imprimible.',
     ],
   },
   {
     icon: '📈',
     titulo: 'Reportes',
-    descripcion: 'Informes financieros del inventario.',
+    descripcion: 'Informes financieros y contables del inventario.',
     pasos: [
       'Ver el valor total del inventario (Cuenta 1405 Materias Primas).',
       'Consultar el costo de ventas acumulado de todas las salidas.',
@@ -91,19 +105,30 @@ const seccionesAdmin = [
       'Los datos reflejan el estado actual del inventario en tiempo real.',
     ],
   },
+  {
+    icon: '👤',
+    titulo: 'Mi Perfil',
+    descripcion: 'Gestiona tu información personal y seguridad.',
+    pasos: [
+      'Puedes editar tu nombre haciendo clic en el botón ✏️ Editar junto al campo Nombre.',
+      'Para cambiar tu contraseña haz clic en "Cambiar contraseña".',
+      'Ingresa tu contraseña actual, luego la nueva (mínimo 6 caracteres) y confírmala.',
+      'Haz clic en "Actualizar contraseña" para guardar los cambios.',
+      'Accede rápidamente a cualquier módulo desde los accesos rápidos al final de la página.',
+    ],
+  },
 ];
 
 const seccionesEmpleado = [
   {
-    icon: '📦',
-    titulo: 'Kardex PEPS',
-    descripcion: 'Registro y consulta del inventario de insumos.',
+    icon: '🏠',
+    titulo: 'Mi Panel',
+    descripcion: 'Tu panel personal con información y accesos rápidos.',
     pasos: [
-      'Selecciona un producto de la lista izquierda.',
-      'Verás el saldo actual, los lotes disponibles y el historial de movimientos.',
-      'Para registrar un movimiento haz clic en "+ Movimiento".',
-      'ENTRADA: registra compras de insumos con factura y costo.',
-      'SALIDA: registra el uso de insumos — el sistema calcula el costo automáticamente.',
+      'Aquí puedes ver tu correo, rol y estado en el sistema.',
+      'Para cambiar tu contraseña haz clic en "Cambiar contraseña".',
+      'Ingresa tu contraseña actual, luego la nueva (mínimo 6 caracteres) y confírmala.',
+      'Usa los accesos rápidos para ir directamente a Kardex, Mis Fincas o el Reporte.',
     ],
   },
   {
@@ -117,24 +142,27 @@ const seccionesEmpleado = [
     ],
   },
   {
-    icon: '📊',
-    titulo: 'Reporte Kardex',
-    descripcion: 'Genera e imprime el informe del inventario.',
+    icon: '📦',
+    titulo: 'Kardex PEPS',
+    descripcion: 'Registro y consulta del inventario de insumos con método FEFO.',
     pasos: [
-      'Muestra el inventario final valorado con el método PEPS.',
-      'Incluye cantidad, costo unitario y valor total por producto.',
-      'Puedes imprimir o exportar el reporte desde el navegador (Ctrl+P).',
+      'Selecciona un producto de la lista izquierda para ver sus lotes y movimientos.',
+      'ENTRADA: haz clic en "+ Movimiento", selecciona Entrada, el número de factura se genera automáticamente, ingresa cantidad, costo y fecha de vencimiento si aplica.',
+      'SALIDA: selecciona Salida, luego elige el lote a consumir de la lista — el que vence primero aparece marcado con "← USAR PRIMERO".',
+      'Los lotes en ROJO están vencidos, en NARANJA vencen pronto — consúmelos primero.',
+      'El botón "📋 Facturas" muestra todas las facturas registradas para ese producto.',
+      'El inventario consolidado muestra el valor total en pesos colombianos (COP).',
     ],
   },
   {
-    icon: '👤',
-    titulo: 'Mi Panel',
-    descripcion: 'Tu información personal y seguridad.',
+    icon: '📊',
+    titulo: 'Reporte Kardex',
+    descripcion: 'Genera e imprime el informe consolidado del inventario.',
     pasos: [
-      'Puedes ver tu correo, rol y estado en el sistema.',
-      'Para cambiar tu contraseña haz clic en "Cambiar contraseña".',
-      'Ingresa tu contraseña actual, luego la nueva (mínimo 6 caracteres) y confírmala.',
-      'Haz clic en "Actualizar contraseña" para guardar los cambios.',
+      'Muestra un resumen con el valor total del inventario, costo de ventas, entradas y salidas.',
+      'La tabla lista todos los productos con saldo en cantidad y valor.',
+      'Los productos con stock menor a 10 unidades aparecen en rojo como alerta de bajo stock.',
+      'Haz clic en "🖨️ Imprimir / Exportar PDF" o usa Ctrl+P para generar el PDF.',
     ],
   },
 ];
@@ -202,8 +230,8 @@ export default function ModalAyuda({ rol }: Props) {
               background: '#ffffff',
               borderRadius: '20px',
               width: '100%',
-              maxWidth: '760px',
-              maxHeight: '85vh',
+              maxWidth: '780px',
+              maxHeight: '88vh',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
@@ -218,9 +246,13 @@ export default function ModalAyuda({ rol }: Props) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              flexShrink: 0,
             }}>
               <div>
-                <p style={{ color: '#8fae5a', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>
+                <p style={{
+                  color: '#8fae5a', fontSize: '11px',
+                  textTransform: 'uppercase', letterSpacing: '2px', margin: 0,
+                }}>
                   Centro de ayuda
                 </p>
                 <h2 style={{ color: '#f5f0e0', margin: '4px 0 0', fontSize: '18px', fontWeight: 700 }}>
@@ -242,9 +274,9 @@ export default function ModalAyuda({ rol }: Props) {
             {/* Body */}
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-              {/* Sidebar de secciones */}
+              {/* Sidebar */}
               <div style={{
-                width: '200px', flexShrink: 0,
+                width: '210px', flexShrink: 0,
                 background: '#f5faf0',
                 borderRight: '1px solid #e0ead0',
                 overflowY: 'auto',
@@ -288,17 +320,20 @@ export default function ModalAyuda({ rol }: Props) {
                 </div>
 
                 <p style={{
-                  color: '#6b8c3e', fontSize: '14px',
+                  color: '#4a6b2e', fontSize: '14px',
                   marginBottom: '20px', lineHeight: 1.6,
                   padding: '10px 14px',
-                  background: '#f0f9e8',
+                  background: '#e8f5e0',
                   borderRadius: '10px',
                   borderLeft: '3px solid #4a7c3f',
                 }}>
                   {secciones[seccionActiva].descripcion}
                 </p>
 
-                <h4 style={{ color: '#2d4a1e', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
+                <h4 style={{
+                  color: '#2d4a1e', fontSize: '13px', fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px',
+                }}>
                   ¿Cómo usarlo?
                 </h4>
 
@@ -309,18 +344,15 @@ export default function ModalAyuda({ rol }: Props) {
                       padding: '12px 14px',
                       background: '#fafff5',
                       borderRadius: '10px',
-                      border: '1px solid #e0ead0',
+                      border: '1px solid #d8ead0',
                     }}>
                       <div style={{
                         minWidth: '24px', height: '24px',
                         borderRadius: '50%',
                         background: '#2d4a1e',
                         color: '#ffffff',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        fontSize: '12px', fontWeight: 700,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0,
                       }}>
                         {i + 1}
@@ -332,13 +364,13 @@ export default function ModalAyuda({ rol }: Props) {
                   ))}
                 </div>
 
-                {/* Tip al final */}
+                {/* Tip */}
                 <div style={{
                   marginTop: '20px',
                   padding: '12px 14px',
                   background: '#fff8e8',
                   borderRadius: '10px',
-                  border: '1px solid #f0d080',
+                  border: '1px solid #e8c840',
                   display: 'flex',
                   gap: '10px',
                   alignItems: 'flex-start',

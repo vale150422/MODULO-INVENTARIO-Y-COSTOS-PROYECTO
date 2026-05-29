@@ -224,7 +224,7 @@ const ProductosPage = () => {
             </div>
             <div className="pp-modal-body">
               <label className="pp-label">Nombre</label>
-              <input className="pp-input" placeholder="Ej: Café Pergamino"
+              <input className="pp-input" placeholder="Ej: Belico, Furtivo, UREA, etc"
                 value={nombre} onChange={(e) => setNombre(e.target.value)} />
               <label className="pp-label">Categoría</label>
               <select className="pp-input" value={idCategoria} onChange={(e) => setIdCategoria(e.target.value)}>

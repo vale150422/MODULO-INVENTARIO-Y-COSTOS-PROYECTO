@@ -3,16 +3,19 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 
 const adminItems = [
-  { to: '/',             label: 'Dashboard',    icon: '📊' },
-  { to: '/fincas',       label: 'Fincas',       icon: '🌿' },
-  { to: '/trabajadores', label: 'Trabajadores', icon: '👥' },
-  { to: '/kardex',       label: 'Kardex',       icon: '📦' },
-  { to: '/productos',    label: 'Productos',    icon: '🛒' },
-  { to: '/proveedores',  label: 'Proveedores',  icon: '🏪' },
-  { to: '/reportes',     label: 'Reportes',     icon: '📈' },
-  { to: '/categorias',   label: 'Categorías',   icon: '🏷️' },
-  { to: '/perfil',       label: 'Mi Perfil',    icon: '👤' },
+
+  { to: '/',               label: 'Dashboard',    icon: '📊' },
+  { to: '/fincas',         label: 'Fincas',       icon: '🌿' },
+  { to: '/trabajadores',   label: 'Trabajadores', icon: '👥' },
+  { to: '/kardex',         label: 'Kardex',       icon: '📦' },
+  { to: '/reporte-kardex', label: 'Rep. Kardex',  icon: '📋' },
+  { to: '/productos',      label: 'Productos',    icon: '🛒' },
+  { to: '/proveedores',    label: 'Proveedores',  icon: '🏪' },
+  { to: '/reportes',       label: 'Reportes',     icon: '📈' },
+  { to: '/categorias',     label: 'Categorías',   icon: '🏷️' },
+  { to: '/perfil',         label: 'Mi Perfil',    icon: '👤' },
 ];
+
 
 const empleadoItems = [
   { to: '/mi-panel',       label: 'Mi Panel',    icon: '🏠' },

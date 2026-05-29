@@ -324,16 +324,16 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                     <div>
                       <h2 className="text-base font-semibold text-white">{producto.nombre}</h2>
                       <div className="flex gap-2 mt-1 flex-wrap">
-                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-white rounded text-[10px] font-semibold">
+                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-[#ffffff]  rounded text-[10px] font-semibold">
                           {producto.categoria}
                         </span>
-                        <span className="px-2 py-0.5 bg-[#d4a843] text-[#1a1a1a] rounded text-[10px] font-semibold">
+                        <span className="px-2 py-0.5 bg-[#d4a843] text-[#ffffff]  rounded text-[10px] font-semibold">
                           {producto.unidadmedida}
                         </span>
-                        <span className="px-2 py-0.5 bg-blue-700 text-white rounded text-[10px] font-semibold">
+                        <span className="px-2 py-0.5 bg-green-700 text-[#ffffff] rounded text-[10px] font-semibold">
                           MÉTODO PEPS
                         </span>
-                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-white rounded text-[10px]">
+                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-[#ffffff]  rounded text-[10px]">
                           🌿 {producto.finca}
                         </span>
                       </div>
@@ -703,7 +703,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                                                  rounded text-[10px] font-semibold">ENTRADA</span>
                               )}
                               {m.tipo === 'SALIDA' && (
-                                <span className="px-2 py-0.5 bg-red-800 text-white
+                                <span className="px-2 py-0.5 bg-red-800 text-[#FC9AA6]
                                                  rounded text-[10px] font-semibold">SALIDA</span>
                               )}
                               {m.tipo === 'INICIO' && (
