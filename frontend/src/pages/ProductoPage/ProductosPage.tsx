@@ -9,31 +9,35 @@ import { usePageTitle } from '../../hooks/usePageTitle';
 const UNIDADES = ['kg', 'unidad', 'litro', 'arroba', 'bulto'];
 
 const ProductosPage = () => {
-   usePageTitle('Productos');
+  usePageTitle('Productos');
   const [productos, setProductos] = useState<any[]>([]);
   const [fincas, setFincas] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState<any>(null);
+
+  // Campos crear
   const [nombre, setNombre] = useState('');
   const [idCategoria, setIdCategoria] = useState('');
   const [unidadMedida, setUnidadMedida] = useState('');
   const [idFinca, setIdFinca] = useState('');
+  const [stockMinimo, setStockMinimo] = useState('10');
+
+  // Campos editar
   const [nombreEditar, setNombreEditar] = useState('');
   const [idCategoriaEditar, setIdCategoriaEditar] = useState('');
   const [unidadMedidaEditar, setUnidadMedidaEditar] = useState('');
   const [idFincaEditar, setIdFincaEditar] = useState('');
+  const [stockMinimoEditar, setStockMinimoEditar] = useState('10');
+
   const { toasts, showToast, removeToast } = useToast();
 
   const cargarProductos = async () => {
     try {
       const res = await getProductos();
       setProductos(Array.isArray(res) ? res : res?.data || []);
-    } catch (error) {
-      console.error(error);
-      setProductos([]);
-    }
+    } catch { setProductos([]); }
   };
 
   const cargarFincas = async () => {
@@ -41,18 +45,14 @@ const ProductosPage = () => {
       const res = await fetch('http://localhost:3001/api/fincas');
       const data = await res.json();
       setFincas(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error(error);
-    }
+    } catch { console.error('Error cargando fincas'); }
   };
 
   const cargarCategorias = async () => {
     try {
       const res = await getCategorias();
       setCategorias(Array.isArray(res) ? res : []);
-    } catch (error) {
-      console.error(error);
-    }
+    } catch { console.error('Error cargando categorías'); }
   };
 
   useEffect(() => {
@@ -64,10 +64,15 @@ const ProductosPage = () => {
   const handleCrear = async () => {
     if (!nombre.trim() || !idCategoria || !unidadMedida || !idFinca) return;
     try {
-      await createProducto({ nombre, id_categoria: Number(idCategoria), unidadMedida, id_finca: Number(idFinca) });
+      await createProducto({
+        nombre,
+        id_categoria: Number(idCategoria),
+        unidadMedida,
+        id_finca: Number(idFinca),
+        stock_minimo: Number(stockMinimo) || 10,
+      });
       showToast('Producto creado exitosamente', 'success');
-      setNombre(''); setIdCategoria(''); setUnidadMedida(''); setIdFinca('');
-      setModalAbierto(false);
+      cerrarModal();
       cargarProductos();
     } catch {
       showToast('Error al crear el producto', 'error');
@@ -100,6 +105,7 @@ const ProductosPage = () => {
     setIdCategoriaEditar(String(p.id_categoria));
     setUnidadMedidaEditar(p.unidadmedida);
     setIdFincaEditar(String(p.id_finca));
+    setStockMinimoEditar(String(p.stock_minimo ?? 10));
     setModalEditarAbierto(true);
   };
 
@@ -111,10 +117,10 @@ const ProductosPage = () => {
         id_categoria: Number(idCategoriaEditar),
         unidadMedida: unidadMedidaEditar,
         id_finca: Number(idFincaEditar),
+        stock_minimo: Number(stockMinimoEditar) || 10,
       });
       showToast('Producto actualizado correctamente', 'success');
-      setModalEditarAbierto(false);
-      setProductoSeleccionado(null);
+      cerrarModalEditar();
       cargarProductos();
     } catch {
       showToast('Error al actualizar el producto', 'error');
@@ -123,7 +129,8 @@ const ProductosPage = () => {
 
   const cerrarModal = () => {
     setModalAbierto(false);
-    setNombre(''); setIdCategoria(''); setUnidadMedida(''); setIdFinca('');
+    setNombre(''); setIdCategoria(''); setUnidadMedida('');
+    setIdFinca(''); setStockMinimo('10');
   };
 
   const cerrarModalEditar = () => {
@@ -154,6 +161,7 @@ const ProductosPage = () => {
               <th>Categoría</th>
               <th>Unidad</th>
               <th>Finca</th>
+              <th>Stock mínimo</th>
               <th>Fecha Creación</th>
               <th>Estado</th>
               <th>Acciones</th>
@@ -162,7 +170,7 @@ const ProductosPage = () => {
           <tbody>
             {productos.length === 0 ? (
               <tr>
-                <td colSpan={7} className="pp-empty-row">
+                <td colSpan={8} className="pp-empty-row">
                   No hay productos registrados aún
                 </td>
               </tr>
@@ -173,6 +181,19 @@ const ProductosPage = () => {
                   <td><span className="pp-badge">{p.categoria_nombre || '—'}</span></td>
                   <td>{p.unidadmedida}</td>
                   <td>{p.finca_nombre || '—'}</td>
+                  <td>
+                    <span style={{
+                      fontWeight: 700,
+                      color: '#2d4a1e',
+                      background: '#e8f5e0',
+                      borderRadius: '8px',
+                      padding: '2px 10px',
+                      fontSize: '0.82rem',
+                      border: '1px solid #4a7c3f',
+                    }}>
+                      {p.stock_minimo ?? 10} {p.unidadmedida}
+                    </span>
+                  </td>
                   <td>{p.created_at ? new Date(p.created_at).toLocaleDateString('es-CO') : '—'}</td>
                   <td>
                     <span style={{
@@ -194,13 +215,11 @@ const ProductosPage = () => {
                       Editar
                     </button>
                     {p.activo ? (
-                      <button className="pp-btn-eliminar"
-                        onClick={() => handleEliminar(p.id_producto)}>
+                      <button className="pp-btn-eliminar" onClick={() => handleEliminar(p.id_producto)}>
                         Inactivar
                       </button>
                     ) : (
-                      <button className="pp-btn-activar"
-                        onClick={() => handleActivar(p.id_producto)}>
+                      <button className="pp-btn-activar" onClick={() => handleActivar(p.id_producto)}>
                         Activar
                       </button>
                     )}
@@ -215,7 +234,7 @@ const ProductosPage = () => {
       {/* MODAL CREAR */}
       {modalAbierto && (
         <div className="pp-modal-overlay" onClick={cerrarModal}>
-          <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="pp-modal" onClick={e => e.stopPropagation()}>
             <div className="pp-modal-header">
               <div>
                 <h2 className="pp-modal-title">Nuevo Producto</h2>
@@ -225,28 +244,50 @@ const ProductosPage = () => {
             <div className="pp-modal-body">
               <label className="pp-label">Nombre</label>
               <input className="pp-input" placeholder="Ej: Belico, Furtivo, UREA, etc"
-                value={nombre} onChange={(e) => setNombre(e.target.value)} />
+                value={nombre} onChange={e => setNombre(e.target.value)} />
+
               <label className="pp-label">Categoría</label>
-              <select className="pp-input" value={idCategoria} onChange={(e) => setIdCategoria(e.target.value)}>
+              <select className="pp-input" value={idCategoria} onChange={e => setIdCategoria(e.target.value)}>
                 <option value="">Selecciona una categoría</option>
-                {categorias.map((c) => (
+                {categorias.map(c => (
                   <option key={c.id_categoria} value={c.id_categoria}>{c.nombre}</option>
                 ))}
               </select>
+
               <label className="pp-label">Unidad de medida</label>
-              <select className="pp-input" value={unidadMedida} onChange={(e) => setUnidadMedida(e.target.value)}>
+              <select className="pp-input" value={unidadMedida} onChange={e => setUnidadMedida(e.target.value)}>
                 <option value="">Selecciona una unidad</option>
-                {UNIDADES.map((u) => (
-                  <option key={u} value={u}>{u}</option>
-                ))}
+                {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
+
               <label className="pp-label">Finca</label>
-              <select className="pp-input" value={idFinca} onChange={(e) => setIdFinca(e.target.value)}>
+              <select className="pp-input" value={idFinca} onChange={e => setIdFinca(e.target.value)}>
                 <option value="">Selecciona una finca</option>
-                {fincas.map((f) => (
+                {fincas.map(f => (
                   <option key={f.id_finca} value={f.id_finca}>{f.nombre}</option>
                 ))}
               </select>
+
+              <label className="pp-label">
+                Stock mínimo
+                <span style={{ fontWeight: 400, color: '#6b8c3e', marginLeft: '6px', fontSize: '11px' }}>
+                  — alerta de bajo stock cuando el saldo baje de este valor
+                </span>
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  className="pp-input"
+                  type="number"
+                  min="0"
+                  placeholder="Ej: 10"
+                  value={stockMinimo}
+                  onChange={e => setStockMinimo(e.target.value)}
+                  style={{ width: '120px' }}
+                />
+                <span style={{ fontSize: '13px', color: '#6b8c3e' }}>
+                  {unidadMedida || 'unidades'}
+                </span>
+              </div>
             </div>
             <div className="pp-modal-footer">
               <button className="pp-btn-cancelar" onClick={cerrarModal}>Cancelar</button>
@@ -259,7 +300,7 @@ const ProductosPage = () => {
       {/* MODAL EDITAR */}
       {modalEditarAbierto && (
         <div className="pp-modal-overlay" onClick={cerrarModalEditar}>
-          <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="pp-modal" onClick={e => e.stopPropagation()}>
             <div className="pp-modal-header">
               <div>
                 <h2 className="pp-modal-title">Editar Producto</h2>
@@ -269,28 +310,50 @@ const ProductosPage = () => {
             <div className="pp-modal-body">
               <label className="pp-label">Nombre</label>
               <input className="pp-input" placeholder="Ej: Café Pergamino"
-                value={nombreEditar} onChange={(e) => setNombreEditar(e.target.value)} />
+                value={nombreEditar} onChange={e => setNombreEditar(e.target.value)} />
+
               <label className="pp-label">Categoría</label>
-              <select className="pp-input" value={idCategoriaEditar} onChange={(e) => setIdCategoriaEditar(e.target.value)}>
+              <select className="pp-input" value={idCategoriaEditar} onChange={e => setIdCategoriaEditar(e.target.value)}>
                 <option value="">Selecciona una categoría</option>
-                {categorias.map((c) => (
+                {categorias.map(c => (
                   <option key={c.id_categoria} value={c.id_categoria}>{c.nombre}</option>
                 ))}
               </select>
+
               <label className="pp-label">Unidad de medida</label>
-              <select className="pp-input" value={unidadMedidaEditar} onChange={(e) => setUnidadMedidaEditar(e.target.value)}>
+              <select className="pp-input" value={unidadMedidaEditar} onChange={e => setUnidadMedidaEditar(e.target.value)}>
                 <option value="">Selecciona una unidad</option>
-                {UNIDADES.map((u) => (
-                  <option key={u} value={u}>{u}</option>
-                ))}
+                {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
+
               <label className="pp-label">Finca</label>
-              <select className="pp-input" value={idFincaEditar} onChange={(e) => setIdFincaEditar(e.target.value)}>
+              <select className="pp-input" value={idFincaEditar} onChange={e => setIdFincaEditar(e.target.value)}>
                 <option value="">Selecciona una finca</option>
-                {fincas.map((f) => (
+                {fincas.map(f => (
                   <option key={f.id_finca} value={f.id_finca}>{f.nombre}</option>
                 ))}
               </select>
+
+              <label className="pp-label">
+                Stock mínimo
+                <span style={{ fontWeight: 400, color: '#6b8c3e', marginLeft: '6px', fontSize: '11px' }}>
+                  — alerta cuando el saldo baje de este valor
+                </span>
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  className="pp-input"
+                  type="number"
+                  min="0"
+                  placeholder="Ej: 10"
+                  value={stockMinimoEditar}
+                  onChange={e => setStockMinimoEditar(e.target.value)}
+                  style={{ width: '120px' }}
+                />
+                <span style={{ fontSize: '13px', color: '#6b8c3e' }}>
+                  {unidadMedidaEditar || 'unidades'}
+                </span>
+              </div>
             </div>
             <div className="pp-modal-footer">
               <button className="pp-btn-cancelar" onClick={cerrarModalEditar}>Cancelar</button>

@@ -53,7 +53,7 @@ const CategoriaPage = () => {
       <div className="pp-header">
         <div>
           <h1 className="pp-title">Categorías</h1>
-          <p className="pp-subtitle">Gestión de categorías de productos</p>
+          <p className="pp-subtitle">Gestión de categorías</p>
         </div>
         <button className="pp-btn-nuevo" onClick={() => setModalAbierto(true)}>
           + Nueva Categoría

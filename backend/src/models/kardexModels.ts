@@ -19,7 +19,7 @@ export const getProductos = async () => {
   const result = await pool.query(`
     SELECT 
       p.id_producto, p.nombre, p.unidadmedida,
-      p.id_finca,
+      p.id_finca, p.stock_minimo,
       c.nombre as categoria, f.nombre as finca,
       COALESCE((
         SELECT k.saldo_cantidad 
@@ -63,7 +63,10 @@ export const getLotesByProducto = async (id_producto: number) => {
     SELECT id_lote, cantidad, costo_unitario, factura, fecha_entrada, fecha_vencimiento
     FROM kardex_lote
     WHERE id_producto = $1 AND cantidad > 0
-    ORDER BY fecha_entrada ASC
+    ORDER BY
+      CASE WHEN fecha_vencimiento IS NULL THEN 1 ELSE 0 END,
+      fecha_vencimiento ASC,
+      fecha_entrada ASC
   `, [id_producto]);
   return result.rows;
 };
@@ -116,7 +119,10 @@ export const registrarMovimientoModel = async (data: {
         SELECT id_lote, cantidad, costo_unitario
         FROM kardex_lote
         WHERE id_producto = $1 AND cantidad > 0
-        ORDER BY fecha_entrada ASC
+        ORDER BY
+          CASE WHEN fecha_vencimiento IS NULL THEN 1 ELSE 0 END,
+          fecha_vencimiento ASC,
+          fecha_entrada ASC
       `, [id_producto]);
 
       let restante = cantidad;
@@ -169,6 +175,7 @@ export const getReporteConsolidadoModel = async () => {
   const productosResult = await pool.query(`
     SELECT 
       p.id_producto, p.nombre, p.unidadmedida,
+      p.stock_minimo,
       c.nombre as categoria, f.nombre as finca,
       COALESCE(k.saldo_cantidad, 0) as saldo_cantidad,
       COALESCE(k.saldo_valor, 0) as saldo_valor,
@@ -211,7 +218,7 @@ export const getReporteConsolidadoModel = async () => {
 };
 
 export const getDashboardModel = async () => {
-  const totalProductos = await pool.query('SELECT COUNT(*) FROM producto');
+  const totalProductos = await pool.query('SELECT COUNT(*) FROM producto WHERE activo = true');
 
   const valorInventario = await pool.query(`
     SELECT COALESCE(SUM(k.saldo_valor), 0) as total
@@ -239,11 +246,16 @@ export const getDashboardModel = async () => {
     ORDER BY k.fecha DESC LIMIT 10
   `);
 
+  // ✅ Usa stock_minimo de cada producto en vez de hardcodear 10
   const bajoStock = await pool.query(`
     SELECT COUNT(*) FROM (
-      SELECT DISTINCT ON (id_producto) saldo_cantidad
-      FROM kardex ORDER BY id_producto, fecha DESC
-    ) k WHERE saldo_cantidad < 10
+      SELECT DISTINCT ON (k.id_producto) k.saldo_cantidad, p.stock_minimo
+      FROM kardex k
+      JOIN producto p ON p.id_producto = k.id_producto
+      WHERE p.activo = true
+      ORDER BY k.id_producto, k.fecha DESC
+    ) sub
+    WHERE sub.saldo_cantidad < sub.stock_minimo
   `);
 
   return {
