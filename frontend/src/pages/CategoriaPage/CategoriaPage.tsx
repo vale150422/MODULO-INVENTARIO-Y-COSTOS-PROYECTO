@@ -5,11 +5,16 @@ import ToastContainer from '../../components/toast/ToastContainer';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import '../FincaPage/FincaPage.css';
 
+interface ErroresCrear {
+  nombre?: string;
+}
+
 const CategoriaPage = () => {
   usePageTitle('Categoria');
   const [categorias, setCategorias] = useState<any[]>([]);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [nombre, setNombre] = useState('');
+  const [errores, setErrores] = useState<ErroresCrear>({});
   const { toasts, showToast, removeToast } = useToast();
 
   const cargarCategorias = async () => {
@@ -25,13 +30,21 @@ const CategoriaPage = () => {
     cargarCategorias();
   }, []);
 
+  const validar = (): boolean => {
+    const e: ErroresCrear = {};
+    if (!nombre.trim()) e.nombre = 'El nombre es obligatorio';
+    else if (nombre.trim().length < 3) e.nombre = 'El nombre debe tener al menos 3 caracteres';
+    else if (/\d/.test(nombre)) e.nombre = 'El nombre no debe contener números';
+    setErrores(e);
+    return Object.keys(e).length === 0;
+  };
+
   const handleCrear = async () => {
-    if (!nombre.trim()) return;
+    if (!validar()) return;
     try {
       await createCategoria(nombre.trim());
       showToast('Categoría creada exitosamente', 'success');
-      setNombre('');
-      setModalAbierto(false);
+      cerrarModal();
       cargarCategorias();
     } catch {
       showToast('Error al crear la categoría', 'error');
@@ -46,6 +59,12 @@ const CategoriaPage = () => {
     } catch {
       showToast('Error al eliminar la categoría', 'error');
     }
+  };
+
+  const cerrarModal = () => {
+    setModalAbierto(false);
+    setNombre('');
+    setErrores({});
   };
 
   return (
@@ -97,7 +116,7 @@ const CategoriaPage = () => {
       </div>
 
       {modalAbierto && (
-        <div className="pp-modal-overlay" onClick={() => setModalAbierto(false)}>
+        <div className="pp-modal-overlay" onClick={cerrarModal}>
           <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
             <div className="pp-modal-header">
               <div>
@@ -108,15 +127,16 @@ const CategoriaPage = () => {
             <div className="pp-modal-body">
               <label className="pp-label">Nombre</label>
               <input
-                className="pp-input"
+                className={`pp-input ${errores.nombre ? 'pp-input--error' : ''}`}
                 placeholder="Ej: Fungicidas, fertilizantes, abonos, semillas, etc"
                 value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
+                onChange={(e) => { setNombre(e.target.value); setErrores({}); }}
                 onKeyDown={(e) => e.key === 'Enter' && handleCrear()}
               />
+              {errores.nombre && <span className="pp-error">{errores.nombre}</span>}
             </div>
             <div className="pp-modal-footer">
-              <button className="pp-btn-cancelar" onClick={() => setModalAbierto(false)}>Cancelar</button>
+              <button className="pp-btn-cancelar" onClick={cerrarModal}>Cancelar</button>
               <button className="pp-btn-guardar" onClick={handleCrear}>Guardar</button>
             </div>
           </div>

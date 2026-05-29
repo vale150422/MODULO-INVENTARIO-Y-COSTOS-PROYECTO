@@ -354,3 +354,17 @@
   color: var(--texto-secundario);
   font-size: 0.9rem;
 }
+
+/* ── Validaciones ── */
+.pp-input--error {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+ 
+.pp-error {
+  font-family: var(--font-principal);
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin-top: -4px;
+}
+ 
