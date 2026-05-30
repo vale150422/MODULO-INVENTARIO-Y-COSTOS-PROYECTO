@@ -1,27 +1,26 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
+import { LayoutDashboard, Leaf, Users, Store, Tag, ShoppingCart, Package, BarChart2, ClipboardList, UserCircle, Home} from 'lucide-react';
 
 const adminItems = [
-
-  { to: '/',               label: 'Dashboard',    icon: '📊' },
-  { to: '/fincas',         label: 'Fincas',       icon: '🌿' },
-  { to: '/trabajadores',   label: 'Trabajadores', icon: '👥' },
-  { to: '/proveedores',    label: 'Proveedores',  icon: '🏪' },
-  { to: '/categorias',     label: 'Categorías',   icon: '🏷️' },
-  { to: '/productos',      label: 'Insumos',    icon: '🛒' },
-  { to: '/kardex',         label: 'Kardex',       icon: '📦' },
-  { to: '/reportes',       label: 'Reportes',     icon: '📈' },
-  { to: '/reporte-kardex', label: 'Rep. Kardex',  icon: '📋' },
-  { to: '/perfil',         label: 'Mi Perfil',    icon: '👤' },
+  { to: '/',               label: 'Dashboard',    icon: LayoutDashboard },
+  { to: '/fincas',         label: 'Fincas',       icon: Leaf },
+  { to: '/trabajadores',   label: 'Trabajadores', icon: Users },
+  { to: '/proveedores',    label: 'Proveedores',  icon: Store },
+  { to: '/categorias',     label: 'Categorías',   icon: Tag },
+  { to: '/productos',      label: 'Insumos',      icon: ShoppingCart },
+  { to: '/kardex',         label: 'Kardex',       icon: Package },
+  { to: '/reportes',       label: 'Reportes',     icon: BarChart2 },
+  { to: '/reporte-kardex', label: 'Rep. Kardex',  icon: ClipboardList },
+  { to: '/perfil',         label: 'Mi Perfil',    icon: UserCircle },
 ];
 
-
 const empleadoItems = [
-  { to: '/mi-panel',       label: 'Mi Panel',    icon: '🏠' },
-  { to: '/fincas',         label: 'Mis Fincas',  icon: '🌿' },
-  { to: '/kardex',         label: 'Kardex',      icon: '📦' },
-  { to: '/reporte-kardex', label: 'Reporte Kardex',     icon: '📊' },
+  { to: '/mi-panel',       label: 'Mi Panel',       icon: Home },
+  { to: '/fincas',         label: 'Mis Fincas',     icon: Leaf },
+  { to: '/kardex',         label: 'Kardex',         icon: Package },
+  { to: '/reporte-kardex', label: 'Reporte Kardex', icon: BarChart2 },
 ];
 
 export default function Sidebar() {
@@ -64,7 +63,7 @@ export default function Sidebar() {
                  ? 'bg-[#4a7c3f] text-[#f5f0e0] font-semibold'
                  : 'text-[#c8d9a0] hover:bg-[#3d6b2e] hover:text-[#f5f0e0]'}`
             }>
-            <span>{item.icon}</span>
+            <item.icon size={16} strokeWidth={1.75} />
             {item.label}
           </NavLink>
         ))}
