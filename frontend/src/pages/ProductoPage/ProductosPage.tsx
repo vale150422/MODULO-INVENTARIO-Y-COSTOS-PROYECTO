@@ -71,31 +71,31 @@ const ProductosPage = () => {
         id_finca: Number(idFinca),
         stock_minimo: Number(stockMinimo) || 10,
       });
-      showToast('Producto creado exitosamente', 'success');
+      showToast('Insumo creado exitosamente', 'success');
       cerrarModal();
       cargarProductos();
     } catch {
-      showToast('Error al crear el producto', 'error');
+      showToast('Error al crear el Insumo', 'error');
     }
   };
 
   const handleEliminar = async (id: number) => {
     try {
       await deleteProducto(id);
-      showToast('Producto inactivado', 'warning');
+      showToast('Insumo inactivado', 'warning');
       cargarProductos();
     } catch {
-      showToast('Error al inactivar el producto', 'error');
+      showToast('Error al inactivar el Insumo', 'error');
     }
   };
 
   const handleActivar = async (id: number) => {
     try {
       await reactivarProducto(id);
-      showToast('Producto activado', 'success');
+      showToast('Insumo activado', 'success');
       cargarProductos();
     } catch {
-      showToast('Error al activar el producto', 'error');
+      showToast('Error al activar el insumo', 'error');
     }
   };
 
@@ -119,11 +119,11 @@ const ProductosPage = () => {
         id_finca: Number(idFincaEditar),
         stock_minimo: Number(stockMinimoEditar) || 10,
       });
-      showToast('Producto actualizado correctamente', 'success');
+      showToast('insumo actualizado correctamente', 'success');
       cerrarModalEditar();
       cargarProductos();
     } catch {
-      showToast('Error al actualizar el producto', 'error');
+      showToast('Error al actualizar el insumo', 'error');
     }
   };
 
@@ -142,17 +142,17 @@ const ProductosPage = () => {
     <div className="pp-root">
       <div className="pp-header">
         <div>
-          <h1 className="pp-title">Productos</h1>
+          <h1 className="pp-title">Insumos</h1>
           <p className="pp-subtitle">Gestión del inventario agrícola</p>
         </div>
         <button className="pp-btn-nuevo" onClick={() => setModalAbierto(true)}>
-          + Nuevo Producto
+          + Nuevo Insumo
         </button>
       </div>
 
       <div className="pp-table-wrapper">
         <div className="pp-table-header">
-          <h2 className="pp-list-title">Lista de Productos</h2>
+          <h2 className="pp-list-title">Lista de Insumos</h2>
         </div>
         <table className="pp-table">
           <thead>
@@ -171,7 +171,7 @@ const ProductosPage = () => {
             {productos.length === 0 ? (
               <tr>
                 <td colSpan={8} className="pp-empty-row">
-                  No hay productos registrados aún
+                  No hay insumos registrados aún
                 </td>
               </tr>
             ) : (
@@ -237,8 +237,8 @@ const ProductosPage = () => {
           <div className="pp-modal" onClick={e => e.stopPropagation()}>
             <div className="pp-modal-header">
               <div>
-                <h2 className="pp-modal-title">Nuevo Producto</h2>
-                <p className="pp-modal-subtitle">Completa los campos para agregar un producto</p>
+                <h2 className="pp-modal-title">Nuevo Insumo</h2>
+                <p className="pp-modal-subtitle">Completa los campos para agregar un insumo</p>
               </div>
             </div>
             <div className="pp-modal-body">
@@ -303,8 +303,8 @@ const ProductosPage = () => {
           <div className="pp-modal" onClick={e => e.stopPropagation()}>
             <div className="pp-modal-header">
               <div>
-                <h2 className="pp-modal-title">Editar Producto</h2>
-                <p className="pp-modal-subtitle">Modifica los campos del producto</p>
+                <h2 className="pp-modal-title">Editar Insumo</h2>
+                <p className="pp-modal-subtitle">Modifica los campos del Insumo</p>
               </div>
             </div>
             <div className="pp-modal-body">

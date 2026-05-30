@@ -7,12 +7,12 @@ const adminItems = [
   { to: '/',               label: 'Dashboard',    icon: '📊' },
   { to: '/fincas',         label: 'Fincas',       icon: '🌿' },
   { to: '/trabajadores',   label: 'Trabajadores', icon: '👥' },
-  { to: '/kardex',         label: 'Kardex',       icon: '📦' },
-  { to: '/reporte-kardex', label: 'Rep. Kardex',  icon: '📋' },
-  { to: '/productos',      label: 'Productos',    icon: '🛒' },
   { to: '/proveedores',    label: 'Proveedores',  icon: '🏪' },
-  { to: '/reportes',       label: 'Reportes',     icon: '📈' },
   { to: '/categorias',     label: 'Categorías',   icon: '🏷️' },
+  { to: '/productos',      label: 'Insumos',    icon: '🛒' },
+  { to: '/kardex',         label: 'Kardex',       icon: '📦' },
+  { to: '/reportes',       label: 'Reportes',     icon: '📈' },
+  { to: '/reporte-kardex', label: 'Rep. Kardex',  icon: '📋' },
   { to: '/perfil',         label: 'Mi Perfil',    icon: '👤' },
 ];
 
@@ -21,7 +21,7 @@ const empleadoItems = [
   { to: '/mi-panel',       label: 'Mi Panel',    icon: '🏠' },
   { to: '/fincas',         label: 'Mis Fincas',  icon: '🌿' },
   { to: '/kardex',         label: 'Kardex',      icon: '📦' },
-  { to: '/reporte-kardex', label: 'Reporte',     icon: '📊' },
+  { to: '/reporte-kardex', label: 'Reporte Kardex',     icon: '📊' },
 ];
 
 export default function Sidebar() {
