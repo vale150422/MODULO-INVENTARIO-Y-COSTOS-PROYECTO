@@ -6,6 +6,22 @@ import { useAuth } from '../../hooks/useAuth';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import './FincaPage.css';
 
+interface ErroresCrear {
+  nombre?: string;
+  municipio?: string;
+  vereda?: string;
+}
+
+interface ErroresEditar {
+  nombreEditar?: string;
+  municipioEditar?: string;
+  veredaEditar?: string;
+}
+
+const soloTexto = (value: string) => /\d/.test(value)
+  ? 'Este campo no debe contener números'
+  : undefined;
+
 const FincasPage = () => {
   usePageTitle('Fincas');
   const { user } = useAuth();
@@ -15,12 +31,19 @@ const FincasPage = () => {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [fincaSeleccionada, setFincaSeleccionada] = useState<any>(null);
+
+  // Campos crear
   const [nombre, setNombre] = useState('');
   const [municipio, setMunicipio] = useState('');
   const [vereda, setVereda] = useState('');
+  const [erroresCrear, setErroresCrear] = useState<ErroresCrear>({});
+
+  // Campos editar
   const [nombreEditar, setNombreEditar] = useState('');
   const [municipioEditar, setMunicipioEditar] = useState('');
   const [veredaEditar, setVeredaEditar] = useState('');
+  const [erroresEditar, setErroresEditar] = useState<ErroresEditar>({});
+
   const { toasts, showToast, removeToast } = useToast();
 
   const cargarFincas = async () => {
@@ -37,13 +60,48 @@ const FincasPage = () => {
     cargarFincas();
   }, []);
 
+  // ── Validaciones ──────────────────────────────────────
+  const validarCrear = (): boolean => {
+    const e: ErroresCrear = {};
+    if (!nombre.trim()) e.nombre = 'El nombre es obligatorio';
+    else if (nombre.trim().length < 3) e.nombre = 'El nombre debe tener al menos 3 caracteres';
+
+    if (!municipio.trim()) e.municipio = 'El municipio es obligatorio';
+    else if (municipio.trim().length < 3) e.municipio = 'El municipio debe tener al menos 3 caracteres';
+    else if (soloTexto(municipio)) e.municipio = soloTexto(municipio);
+
+    if (!vereda.trim()) e.vereda = 'La vereda es obligatoria';
+    else if (vereda.trim().length < 3) e.vereda = 'La vereda debe tener al menos 3 caracteres';
+    else if (soloTexto(vereda)) e.vereda = soloTexto(vereda);
+
+    setErroresCrear(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const validarEditar = (): boolean => {
+    const e: ErroresEditar = {};
+    if (!nombreEditar.trim()) e.nombreEditar = 'El nombre es obligatorio';
+    else if (nombreEditar.trim().length < 3) e.nombreEditar = 'El nombre debe tener al menos 3 caracteres';
+
+    if (!municipioEditar.trim()) e.municipioEditar = 'El municipio es obligatorio';
+    else if (municipioEditar.trim().length < 3) e.municipioEditar = 'El municipio debe tener al menos 3 caracteres';
+    else if (soloTexto(municipioEditar)) e.municipioEditar = soloTexto(municipioEditar);
+
+    if (!veredaEditar.trim()) e.veredaEditar = 'La vereda es obligatoria';
+    else if (veredaEditar.trim().length < 3) e.veredaEditar = 'La vereda debe tener al menos 3 caracteres';
+    else if (soloTexto(veredaEditar)) e.veredaEditar = soloTexto(veredaEditar);
+
+    setErroresEditar(e);
+    return Object.keys(e).length === 0;
+  };
+
+  // ── Handlers ──────────────────────────────────────────
   const handleCrear = async () => {
-    if (!nombre.trim() || !municipio.trim() || !vereda.trim()) return;
+    if (!validarCrear()) return;
     try {
       await createFinca({ nombre, municipio, vereda });
       showToast('Finca creada exitosamente', 'success');
-      setNombre(''); setMunicipio(''); setVereda('');
-      setModalAbierto(false);
+      cerrarModal();
       cargarFincas();
     } catch {
       showToast('Error al crear la finca', 'error');
@@ -65,11 +123,12 @@ const FincasPage = () => {
     setNombreEditar(f.nombre);
     setMunicipioEditar(f.municipio);
     setVeredaEditar(f.vereda);
+    setErroresEditar({});
     setModalEditarAbierto(true);
   };
 
   const handleEditar = async () => {
-    if (!nombreEditar.trim() || !municipioEditar.trim() || !veredaEditar.trim()) return;
+    if (!validarEditar()) return;
     try {
       await updateFinca(fincaSeleccionada.id_finca, {
         nombre: nombreEditar,
@@ -77,8 +136,7 @@ const FincasPage = () => {
         vereda: veredaEditar,
       });
       showToast('Finca actualizada correctamente', 'success');
-      setModalEditarAbierto(false);
-      setFincaSeleccionada(null);
+      cerrarModalEditar();
       cargarFincas();
     } catch {
       showToast('Error al actualizar la finca', 'error');
@@ -87,12 +145,16 @@ const FincasPage = () => {
 
   const cerrarModal = () => {
     setModalAbierto(false);
-    setNombre(''); setMunicipio(''); setVereda('');
+    setNombre('');
+    setMunicipio('');
+    setVereda('');
+    setErroresCrear({});
   };
 
   const cerrarModalEditar = () => {
     setModalEditarAbierto(false);
     setFincaSeleccionada(null);
+    setErroresEditar({});
   };
 
   return (
@@ -104,7 +166,6 @@ const FincasPage = () => {
             {isAdmin ? 'Gestión de fincas registradas' : 'Fincas disponibles'}
           </p>
         </div>
-        {/* Botón Nueva Finca solo para admin */}
         {isAdmin && (
           <button className="pp-btn-nuevo" onClick={() => setModalAbierto(true)}>
             + Nueva Finca
@@ -123,7 +184,6 @@ const FincasPage = () => {
               <th>Municipio</th>
               <th>Vereda</th>
               <th>Fecha Creación</th>
-              {/* Columna Acciones solo para admin */}
               {isAdmin && <th>Acciones</th>}
             </tr>
           </thead>
@@ -141,7 +201,6 @@ const FincasPage = () => {
                   <td>{f.municipio || '—'}</td>
                   <td>{f.vereda || '—'}</td>
                   <td>{f.created_at ? new Date(f.created_at).toLocaleDateString('es-CO') : '—'}</td>
-                  {/* Botones solo para admin */}
                   {isAdmin && (
                     <td className="pp-td-acciones">
                       <button className="pp-btn-editar" onClick={() => abrirEditar(f)}>Editar</button>
@@ -155,7 +214,7 @@ const FincasPage = () => {
         </table>
       </div>
 
-      {/* MODAL CREAR — solo admin llega aquí */}
+      {/* MODAL CREAR */}
       {modalAbierto && isAdmin && (
         <div className="pp-modal-overlay" onClick={cerrarModal}>
           <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
@@ -167,14 +226,31 @@ const FincasPage = () => {
             </div>
             <div className="pp-modal-body">
               <label className="pp-label">Nombre</label>
-              <input className="pp-input" placeholder="Ej: Miraflores"
-                value={nombre} onChange={(e) => setNombre(e.target.value)} />
+              <input
+                className={`pp-input ${erroresCrear.nombre ? 'pp-input--error' : ''}`}
+                placeholder="Ej: Miraflores"
+                value={nombre}
+                onChange={(e) => { setNombre(e.target.value); setErroresCrear(prev => ({ ...prev, nombre: undefined })); }}
+              />
+              {erroresCrear.nombre && <span className="pp-error">{erroresCrear.nombre}</span>}
+
               <label className="pp-label">Municipio</label>
-              <input className="pp-input" placeholder="Ej: Caicedonia"
-                value={municipio} onChange={(e) => setMunicipio(e.target.value)} />
+              <input
+                className={`pp-input ${erroresCrear.municipio ? 'pp-input--error' : ''}`}
+                placeholder="Ej: Caicedonia"
+                value={municipio}
+                onChange={(e) => { setMunicipio(e.target.value); setErroresCrear(prev => ({ ...prev, municipio: undefined })); }}
+              />
+              {erroresCrear.municipio && <span className="pp-error">{erroresCrear.municipio}</span>}
+
               <label className="pp-label">Vereda</label>
-              <input className="pp-input" placeholder="Ej: La Esmeralda"
-                value={vereda} onChange={(e) => setVereda(e.target.value)} />
+              <input
+                className={`pp-input ${erroresCrear.vereda ? 'pp-input--error' : ''}`}
+                placeholder="Ej: La Esmeralda"
+                value={vereda}
+                onChange={(e) => { setVereda(e.target.value); setErroresCrear(prev => ({ ...prev, vereda: undefined })); }}
+              />
+              {erroresCrear.vereda && <span className="pp-error">{erroresCrear.vereda}</span>}
             </div>
             <div className="pp-modal-footer">
               <button className="pp-btn-cancelar" onClick={cerrarModal}>Cancelar</button>
@@ -184,7 +260,7 @@ const FincasPage = () => {
         </div>
       )}
 
-      {/* MODAL EDITAR — solo admin */}
+      {/* MODAL EDITAR */}
       {modalEditarAbierto && isAdmin && (
         <div className="pp-modal-overlay" onClick={cerrarModalEditar}>
           <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
@@ -196,14 +272,31 @@ const FincasPage = () => {
             </div>
             <div className="pp-modal-body">
               <label className="pp-label">Nombre</label>
-              <input className="pp-input" placeholder="Ej: Miraflores"
-                value={nombreEditar} onChange={(e) => setNombreEditar(e.target.value)} />
+              <input
+                className={`pp-input ${erroresEditar.nombreEditar ? 'pp-input--error' : ''}`}
+                placeholder="Ej: Miraflores"
+                value={nombreEditar}
+                onChange={(e) => { setNombreEditar(e.target.value); setErroresEditar(prev => ({ ...prev, nombreEditar: undefined })); }}
+              />
+              {erroresEditar.nombreEditar && <span className="pp-error">{erroresEditar.nombreEditar}</span>}
+
               <label className="pp-label">Municipio</label>
-              <input className="pp-input" placeholder="Ej: Caicedonia"
-                value={municipioEditar} onChange={(e) => setMunicipioEditar(e.target.value)} />
+              <input
+                className={`pp-input ${erroresEditar.municipioEditar ? 'pp-input--error' : ''}`}
+                placeholder="Ej: Caicedonia"
+                value={municipioEditar}
+                onChange={(e) => { setMunicipioEditar(e.target.value); setErroresEditar(prev => ({ ...prev, municipioEditar: undefined })); }}
+              />
+              {erroresEditar.municipioEditar && <span className="pp-error">{erroresEditar.municipioEditar}</span>}
+
               <label className="pp-label">Vereda</label>
-              <input className="pp-input" placeholder="Ej: La Esmeralda"
-                value={veredaEditar} onChange={(e) => setVeredaEditar(e.target.value)} />
+              <input
+                className={`pp-input ${erroresEditar.veredaEditar ? 'pp-input--error' : ''}`}
+                placeholder="Ej: La Esmeralda"
+                value={veredaEditar}
+                onChange={(e) => { setVeredaEditar(e.target.value); setErroresEditar(prev => ({ ...prev, veredaEditar: undefined })); }}
+              />
+              {erroresEditar.veredaEditar && <span className="pp-error">{erroresEditar.veredaEditar}</span>}
             </div>
             <div className="pp-modal-footer">
               <button className="pp-btn-cancelar" onClick={cerrarModalEditar}>Cancelar</button>
