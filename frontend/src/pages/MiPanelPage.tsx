@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { usePageTitle } from '../hooks/usePageTitle';
 import ModalAyuda from '../components/ModalAyuda';
+import {
+  ClipboardList, Lock, LockKeyhole, Zap,
+  Package, Leaf, BarChart2
+} from 'lucide-react';
 
 export default function MiPanelPage() {
   usePageTitle('Mi panel');
-  
-  
+
   const { user } = useAuth();
   const [showCambiarPass, setShowCambiarPass] = useState(false);
   const [passActual, setPassActual] = useState('');
@@ -87,7 +90,7 @@ export default function MiPanelPage() {
           {/* Info personal */}
           <div className="bg-white border border-[#e0ead0] rounded-xl p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-[#2d4a1e] mb-4 uppercase tracking-widest flex items-center gap-2">
-              <span>📋</span> Mi información
+              <ClipboardList size={15} strokeWidth={1.75} /> Mi información
             </h2>
             <div className="space-y-3">
               {[
@@ -108,7 +111,7 @@ export default function MiPanelPage() {
           <div className="bg-white border border-[#e0ead0] rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-[#2d4a1e] uppercase tracking-widest flex items-center gap-2">
-                <span>🔒</span> Seguridad
+                <Lock size={15} strokeWidth={1.75} /> Seguridad
               </h2>
               <button onClick={() => { setShowCambiarPass(!showCambiarPass); setMsgPass(''); }}
                 style={{ background: showCambiarPass ? '#6b7280' : '#2d4a1e', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -117,7 +120,7 @@ export default function MiPanelPage() {
             </div>
             {!showCambiarPass ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="text-4xl mb-3">🔐</div>
+                <LockKeyhole size={36} strokeWidth={1.25} style={{ color: '#6b8c3e', marginBottom: '12px' }} />
                 <p className="text-sm font-semibold" style={{ color: '#2d4a1e' }}>Tu contraseña está protegida</p>
                 <p className="text-xs mt-1" style={{ color: '#6b8c3e' }}>Haz clic en "Cambiar contraseña" para actualizarla</p>
               </div>
@@ -147,20 +150,20 @@ export default function MiPanelPage() {
           {/* Accesos rápidos */}
           <div className="col-span-2 bg-white border border-[#e0ead0] rounded-xl p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-[#2d4a1e] mb-4 uppercase tracking-widest flex items-center gap-2">
-              <span>⚡</span> Accesos rápidos
+              <Zap size={15} strokeWidth={1.75} /> Accesos rápidos
             </h2>
             <div className="grid grid-cols-3 gap-4">
               {[
-                { icon: '📦', label: 'Kardex PEPS',   sub: 'Registrar movimientos', to: '/kardex'         },
-                { icon: '🌿', label: 'Mis Fincas',     sub: 'Ver fincas asignadas',  to: '/fincas'         },
-                { icon: '📊', label: 'Reporte Kardex', sub: 'Imprimir inventario',   to: '/reporte-kardex' },
+                { icon: Package,  label: 'Kardex PEPS',   sub: 'Registrar movimientos', to: '/kardex'         },
+                { icon: Leaf,     label: 'Mis Fincas',    sub: 'Ver fincas asignadas',  to: '/fincas'         },
+                { icon: BarChart2, label: 'Reporte Kardex', sub: 'Imprimir inventario', to: '/reporte-kardex' },
               ].map(item => (
                 <a key={item.label} href={item.to}
                   className="flex items-center gap-3 p-4 rounded-xl transition-all cursor-pointer"
                   style={{ background: '#f5faf0', border: '1px solid #d4e8b8', textDecoration: 'none' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e8f5d8'; (e.currentTarget as HTMLElement).style.borderColor = '#4a7c3f'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f5faf0'; (e.currentTarget as HTMLElement).style.borderColor = '#d4e8b8'; }}>
-                  <div className="text-3xl">{item.icon}</div>
+                  <item.icon size={28} strokeWidth={1.5} style={{ color: '#2d4a1e', flexShrink: 0 }} />
                   <div>
                     <p className="text-sm font-semibold" style={{ color: '#2d4a1e' }}>{item.label}</p>
                     <p className="text-xs" style={{ color: '#6b8c3e' }}>{item.sub}</p>
@@ -172,7 +175,6 @@ export default function MiPanelPage() {
         </div>
       </div>
 
-      {/* Botón de ayuda — UNA sola vez, fuera de todo contenedor */}
       <ModalAyuda rol="empleado" />
     </>
   );

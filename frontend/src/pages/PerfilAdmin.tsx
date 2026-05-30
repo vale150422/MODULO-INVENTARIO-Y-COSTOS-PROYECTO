@@ -2,6 +2,11 @@ import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { usePageTitle } from '../hooks/usePageTitle';
 import ModalAyuda from '../components/ModalAyuda';
+import {
+  ClipboardList, Lock, LockKeyhole, Zap, Pencil, Check, X,
+  LayoutDashboard, Leaf, Users, Package, ShoppingCart,
+  Store, BarChart2, Tag
+} from 'lucide-react';
 
 export default function PerfilAdmin() {
   usePageTitle('Mi perfil');
@@ -105,7 +110,7 @@ export default function PerfilAdmin() {
           {/* Info personal */}
           <div className="bg-white border border-[#e0ead0] rounded-xl p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-[#2d4a1e] mb-4 uppercase tracking-widest flex items-center gap-2">
-              <span>📋</span> Mi información
+              <ClipboardList size={15} strokeWidth={1.75} /> Mi información
             </h2>
             <div className="space-y-3">
               <div className="py-2 border-b border-[#e8f0d8]">
@@ -113,8 +118,10 @@ export default function PerfilAdmin() {
                   <span className="text-xs text-[#6b8c3e] uppercase tracking-widest font-semibold">Nombre</span>
                   {!nombreEdit && (
                     <button onClick={() => { setNombreTemp(nombre); setNombreEdit(true); }}
-                      className="text-[10px] px-2 py-1 rounded-lg font-semibold"
-                      style={{ background: '#2d4a1e', color: '#ffffff' }}>✏️ Editar</button>
+                      className="text-[10px] px-2 py-1 rounded-lg font-semibold flex items-center gap-1"
+                      style={{ background: '#2d4a1e', color: '#ffffff' }}>
+                      <Pencil size={10} strokeWidth={2} /> Editar
+                    </button>
                   )}
                 </div>
                 {nombreEdit ? (
@@ -122,8 +129,12 @@ export default function PerfilAdmin() {
                     <input type="text" value={nombreTemp} onChange={e => setNombreTemp(e.target.value)}
                       className="flex-1 border border-[#4a7c3f] rounded-lg px-3 py-1.5 text-sm outline-none"
                       style={{ color: '#2d4a1e' }} placeholder="Tu nombre completo" autoFocus />
-                    <button onClick={guardarNombre} className="px-3 py-1.5 text-white rounded-lg text-xs font-semibold" style={{ background: '#4a7c3f' }}>✓</button>
-                    <button onClick={() => setNombreEdit(false)} className="px-3 py-1.5 rounded-lg text-xs" style={{ background: '#f0f0f0', color: '#666' }}>✕</button>
+                    <button onClick={guardarNombre} className="px-3 py-1.5 text-white rounded-lg text-xs font-semibold flex items-center" style={{ background: '#4a7c3f' }}>
+                      <Check size={14} strokeWidth={2} />
+                    </button>
+                    <button onClick={() => setNombreEdit(false)} className="px-3 py-1.5 rounded-lg text-xs flex items-center" style={{ background: '#f0f0f0', color: '#666' }}>
+                      <X size={14} strokeWidth={2} />
+                    </button>
                   </div>
                 ) : (
                   <p className="text-sm font-semibold mt-1" style={{ color: '#1a3a0e' }}>{nombre || '—'}</p>
@@ -148,7 +159,7 @@ export default function PerfilAdmin() {
           <div className="bg-white border border-[#e0ead0] rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-[#2d4a1e] uppercase tracking-widest flex items-center gap-2">
-                <span>🔒</span> Seguridad
+                <Lock size={15} strokeWidth={1.75} /> Seguridad
               </h2>
               <button onClick={() => { setShowPass(!showPass); setMsg(''); }}
                 style={{ background: showPass ? '#6b7280' : '#2d4a1e', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -157,7 +168,7 @@ export default function PerfilAdmin() {
             </div>
             {!showPass ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="text-4xl mb-3">🔐</div>
+                <LockKeyhole size={36} strokeWidth={1.25} style={{ color: '#6b8c3e', marginBottom: '12px' }} />
                 <p className="text-sm font-semibold" style={{ color: '#2d4a1e' }}>Tu contraseña está protegida</p>
                 <p className="text-xs mt-1" style={{ color: '#6b8c3e' }}>Haz clic en "Cambiar contraseña" para actualizarla</p>
               </div>
@@ -187,25 +198,25 @@ export default function PerfilAdmin() {
           {/* Módulos */}
           <div className="col-span-2 bg-white border border-[#e0ead0] rounded-xl p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-[#2d4a1e] mb-4 uppercase tracking-widest flex items-center gap-2">
-              <span>⚡</span> Módulos del sistema
+              <Zap size={15} strokeWidth={1.75} /> Módulos del sistema
             </h2>
             <div className="grid grid-cols-4 gap-3">
               {[
-                { icon: '📊', label: 'Dashboard',   sub: 'Resumen general',     to: '/'             },
-                { icon: '🌿', label: 'Fincas',       sub: 'Gestión de fincas',   to: '/fincas'       },
-                { icon: '👥', label: 'Trabajadores', sub: 'Personal registrado', to: '/trabajadores' },
-                { icon: '📦', label: 'Kardex PEPS',  sub: 'Inventario insumos',  to: '/kardex'       },
-                { icon: '🛒', label: 'Productos',    sub: 'Insumos agrícolas',   to: '/productos'    },
-                { icon: '🤝', label: 'Proveedores',  sub: 'Gestión proveedores', to: '/proveedores'  },
-                { icon: '📈', label: 'Reportes',     sub: 'Informes y gráficas', to: '/reportes'     },
-                { icon: '🏷️', label: 'Categorías',   sub: 'Tipos de productos',  to: '/categorias'   },
+                { icon: LayoutDashboard, label: 'Dashboard',    sub: 'Resumen general',     to: '/'             },
+                { icon: Leaf,            label: 'Fincas',        sub: 'Gestión de fincas',   to: '/fincas'       },
+                { icon: Users,           label: 'Trabajadores',  sub: 'Personal registrado', to: '/trabajadores' },
+                { icon: Package,         label: 'Kardex PEPS',   sub: 'Inventario insumos',  to: '/kardex'       },
+                { icon: ShoppingCart,    label: 'Insumos',     sub: 'Insumos agrícolas',   to: '/productos'    },
+                { icon: Store,           label: 'Proveedores',   sub: 'Gestión proveedores', to: '/proveedores'  },
+                { icon: BarChart2,       label: 'Reportes',      sub: 'Informes y gráficas', to: '/reportes'     },
+                { icon: Tag,             label: 'Categorías',    sub: 'Tipos de productos',  to: '/categorias'   },
               ].map(item => (
                 <a key={item.label} href={item.to}
                   className="flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer"
                   style={{ background: '#f5faf0', border: '1px solid #d4e8b8', textDecoration: 'none' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e8f5d8'; (e.currentTarget as HTMLElement).style.borderColor = '#4a7c3f'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#f5faf0'; (e.currentTarget as HTMLElement).style.borderColor = '#d4e8b8'; }}>
-                  <div className="text-2xl">{item.icon}</div>
+                  <item.icon size={22} strokeWidth={1.5} style={{ color: '#2d4a1e', flexShrink: 0 }} />
                   <div>
                     <p className="text-xs font-semibold" style={{ color: '#2d4a1e' }}>{item.label}</p>
                     <p className="text-[10px]" style={{ color: '#6b8c3e' }}>{item.sub}</p>
@@ -217,7 +228,6 @@ export default function PerfilAdmin() {
         </div>
       </div>
 
-      {/* Botón de ayuda — UNA sola vez, fuera de todo contenedor */}
       <ModalAyuda rol="admin" />
     </>
   );
