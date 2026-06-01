@@ -13,9 +13,19 @@ import categoriaRoutes from './routes/categoriaRoutes';
 const app = express();
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://agrogestioninventario.netlify.app'
+  origin: (origin, callback) => {
+    const allowed = [
+      'https://agrogestioninventario.netlify.app',
+      'http://localhost:5173'
+    ];
+    if (!origin || allowed.includes(origin) || origin.endsWith('.netlify.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
 }));
-app.use(express.json());
 
 app.get('/', (req, res) => {
   res.send('API Inventario Finca funcionando 🚀');
