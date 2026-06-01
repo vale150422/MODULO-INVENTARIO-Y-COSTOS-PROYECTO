@@ -1,23 +1,21 @@
-const Usuario = require('../models/Usuario')
+import pool from '../../config/db';
 
-const obtenerPerfil = async (req, res) => {
+const obtenerPerfil = async (req: any, res: any) => {
   try {
-    const usuario = await Usuario.findByPk(req.user.id, {
-      attributes: {
-        exclude: ['password']
-      }
-    })
+    const result = await pool.query(
+      'SELECT id, nombre, email FROM usuarios WHERE id = $1',
+      [req.user.id]
+    );
 
-    res.json(usuario)
+    if (result.rows.length === 0) {
+      return res.status(404).json({ msg: 'Usuario no encontrado' });
+    }
+
+    res.json(result.rows[0]);
   } catch (error) {
-    console.log(error)
-
-    res.status(500).json({
-      msg: 'Error servidor'
-    })
+    console.log(error);
+    res.status(500).json({ msg: 'Error servidor' });
   }
-}
+};
 
-module.exports = {
-  obtenerPerfil
-}
+export default { obtenerPerfil };

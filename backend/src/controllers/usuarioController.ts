@@ -1,38 +1,41 @@
-const bcrypt = require('bcryptjs')
-const Usuario = require('../models/Usuario')
+import bcrypt from 'bcryptjs';
+import pool from '../../config/db';
 
-const cambiarPassword = async (req, res) => {
+const cambiarPassword = async (req: any, res: any) => {
   try {
-    const { actual, nueva } = req.body
+    const { actual, nueva } = req.body;
 
-    const usuario = await Usuario.findByPk(req.user.id)
+    const result = await pool.query(
+      'SELECT * FROM usuarios WHERE id = $1',
+      [req.user.id]
+    );
 
-    const validar = await bcrypt.compare(actual, usuario.password)
-
-    if (!validar) {
-      return res.status(400).json({
-        msg: 'Contraseña incorrecta'
-      })
+    if (result.rows.length === 0) {
+      return res.status(404).json({ msg: 'Usuario no encontrado' });
     }
 
-    const salt = await bcrypt.genSalt(10)
+    const usuario = result.rows[0];
 
-    usuario.password = await bcrypt.hash(nueva, salt)
+    const validar = await bcrypt.compare(actual, usuario.password);
 
-    await usuario.save()
+    if (!validar) {
+      return res.status(400).json({ msg: 'Contraseña incorrecta' });
+    }
 
-    res.json({
-      msg: 'Contraseña actualizada'
-    })
+    const salt = await bcrypt.genSalt(10);
+    const nuevaHash = await bcrypt.hash(nueva, salt);
+
+    await pool.query(
+      'UPDATE usuarios SET password = $1 WHERE id = $2',
+      [nuevaHash, req.user.id]
+    );
+
+    res.json({ msg: 'Contraseña actualizada' });
+
   } catch (error) {
-    console.log(error)
-
-    res.status(500).json({
-      msg: 'Error servidor'
-    })
+    console.log(error);
+    res.status(500).json({ msg: 'Error servidor' });
   }
-}
+};
 
-module.exports = {
-  cambiarPassword
-}
+export default { cambiarPassword };
