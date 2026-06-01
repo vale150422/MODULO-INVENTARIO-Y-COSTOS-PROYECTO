@@ -1,5 +1,3 @@
-require('../config/db');
-
 import express from 'express';
 import cors from 'cors';
 import './database';
@@ -13,8 +11,9 @@ import kardexRoutes from './routes/kardexRoutes';
 import categoriaRoutes from './routes/categoriaRoutes';
 
 const app = express();
+
 app.use(cors({
-  origin: 'http://localhost:5173'
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173'
 }));
 app.use(express.json());
 
@@ -30,6 +29,7 @@ app.use('/api/trabajadores', trabajadorRoutes);
 app.use('/api/kardex', kardexRoutes);
 app.use('/api/categorias', categoriaRoutes);
 
-app.listen(3001, () => {
-  console.log('Servidor corriendo en http://localhost:3001');
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
 });
