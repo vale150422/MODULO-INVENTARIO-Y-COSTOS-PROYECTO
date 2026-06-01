@@ -1,4 +1,4 @@
-const BASE = 'https://6a1e010bdc51a9df8399f161--agrogestioninventario.netlify.app/i';
+const BASE = 'https://agrogestioninventario.netlify.app/login';
 
 function getHeaders() {
   const token = localStorage.getItem('token');
