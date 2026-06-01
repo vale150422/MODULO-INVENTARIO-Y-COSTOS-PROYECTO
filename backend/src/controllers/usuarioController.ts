@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import pool from '../config/db';
+import pool from '../database/index';
 
 const cambiarPassword = async (req: any, res: any) => {
   try {

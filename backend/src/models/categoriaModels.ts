@@ -1,4 +1,4 @@
-import { pool } from '../database/connection';
+import { pool } from '../database/index';
 
 export const getCategorias = async () => {
   const result = await pool.query('SELECT * FROM categoria ORDER BY nombre');

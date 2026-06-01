@@ -1,4 +1,4 @@
-import pool from '../config/db';
+import pool from '../database/index';
 
 const obtenerPerfil = async (req: any, res: any) => {
   try {

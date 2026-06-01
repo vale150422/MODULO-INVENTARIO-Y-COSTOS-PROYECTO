@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { pool } from '../database/connection';
+import { pool } from '../database/index';
 import {
   getProductos as getProductosModel,
   getKardexByProducto,

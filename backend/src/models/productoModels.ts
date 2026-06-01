@@ -1,4 +1,4 @@
-import { pool } from '../database';
+import { pool } from '../database/index';
 
 export interface Producto {
   id_producto?: number;
