@@ -1,4 +1,4 @@
-const BASE = 'http://localhost:3001/api';
+const BASE = 'https://6a1e010bdc51a9df8399f161--agrogestioninventario.netlify.app/i';
 
 function getHeaders() {
   const token = localStorage.getItem('token');
