@@ -26,6 +26,7 @@ app.use(cors({
   },
   credentials: true
 }));
+app.use(express.json());
 
 app.get('/', (req, res) => {
   res.send('API Inventario Finca funcionando 🚀');
