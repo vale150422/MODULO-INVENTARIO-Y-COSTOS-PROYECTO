@@ -1,4 +1,4 @@
-const API = 'http://localhost:3001/api/proveedores';
+const API = 'https://modulo-inventario-y-costos-proyecto.onrender.com/api/proveedores';
 
 export const getProveedores = async () => {
   const res = await fetch(API);

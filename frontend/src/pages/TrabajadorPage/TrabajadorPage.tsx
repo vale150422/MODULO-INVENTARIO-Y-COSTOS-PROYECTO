@@ -71,7 +71,7 @@ const TrabajadoresPage = () => {
 
   const cargarFincas = async () => {
     try {
-      const res = await fetch('http://localhost:3001/api/fincas');
+      const res = await fetch('https://modulo-inventario-y-costos-proyecto.onrender.com/api/fincas');
       const data = await res.json();
       setFincas(Array.isArray(data) ? data : []);
     } catch (error) {

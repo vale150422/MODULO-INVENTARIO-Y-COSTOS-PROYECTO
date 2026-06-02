@@ -21,7 +21,7 @@ export default function PerfilAdmin() {
   const guardarNombre = async () => {
     if (!nombreTemp.trim()) return;
     try {
-      const res = await fetch('http://localhost:3001/api/auth/actualizar-perfil', {
+      const res = await fetch('https://modulo-inventario-y-costos-proyecto.onrender.com/api/auth/actualizar-perfil', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify({ nombre: nombreTemp.trim() }),
@@ -40,7 +40,7 @@ export default function PerfilAdmin() {
     if (passNueva.length < 6) { setMsgTipo('error'); setMsg('Mínimo 6 caracteres'); return; }
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3001/api/auth/cambiar-password', {
+      const res = await fetch('https://modulo-inventario-y-costos-proyecto.onrender.com/api/auth/cambiar-password', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify({ actual: passActual, nueva: passNueva }),

@@ -31,7 +31,7 @@ export default function ReporteKardex() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch('http://localhost:3001/api/kardex/reporte', {
+    fetch('https://modulo-inventario-y-costos-proyecto.onrender.com/api/kardex/reporte', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => {

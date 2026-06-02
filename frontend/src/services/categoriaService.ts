@@ -1,4 +1,4 @@
-const API = 'http://localhost:3001/api/categorias';
+const API = 'https://modulo-inventario-y-costos-proyecto.onrender.com/api/categorias';
 
 export const getCategorias = async () => {
   const res = await fetch(API);

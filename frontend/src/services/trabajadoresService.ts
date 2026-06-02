@@ -1,4 +1,4 @@
-const API = 'http://localhost:3001/api/trabajadores';
+const API = 'https://modulo-inventario-y-costos-proyecto.onrender.com/api/trabajadores';
 
 export const getTrabajadores = async () => {
   const res = await fetch(API);

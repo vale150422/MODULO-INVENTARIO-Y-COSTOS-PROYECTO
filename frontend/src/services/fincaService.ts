@@ -1,4 +1,4 @@
-const API = 'http://localhost:3001/api/fincas';
+const API = 'https://modulo-inventario-y-costos-proyecto.onrender.com/api/fincas';
 
 export const getFincas = async () => {
   const res = await fetch(API);

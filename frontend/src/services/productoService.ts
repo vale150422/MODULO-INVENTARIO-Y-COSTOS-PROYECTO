@@ -1,4 +1,4 @@
-const API = 'http://localhost:3001/api/productos';
+const API = 'https://modulo-inventario-y-costos-proyecto.onrender.com/api/productos';
 
 const getToken = () => localStorage.getItem('token');
 const headers = () => ({
