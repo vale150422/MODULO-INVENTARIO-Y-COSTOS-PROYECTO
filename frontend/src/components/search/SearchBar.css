@@ -1,0 +1,72 @@
+/* src/components/search/SearchBar.css */
+
+.sb-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sb-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sb-icon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: var(--texto-secundario);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.sb-input {
+  height: 38px;
+  padding: 0 36px 0 36px;
+  border-radius: 8px;
+  border: 1.5px solid var(--input-border);
+  background: var(--input-bg);
+  font-family: var(--font-principal);
+  font-size: 0.875rem;
+  color: var(--texto-principal);
+  outline: none;
+  width: 260px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sb-input::placeholder {
+  color: var(--texto-secundario);
+  opacity: 0.6;
+}
+
+.sb-input:focus {
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 3px rgba(74, 124, 63, 0.12);
+}
+
+.sb-clear {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: var(--texto-secundario);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.sb-clear:hover {
+  color: var(--texto-principal);
+}
+
+.sb-count {
+  font-family: var(--font-principal);
+  font-size: 0.78rem;
+  color: var(--texto-secundario);
+  white-space: nowrap;
+}

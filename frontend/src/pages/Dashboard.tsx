@@ -31,11 +31,14 @@ export default function Dashboard() {
       <p className="text-sm text-[#8fae5a]">Bienvenido al sistema de inventario</p>
 
       <div className="grid grid-cols-4 gap-4 mt-6">
-        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
+
+        {/* Total Productos */}
+        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#4a9e4a] rounded-t-xl" />
           <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-2">
             Total Productos
           </p>
-          <p className="text-2xl font-semibold font-mono text-white">
+          <p className="text-3xl font-semibold font-mono text-white">
             {data?.totalProductos ?? 0}
           </p>
           <p className="text-xs text-[#8fae5a] mt-1">
@@ -43,24 +46,32 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
+        {/* Bajo Stock */}
+        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4 relative overflow-hidden">
+          <div className={`absolute top-0 left-0 right-0 h-[3px] rounded-t-xl
+            ${data?.bajoStock > 0 ? 'bg-red-500' : 'bg-[#c8871a]'}`} />
           <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-2">
             Bajo Stock
           </p>
-          <p className={`text-2xl font-semibold font-mono
+          <p className={`text-3xl font-semibold font-mono
             ${data?.bajoStock > 0 ? 'text-red-400' : 'text-[#d4a843]'}`}>
             {data?.bajoStock ?? 0}
           </p>
-          <p className="text-xs text-[#8fae5a] mt-1">
-            {data?.bajoStock > 0 ? 'Requieren atención' : 'Sin alertas'}
-          </p>
+          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold mt-2 px-2 py-0.5 rounded-full
+            ${data?.bajoStock > 0
+              ? 'bg-red-900/40 text-red-400'
+              : 'bg-[#1e3d1e] text-[#6abf6a]'}`}>
+            {data?.bajoStock > 0 ? '⚠ Requieren atención' : '✓ Sin alertas'}
+          </span>
         </div>
 
-        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
+        {/* Valor Inventario */}
+        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#2d7ab5] rounded-t-xl" />
           <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-2">
             Valor Inventario
           </p>
-          <p className="text-2xl font-semibold font-mono text-white">
+          <p className="text-3xl font-semibold font-mono text-white">
             {fmt(data?.valorInventario ?? 0)}
           </p>
           <p className="text-xs text-[#8fae5a] mt-1">
@@ -68,17 +79,20 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
+        {/* Movimientos Hoy */}
+        <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#2a8f7a] rounded-t-xl" />
           <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-2">
             Movimientos Hoy
           </p>
-          <p className="text-2xl font-semibold font-mono text-white">
+          <p className="text-3xl font-semibold font-mono text-white">
             {entradas + salidas}
           </p>
           <p className="text-xs text-[#8fae5a] mt-1">
             {entradas} entradas · {salidas} salidas
           </p>
         </div>
+
       </div>
 
       <div className="mt-6 bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
