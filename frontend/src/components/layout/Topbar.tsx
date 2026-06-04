@@ -41,12 +41,11 @@ export default function Topbar() {
         </button>
       </div>
 
-      {ayudaAbierta && (
-        <div onClick={() => setAyudaAbierta(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 2000 }}>
-          <ModalAyuda rol={rol} />
-        </div>
-      )}
+      <ModalAyuda
+        rol={rol}
+        abierto={ayudaAbierta}
+        onCerrar={() => setAyudaAbierta(false)}
+      />
     </>
   );
 }

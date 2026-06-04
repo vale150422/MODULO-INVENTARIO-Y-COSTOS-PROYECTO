@@ -7,6 +7,8 @@ import {
 
 interface Props {
   rol: 'admin' | 'empleado';
+  abierto: boolean;
+  onCerrar: () => void;
 }
 
 const seccionesAdmin = [
@@ -172,239 +174,201 @@ const seccionesEmpleado = [
   },
 ];
 
-export default function ModalAyuda({ rol }: Props) {
-  const [abierto, setAbierto] = useState(false);
+export default function ModalAyuda({ rol, abierto, onCerrar }: Props) {
   const [seccionActiva, setSeccionActiva] = useState(0);
 
   const secciones = rol === 'admin' ? seccionesAdmin : seccionesEmpleado;
   const SeccionIcon = secciones[seccionActiva].icon;
 
+  if (!abierto) return null;
+
   return (
-    <>
-      {/* Botón flotante */}
-      <button
-        onClick={(e) => { e.stopPropagation(); setAbierto(true); }}
-        title="Ayuda"
+    <div
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.55)',
+        zIndex: 2000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+      }}
+      onClick={onCerrar}
+    >
+      <div
         style={{
-          position: 'fixed',
-          bottom: '28px',
-          right: '28px',
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #2d4a1e 0%, #4a7c3f 100%)',
-          color: '#ffffff',
-          border: 'none',
-          cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(45,74,30,0.45)',
-          zIndex: 1000,
+          background: '#ffffff',
+          borderRadius: '20px',
+          width: '100%',
+          maxWidth: '780px',
+          maxHeight: '88vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+          overflow: 'hidden',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #1e3d10 0%, #2d4a1e 100%)',
+          padding: '20px 24px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'transform 0.2s, box-shadow 0.2s',
-        }}
-        onMouseEnter={e => {
-          (e.currentTarget as HTMLElement).style.transform = 'scale(1.1)';
-          (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 22px rgba(45,74,30,0.55)';
-        }}
-        onMouseLeave={e => {
-          (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-          (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(45,74,30,0.45)';
-        }}
-      >
-        <HelpCircle size={22} strokeWidth={1.75} />
-      </button>
-
-      {/* Modal */}
-      {abierto && (
-        <div
-          style={{
-            position: 'fixed', inset: 0,
-            background: 'rgba(0,0,0,0.55)',
-            zIndex: 2000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px',
-          }}
-          onClick={() => setAbierto(false)}
-        >
-          <div
+          justifyContent: 'space-between',
+          flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <HelpCircle size={22} strokeWidth={1.75} color="#8fae5a" />
+            <div>
+              <p style={{
+                color: '#8fae5a', fontSize: '11px',
+                textTransform: 'uppercase', letterSpacing: '2px', margin: 0,
+              }}>
+                Centro de ayuda
+              </p>
+              <h2 style={{ color: '#f5f0e0', margin: '4px 0 0', fontSize: '18px', fontWeight: 700 }}>
+                Inventario AgroGestión
+              </h2>
+            </div>
+          </div>
+          <button
+            onClick={onCerrar}
             style={{
-              background: '#ffffff',
-              borderRadius: '20px',
-              width: '100%',
-              maxWidth: '780px',
-              maxHeight: '88vh',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
-              overflow: 'hidden',
+              background: 'rgba(255,255,255,0.1)',
+              border: 'none', borderRadius: '8px',
+              color: '#ffffff', cursor: 'pointer',
+              width: '32px', height: '32px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
-            onClick={e => e.stopPropagation()}
           >
-            {/* Header */}
-            <div style={{
-              background: 'linear-gradient(135deg, #1e3d10 0%, #2d4a1e 100%)',
-              padding: '20px 24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexShrink: 0,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <HelpCircle size={22} strokeWidth={1.75} color="#8fae5a" />
-                <div>
-                  <p style={{
-                    color: '#8fae5a', fontSize: '11px',
-                    textTransform: 'uppercase', letterSpacing: '2px', margin: 0,
-                  }}>
-                    Centro de ayuda
-                  </p>
-                  <h2 style={{ color: '#f5f0e0', margin: '4px 0 0', fontSize: '18px', fontWeight: 700 }}>
-                    Inventario AgroGestión
-                  </h2>
-                </div>
+            <X size={16} strokeWidth={2} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+
+          {/* Sidebar */}
+          <div style={{
+            width: '210px', flexShrink: 0,
+            background: '#f5faf0',
+            borderRight: '1px solid #e0ead0',
+            overflowY: 'auto',
+            padding: '12px 8px',
+          }}>
+            {secciones.map((s, i) => {
+              const ItemIcon = s.icon;
+              return (
+                <button
+                  key={i}
+                  onClick={() => setSeccionActiva(i)}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    marginBottom: '4px',
+                    background: seccionActiva === i ? '#2d4a1e' : 'transparent',
+                    color: seccionActiva === i ? '#ffffff' : '#2d4a1e',
+                    fontWeight: seccionActiva === i ? 600 : 400,
+                    fontSize: '13px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <ItemIcon size={15} strokeWidth={1.75} />
+                  <span>{s.titulo}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Contenido */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '10px',
+                background: '#2d4a1e',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <SeccionIcon size={20} strokeWidth={1.75} color="#8fae5a" />
               </div>
-              <button
-                onClick={() => setAbierto(false)}
-                style={{
-                  background: 'rgba(255,255,255,0.1)',
-                  border: 'none', borderRadius: '8px',
-                  color: '#ffffff', cursor: 'pointer',
-                  width: '32px', height: '32px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                <X size={16} strokeWidth={2} />
-              </button>
+              <h3 style={{ margin: 0, color: '#1a3a0e', fontSize: '18px', fontWeight: 700 }}>
+                {secciones[seccionActiva].titulo}
+              </h3>
             </div>
 
-            {/* Body */}
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            <p style={{
+              color: '#4a6b2e', fontSize: '14px',
+              marginBottom: '20px', lineHeight: 1.6,
+              padding: '10px 14px',
+              background: '#e8f5e0',
+              borderRadius: '10px',
+              borderLeft: '3px solid #4a7c3f',
+            }}>
+              {secciones[seccionActiva].descripcion}
+            </p>
 
-              {/* Sidebar */}
-              <div style={{
-                width: '210px', flexShrink: 0,
-                background: '#f5faf0',
-                borderRight: '1px solid #e0ead0',
-                overflowY: 'auto',
-                padding: '12px 8px',
-              }}>
-                {secciones.map((s, i) => {
-                  const ItemIcon = s.icon;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => setSeccionActiva(i)}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        marginBottom: '4px',
-                        background: seccionActiva === i ? '#2d4a1e' : 'transparent',
-                        color: seccionActiva === i ? '#ffffff' : '#2d4a1e',
-                        fontWeight: seccionActiva === i ? 600 : 400,
-                        fontSize: '13px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      <ItemIcon size={15} strokeWidth={1.75} />
-                      <span>{s.titulo}</span>
-                    </button>
-                  );
-                })}
-              </div>
+            <h4 style={{
+              color: '#2d4a1e', fontSize: '13px', fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px',
+            }}>
+              ¿Cómo usarlo?
+            </h4>
 
-              {/* Contenido */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {secciones[seccionActiva].pasos.map((paso, i) => (
+                <div key={i} style={{
+                  display: 'flex', gap: '12px', alignItems: 'flex-start',
+                  padding: '12px 14px',
+                  background: '#fafff5',
+                  borderRadius: '10px',
+                  border: '1px solid #d8ead0',
+                }}>
                   <div style={{
-                    width: '40px', height: '40px', borderRadius: '10px',
+                    minWidth: '24px', height: '24px',
+                    borderRadius: '50%',
                     background: '#2d4a1e',
+                    color: '#ffffff',
+                    fontSize: '12px', fontWeight: 700,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <SeccionIcon size={20} strokeWidth={1.75} color="#8fae5a" />
+                    {i + 1}
                   </div>
-                  <h3 style={{ margin: 0, color: '#1a3a0e', fontSize: '18px', fontWeight: 700 }}>
-                    {secciones[seccionActiva].titulo}
-                  </h3>
-                </div>
-
-                <p style={{
-                  color: '#4a6b2e', fontSize: '14px',
-                  marginBottom: '20px', lineHeight: 1.6,
-                  padding: '10px 14px',
-                  background: '#e8f5e0',
-                  borderRadius: '10px',
-                  borderLeft: '3px solid #4a7c3f',
-                }}>
-                  {secciones[seccionActiva].descripcion}
-                </p>
-
-                <h4 style={{
-                  color: '#2d4a1e', fontSize: '13px', fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px',
-                }}>
-                  ¿Cómo usarlo?
-                </h4>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {secciones[seccionActiva].pasos.map((paso, i) => (
-                    <div key={i} style={{
-                      display: 'flex', gap: '12px', alignItems: 'flex-start',
-                      padding: '12px 14px',
-                      background: '#fafff5',
-                      borderRadius: '10px',
-                      border: '1px solid #d8ead0',
-                    }}>
-                      <div style={{
-                        minWidth: '24px', height: '24px',
-                        borderRadius: '50%',
-                        background: '#2d4a1e',
-                        color: '#ffffff',
-                        fontSize: '12px', fontWeight: 700,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
-                        {i + 1}
-                      </div>
-                      <p style={{ margin: 0, color: '#1a3a0e', fontSize: '13px', lineHeight: 1.6 }}>
-                        {paso}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Tip */}
-                <div style={{
-                  marginTop: '20px',
-                  padding: '12px 14px',
-                  background: '#fff8e8',
-                  borderRadius: '10px',
-                  border: '1px solid #e8c840',
-                  display: 'flex',
-                  gap: '10px',
-                  alignItems: 'flex-start',
-                }}>
-                  <Lightbulb size={16} strokeWidth={1.75} color="#d4a843" style={{ flexShrink: 0, marginTop: '1px' }} />
-                  <p style={{ margin: 0, fontSize: '12px', color: '#7a5c00', lineHeight: 1.5 }}>
-                    <strong>¿Necesitas más ayuda?</strong> Contacta al administrador del sistema
-                    o consulta el manual de usuario del proyecto.
+                  <p style={{ margin: 0, color: '#1a3a0e', fontSize: '13px', lineHeight: 1.6 }}>
+                    {paso}
                   </p>
                 </div>
-              </div>
+              ))}
+            </div>
+
+            {/* Tip */}
+            <div style={{
+              marginTop: '20px',
+              padding: '12px 14px',
+              background: '#fff8e8',
+              borderRadius: '10px',
+              border: '1px solid #e8c840',
+              display: 'flex',
+              gap: '10px',
+              alignItems: 'flex-start',
+            }}>
+              <Lightbulb size={16} strokeWidth={1.75} color="#d4a843" style={{ flexShrink: 0, marginTop: '1px' }} />
+              <p style={{ margin: 0, fontSize: '12px', color: '#7a5c00', lineHeight: 1.5 }}>
+                <strong>¿Necesitas más ayuda?</strong> Contacta al administrador del sistema
+                o consulta el manual de usuario del proyecto.
+              </p>
             </div>
           </div>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }
