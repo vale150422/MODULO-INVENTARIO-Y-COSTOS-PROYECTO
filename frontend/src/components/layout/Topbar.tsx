@@ -2,7 +2,7 @@ import { useLocation } from 'react-router-dom';
 import { HelpCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import ModalAyuda from './ModalAyuda';
+import ModalAyuda from '../ModalAyuda';
 
 const titulos: Record<string, string> = {
   '/':               'Dashboard',
