@@ -3,6 +3,8 @@ import { getProveedores, createProveedor, updateProveedor, deleteProveedor } fro
 import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import SearchBar from '../../components/search/SearchBar';
+import { useSearch } from '../../hooks/useSearch';
 import './ProveedorPage.css';
 
 const parseTags = (raw: any): string[] => {
@@ -207,6 +209,7 @@ const ProveedoresPage = () => {
   const [erroresEditar, setErroresEditar] = useState<ErroresForm>({});
 
   const { toasts, showToast, removeToast } = useToast();
+  const { query, setQuery, filtered } = useSearch(proveedores, ['nombre', 'nit', 'ciudad', 'telefono', 'correo']);
 
   const cargarProveedores = async () => {
     try {
@@ -220,9 +223,7 @@ const ProveedoresPage = () => {
 
   useEffect(() => { cargarProveedores(); }, []);
 
-  const validar = (
-    fields: { nombre: string; nit: string; tipoProductoTags: string[]; ciudad: string; telefono: string; correo: string }
-  ): ErroresForm => {
+  const validar = (fields: { nombre: string; nit: string; tipoProductoTags: string[]; ciudad: string; telefono: string; correo: string }): ErroresForm => {
     const e: ErroresForm = {};
     if (!fields.nombre.trim()) e.nombre = 'El nombre es obligatorio';
     else if (fields.nombre.trim().length < 3) e.nombre = 'El nombre debe tener al menos 3 caracteres';
@@ -243,9 +244,7 @@ const ProveedoresPage = () => {
   const limpiarErrorEditar = (campo: keyof ErroresForm) =>
     setErroresEditar(prev => ({ ...prev, [campo]: undefined }));
 
-  const validarDuplicados = (
-    fields: { nit: string; telefono: string; correo: string }, excludeId?: number
-  ): ErroresForm => {
+  const validarDuplicados = (fields: { nit: string; telefono: string; correo: string }, excludeId?: number): ErroresForm => {
     const e: ErroresForm = {};
     const lista = excludeId ? proveedores.filter(p => p.id_proveedor !== excludeId) : proveedores;
     if (lista.some(p => p.nit === fields.nit.trim())) e.nit = 'Este NIT ya está registrado';
@@ -327,8 +326,15 @@ const ProveedoresPage = () => {
       </div>
 
       <div className="pp-table-wrapper">
-        <div className="pp-table-header">
+        <div className="pp-table-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 className="pp-list-title">Lista de Proveedores</h2>
+          <SearchBar
+            value={query}
+            onChange={setQuery}
+            placeholder="Buscar por nombre, NIT, ciudad..."
+            resultCount={filtered.length}
+            totalCount={proveedores.length}
+          />
         </div>
         <div className="pp-table-scroll">
           <table className="pp-table">
@@ -344,10 +350,12 @@ const ProveedoresPage = () => {
               </tr>
             </thead>
             <tbody>
-              {proveedores.length === 0 ? (
-                <tr><td colSpan={7} className="pp-empty-row">No hay proveedores registrados aún.</td></tr>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={7} className="pp-empty-row">
+                  {query ? `No se encontraron resultados para "${query}"` : 'No hay proveedores registrados aún.'}
+                </td></tr>
               ) : (
-                proveedores.map((p) => (
+                filtered.map((p) => (
                   <tr key={p.id_proveedor}>
                     <td className="pp-td-nombre">{p.nombre}</td>
                     <td>{p.nit}</td>

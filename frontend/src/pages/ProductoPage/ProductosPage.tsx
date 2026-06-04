@@ -3,7 +3,9 @@ import { getProductos, createProducto, updateProducto, deleteProducto, reactivar
 import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
 import { getCategorias } from '../../services/categoriaService';
-import "./ProductoPage.css";
+import SearchBar from '../../components/search/SearchBar';
+import { useSearch } from '../../hooks/useSearch';
+import './ProductoPage.css';
 import { usePageTitle } from '../../hooks/usePageTitle';
 
 const UNIDADES = ['kg', 'unidad', 'litro', 'arroba', 'bulto'];
@@ -17,14 +19,12 @@ const ProductosPage = () => {
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState<any>(null);
 
-  // Campos crear
   const [nombre, setNombre] = useState('');
   const [idCategoria, setIdCategoria] = useState('');
   const [unidadMedida, setUnidadMedida] = useState('');
   const [idFinca, setIdFinca] = useState('');
   const [stockMinimo, setStockMinimo] = useState('10');
 
-  // Campos editar
   const [nombreEditar, setNombreEditar] = useState('');
   const [idCategoriaEditar, setIdCategoriaEditar] = useState('');
   const [unidadMedidaEditar, setUnidadMedidaEditar] = useState('');
@@ -32,6 +32,7 @@ const ProductosPage = () => {
   const [stockMinimoEditar, setStockMinimoEditar] = useState('10');
 
   const { toasts, showToast, removeToast } = useToast();
+  const { query, setQuery, filtered } = useSearch(productos, ['nombre', 'categoria_nombre', 'finca_nombre', 'unidadmedida']);
 
   const cargarProductos = async () => {
     try {
@@ -119,7 +120,7 @@ const ProductosPage = () => {
         id_finca: Number(idFincaEditar),
         stock_minimo: Number(stockMinimoEditar) || 10,
       });
-      showToast('insumo actualizado correctamente', 'success');
+      showToast('Insumo actualizado correctamente', 'success');
       cerrarModalEditar();
       cargarProductos();
     } catch {
@@ -151,8 +152,15 @@ const ProductosPage = () => {
       </div>
 
       <div className="pp-table-wrapper">
-        <div className="pp-table-header">
+        <div className="pp-table-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 className="pp-list-title">Lista de Insumos</h2>
+          <SearchBar
+            value={query}
+            onChange={setQuery}
+            placeholder="Buscar por nombre, categoría, finca..."
+            resultCount={filtered.length}
+            totalCount={productos.length}
+          />
         </div>
         <table className="pp-table">
           <thead>
@@ -168,60 +176,38 @@ const ProductosPage = () => {
             </tr>
           </thead>
           <tbody>
-            {productos.length === 0 ? (
+            {filtered.length === 0 ? (
               <tr>
                 <td colSpan={8} className="pp-empty-row">
-                  No hay insumos registrados aún
+                  {query ? `No se encontraron resultados para "${query}"` : 'No hay insumos registrados aún'}
                 </td>
               </tr>
             ) : (
-              productos.map((p) => (
+              filtered.map((p) => (
                 <tr key={p.id_producto} style={{ opacity: p.activo ? 1 : 0.5 }}>
                   <td className="pp-td-nombre">{p.nombre}</td>
                   <td><span className="pp-badge">{p.categoria_nombre || '—'}</span></td>
                   <td>{p.unidadmedida}</td>
                   <td>{p.finca_nombre || '—'}</td>
                   <td>
-                    <span style={{
-                      fontWeight: 700,
-                      color: '#2d4a1e',
-                      background: '#e8f5e0',
-                      borderRadius: '8px',
-                      padding: '2px 10px',
-                      fontSize: '0.82rem',
-                      border: '1px solid #4a7c3f',
-                    }}>
+                    <span style={{ fontWeight: 700, color: '#2d4a1e', background: '#e8f5e0', borderRadius: '8px', padding: '2px 10px', fontSize: '0.82rem', border: '1px solid #4a7c3f' }}>
                       {p.stock_minimo ?? 10} {p.unidadmedida}
                     </span>
                   </td>
                   <td>{p.created_at ? new Date(p.created_at).toLocaleDateString('es-CO') : '—'}</td>
                   <td>
-                    <span style={{
-                      padding: '3px 10px',
-                      borderRadius: '20px',
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      background: p.activo ? '#dcfce7' : '#fee2e2',
-                      color: p.activo ? '#166534' : '#991b1b',
-                    }}>
+                    <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 600, background: p.activo ? '#dcfce7' : '#fee2e2', color: p.activo ? '#166534' : '#991b1b' }}>
                       {p.activo ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
                   <td className="pp-td-acciones">
-                    <button className="pp-btn-editar"
-                      onClick={() => abrirEditar(p)}
-                      disabled={!p.activo}
-                      style={{ opacity: p.activo ? 1 : 0.4, cursor: p.activo ? 'pointer' : 'not-allowed' }}>
+                    <button className="pp-btn-editar" onClick={() => abrirEditar(p)} disabled={!p.activo} style={{ opacity: p.activo ? 1 : 0.4, cursor: p.activo ? 'pointer' : 'not-allowed' }}>
                       Editar
                     </button>
                     {p.activo ? (
-                      <button className="pp-btn-eliminar" onClick={() => handleEliminar(p.id_producto)}>
-                        Inactivar
-                      </button>
+                      <button className="pp-btn-eliminar" onClick={() => handleEliminar(p.id_producto)}>Inactivar</button>
                     ) : (
-                      <button className="pp-btn-activar" onClick={() => handleActivar(p.id_producto)}>
-                        Activar
-                      </button>
+                      <button className="pp-btn-activar" onClick={() => handleActivar(p.id_producto)}>Activar</button>
                     )}
                   </td>
                 </tr>
@@ -231,7 +217,6 @@ const ProductosPage = () => {
         </table>
       </div>
 
-      {/* MODAL CREAR */}
       {modalAbierto && (
         <div className="pp-modal-overlay" onClick={cerrarModal}>
           <div className="pp-modal" onClick={e => e.stopPropagation()}>
@@ -243,15 +228,12 @@ const ProductosPage = () => {
             </div>
             <div className="pp-modal-body">
               <label className="pp-label">Nombre</label>
-              <input className="pp-input" placeholder="Ej: Belico, Furtivo, UREA, etc"
-                value={nombre} onChange={e => setNombre(e.target.value)} />
+              <input className="pp-input" placeholder="Ej: Belico, Furtivo, UREA, etc" value={nombre} onChange={e => setNombre(e.target.value)} />
 
               <label className="pp-label">Categoría</label>
               <select className="pp-input" value={idCategoria} onChange={e => setIdCategoria(e.target.value)}>
                 <option value="">Selecciona una categoría</option>
-                {categorias.map(c => (
-                  <option key={c.id_categoria} value={c.id_categoria}>{c.nombre}</option>
-                ))}
+                {categorias.map(c => <option key={c.id_categoria} value={c.id_categoria}>{c.nombre}</option>)}
               </select>
 
               <label className="pp-label">Unidad de medida</label>
@@ -263,30 +245,16 @@ const ProductosPage = () => {
               <label className="pp-label">Finca</label>
               <select className="pp-input" value={idFinca} onChange={e => setIdFinca(e.target.value)}>
                 <option value="">Selecciona una finca</option>
-                {fincas.map(f => (
-                  <option key={f.id_finca} value={f.id_finca}>{f.nombre}</option>
-                ))}
+                {fincas.map(f => <option key={f.id_finca} value={f.id_finca}>{f.nombre}</option>)}
               </select>
 
               <label className="pp-label">
                 Stock mínimo
-                <span style={{ fontWeight: 400, color: '#6b8c3e', marginLeft: '6px', fontSize: '11px' }}>
-                  — alerta de bajo stock cuando el saldo baje de este valor
-                </span>
+                <span style={{ fontWeight: 400, color: '#6b8c3e', marginLeft: '6px', fontSize: '11px' }}>— alerta de bajo stock</span>
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  className="pp-input"
-                  type="number"
-                  min="0"
-                  placeholder="Ej: 10"
-                  value={stockMinimo}
-                  onChange={e => setStockMinimo(e.target.value)}
-                  style={{ width: '120px' }}
-                />
-                <span style={{ fontSize: '13px', color: '#6b8c3e' }}>
-                  {unidadMedida || 'unidades'}
-                </span>
+                <input className="pp-input" type="number" min="0" placeholder="Ej: 10" value={stockMinimo} onChange={e => setStockMinimo(e.target.value)} style={{ width: '120px' }} />
+                <span style={{ fontSize: '13px', color: '#6b8c3e' }}>{unidadMedida || 'unidades'}</span>
               </div>
             </div>
             <div className="pp-modal-footer">
@@ -297,7 +265,6 @@ const ProductosPage = () => {
         </div>
       )}
 
-      {/* MODAL EDITAR */}
       {modalEditarAbierto && (
         <div className="pp-modal-overlay" onClick={cerrarModalEditar}>
           <div className="pp-modal" onClick={e => e.stopPropagation()}>
@@ -309,15 +276,12 @@ const ProductosPage = () => {
             </div>
             <div className="pp-modal-body">
               <label className="pp-label">Nombre</label>
-              <input className="pp-input" placeholder="Ej: Café Pergamino"
-                value={nombreEditar} onChange={e => setNombreEditar(e.target.value)} />
+              <input className="pp-input" placeholder="Ej: Café Pergamino" value={nombreEditar} onChange={e => setNombreEditar(e.target.value)} />
 
               <label className="pp-label">Categoría</label>
               <select className="pp-input" value={idCategoriaEditar} onChange={e => setIdCategoriaEditar(e.target.value)}>
                 <option value="">Selecciona una categoría</option>
-                {categorias.map(c => (
-                  <option key={c.id_categoria} value={c.id_categoria}>{c.nombre}</option>
-                ))}
+                {categorias.map(c => <option key={c.id_categoria} value={c.id_categoria}>{c.nombre}</option>)}
               </select>
 
               <label className="pp-label">Unidad de medida</label>
@@ -329,30 +293,16 @@ const ProductosPage = () => {
               <label className="pp-label">Finca</label>
               <select className="pp-input" value={idFincaEditar} onChange={e => setIdFincaEditar(e.target.value)}>
                 <option value="">Selecciona una finca</option>
-                {fincas.map(f => (
-                  <option key={f.id_finca} value={f.id_finca}>{f.nombre}</option>
-                ))}
+                {fincas.map(f => <option key={f.id_finca} value={f.id_finca}>{f.nombre}</option>)}
               </select>
 
               <label className="pp-label">
                 Stock mínimo
-                <span style={{ fontWeight: 400, color: '#6b8c3e', marginLeft: '6px', fontSize: '11px' }}>
-                  — alerta cuando el saldo baje de este valor
-                </span>
+                <span style={{ fontWeight: 400, color: '#6b8c3e', marginLeft: '6px', fontSize: '11px' }}>— alerta cuando el saldo baje</span>
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  className="pp-input"
-                  type="number"
-                  min="0"
-                  placeholder="Ej: 10"
-                  value={stockMinimoEditar}
-                  onChange={e => setStockMinimoEditar(e.target.value)}
-                  style={{ width: '120px' }}
-                />
-                <span style={{ fontSize: '13px', color: '#6b8c3e' }}>
-                  {unidadMedidaEditar || 'unidades'}
-                </span>
+                <input className="pp-input" type="number" min="0" placeholder="Ej: 10" value={stockMinimoEditar} onChange={e => setStockMinimoEditar(e.target.value)} style={{ width: '120px' }} />
+                <span style={{ fontSize: '13px', color: '#6b8c3e' }}>{unidadMedidaEditar || 'unidades'}</span>
               </div>
             </div>
             <div className="pp-modal-footer">

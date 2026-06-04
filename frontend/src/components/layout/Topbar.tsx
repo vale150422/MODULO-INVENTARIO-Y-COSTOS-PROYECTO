@@ -5,7 +5,7 @@ const titulos: Record<string, string> = {
   '/fincas':         'Fincas',
   '/trabajadores':   'Trabajadores',
   '/kardex':         'Kardex',
-  '/productos':      'Productos',
+  '/productos':      'Insumos',
   '/proveedores':    'Proveedores',
   '/reportes':       'Reportes',
   '/categorias':     'Categorías',

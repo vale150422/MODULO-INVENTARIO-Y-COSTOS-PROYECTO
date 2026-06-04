@@ -4,6 +4,8 @@ import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
 import { useAuth } from '../../hooks/useAuth';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import SearchBar from '../../components/search/SearchBar';
+import { useSearch } from '../../hooks/useSearch';
 import './FincaPage.css';
 
 interface ErroresCrear {
@@ -18,9 +20,8 @@ interface ErroresEditar {
   veredaEditar?: string;
 }
 
-const soloTexto = (value: string) => /\d/.test(value)
-  ? 'Este campo no debe contener números'
-  : undefined;
+const soloTexto = (value: string) =>
+  /\d/.test(value) ? 'Este campo no debe contener números' : undefined;
 
 const FincasPage = () => {
   usePageTitle('Fincas');
@@ -32,19 +33,18 @@ const FincasPage = () => {
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [fincaSeleccionada, setFincaSeleccionada] = useState<any>(null);
 
-  // Campos crear
   const [nombre, setNombre] = useState('');
   const [municipio, setMunicipio] = useState('');
   const [vereda, setVereda] = useState('');
   const [erroresCrear, setErroresCrear] = useState<ErroresCrear>({});
 
-  // Campos editar
   const [nombreEditar, setNombreEditar] = useState('');
   const [municipioEditar, setMunicipioEditar] = useState('');
   const [veredaEditar, setVeredaEditar] = useState('');
   const [erroresEditar, setErroresEditar] = useState<ErroresEditar>({});
 
   const { toasts, showToast, removeToast } = useToast();
+  const { query, setQuery, filtered } = useSearch(fincas, ['nombre', 'municipio', 'vereda']);
 
   const cargarFincas = async () => {
     try {
@@ -60,20 +60,16 @@ const FincasPage = () => {
     cargarFincas();
   }, []);
 
-  // ── Validaciones ──────────────────────────────────────
   const validarCrear = (): boolean => {
     const e: ErroresCrear = {};
     if (!nombre.trim()) e.nombre = 'El nombre es obligatorio';
     else if (nombre.trim().length < 3) e.nombre = 'El nombre debe tener al menos 3 caracteres';
-
     if (!municipio.trim()) e.municipio = 'El municipio es obligatorio';
     else if (municipio.trim().length < 3) e.municipio = 'El municipio debe tener al menos 3 caracteres';
     else if (soloTexto(municipio)) e.municipio = soloTexto(municipio);
-
     if (!vereda.trim()) e.vereda = 'La vereda es obligatoria';
     else if (vereda.trim().length < 3) e.vereda = 'La vereda debe tener al menos 3 caracteres';
     else if (soloTexto(vereda)) e.vereda = soloTexto(vereda);
-
     setErroresCrear(e);
     return Object.keys(e).length === 0;
   };
@@ -82,20 +78,16 @@ const FincasPage = () => {
     const e: ErroresEditar = {};
     if (!nombreEditar.trim()) e.nombreEditar = 'El nombre es obligatorio';
     else if (nombreEditar.trim().length < 3) e.nombreEditar = 'El nombre debe tener al menos 3 caracteres';
-
     if (!municipioEditar.trim()) e.municipioEditar = 'El municipio es obligatorio';
     else if (municipioEditar.trim().length < 3) e.municipioEditar = 'El municipio debe tener al menos 3 caracteres';
     else if (soloTexto(municipioEditar)) e.municipioEditar = soloTexto(municipioEditar);
-
     if (!veredaEditar.trim()) e.veredaEditar = 'La vereda es obligatoria';
     else if (veredaEditar.trim().length < 3) e.veredaEditar = 'La vereda debe tener al menos 3 caracteres';
     else if (soloTexto(veredaEditar)) e.veredaEditar = soloTexto(veredaEditar);
-
     setErroresEditar(e);
     return Object.keys(e).length === 0;
   };
 
-  // ── Handlers ──────────────────────────────────────────
   const handleCrear = async () => {
     if (!validarCrear()) return;
     try {
@@ -174,8 +166,15 @@ const FincasPage = () => {
       </div>
 
       <div className="pp-table-wrapper">
-        <div className="pp-table-header">
+        <div className="pp-table-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 className="pp-list-title">Lista de Fincas</h2>
+          <SearchBar
+            value={query}
+            onChange={setQuery}
+            placeholder="Buscar por nombre, municipio, vereda..."
+            resultCount={filtered.length}
+            totalCount={fincas.length}
+          />
         </div>
         <table className="pp-table">
           <thead>
@@ -188,14 +187,14 @@ const FincasPage = () => {
             </tr>
           </thead>
           <tbody>
-            {fincas.length === 0 ? (
+            {filtered.length === 0 ? (
               <tr>
                 <td colSpan={isAdmin ? 5 : 4} className="pp-empty-row">
-                  No hay fincas registradas aún
+                  {query ? `No se encontraron resultados para "${query}"` : 'No hay fincas registradas aún'}
                 </td>
               </tr>
             ) : (
-              fincas.map((f) => (
+              filtered.map((f) => (
                 <tr key={f.id_finca}>
                   <td className="pp-td-nombre">{f.nombre}</td>
                   <td>{f.municipio || '—'}</td>
@@ -214,7 +213,6 @@ const FincasPage = () => {
         </table>
       </div>
 
-      {/* MODAL CREAR */}
       {modalAbierto && isAdmin && (
         <div className="pp-modal-overlay" onClick={cerrarModal}>
           <div className="pp-modal" onClick={(e) => e.stopPropagation()}>
@@ -260,7 +258,6 @@ const FincasPage = () => {
         </div>
       )}
 
-      {/* MODAL EDITAR */}
       {modalEditarAbierto && isAdmin && (
         <div className="pp-modal-overlay" onClick={cerrarModalEditar}>
           <div className="pp-modal" onClick={(e) => e.stopPropagation()}>

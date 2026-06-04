@@ -3,6 +3,8 @@ import { getCategorias, createCategoria, deleteCategoria } from '../../services/
 import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
 import { usePageTitle } from '../../hooks/usePageTitle';
+import SearchBar from '../../components/search/SearchBar';
+import { useSearch } from '../../hooks/useSearch';
 import '../FincaPage/FincaPage.css';
 
 interface ErroresCrear {
@@ -16,6 +18,7 @@ const CategoriaPage = () => {
   const [nombre, setNombre] = useState('');
   const [errores, setErrores] = useState<ErroresCrear>({});
   const { toasts, showToast, removeToast } = useToast();
+  const { query, setQuery, filtered } = useSearch(categorias, ['nombre']);
 
   const cargarCategorias = async () => {
     try {
@@ -80,8 +83,15 @@ const CategoriaPage = () => {
       </div>
 
       <div className="pp-table-wrapper">
-        <div className="pp-table-header">
+        <div className="pp-table-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 className="pp-list-title">Lista de Categorías</h2>
+          <SearchBar
+            value={query}
+            onChange={setQuery}
+            placeholder="Buscar categoría..."
+            resultCount={filtered.length}
+            totalCount={categorias.length}
+          />
         </div>
         <table className="pp-table">
           <thead>
@@ -92,14 +102,14 @@ const CategoriaPage = () => {
             </tr>
           </thead>
           <tbody>
-            {categorias.length === 0 ? (
+            {filtered.length === 0 ? (
               <tr>
                 <td colSpan={3} className="pp-empty-row">
-                  No hay categorías registradas aún
+                  {query ? `No se encontraron resultados para "${query}"` : 'No hay categorías registradas aún'}
                 </td>
               </tr>
             ) : (
-              categorias.map((c) => (
+              filtered.map((c) => (
                 <tr key={c.id_categoria}>
                   <td className="pp-td-nombre">{c.nombre}</td>
                   <td>{c.created_at ? new Date(c.created_at).toLocaleDateString('es-CO') : '—'}</td>
