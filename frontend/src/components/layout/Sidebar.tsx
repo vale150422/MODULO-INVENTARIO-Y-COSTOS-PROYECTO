@@ -55,7 +55,7 @@ export default function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-1">
         <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest px-2 pt-2 pb-2">
           {isAdmin ? 'Principal' : 'Mi Panel'}
         </p>
