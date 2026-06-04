@@ -1,5 +1,7 @@
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 interface Producto {
   id_producto: number;
@@ -45,6 +47,65 @@ export default function ReporteKardex() {
 
   const imprimir = () => window.print();
 
+  const exportarExcel = () => {
+    if (!data) return;
+    const fecha = new Date().toLocaleDateString('es-CO');
+
+    // Hoja 1 — Resumen
+    const resumen = [
+      ['REPORTE KARDEX — AGROGESTION'],
+      ['Método: PEPS · Insumos Agrícolas'],
+      [`Fecha: ${fecha}`],
+      [],
+      ['INDICADORES'],
+      ['Valor Inventario', fmt(data.totalInventario)],
+      ['Costo Ventas',     fmt(Number(data.costoVentas))],
+      ['Entradas',         `${data.totalEntradas} mov.`],
+      ['Salidas',          `${data.totalSalidas} mov.`],
+    ];
+
+    // Hoja 2 — Productos
+    const encabezado = ['Producto', 'Categoría', 'Finca', 'Saldo Cantidad', 'Unidad', 'Costo Unit.', 'Saldo Valor'];
+    const filas = data.productos.map(p => [
+      p.nombre,
+      p.categoria,
+      p.finca,
+      Number(p.saldo_cantidad),
+      p.unidadmedida,
+      Number(p.costo_unitario),
+      Number(p.saldo_valor),
+    ]);
+    const totalFila = ['', '', 'TOTAL INVENTARIO', '', '', '', Number(data.totalInventario)];
+
+    // Hoja 3 — Asiento contable
+    const asiento = [
+      ['ASIENTO CONTABLE — COSTO DE VENTAS'],
+      [],
+      ['Cuenta', 'Descripción', 'Debe', 'Haber'],
+      ['613501', 'Costo de Ventas', Number(data.costoVentas), ''],
+      ['143501', 'Mercancías no fabricadas por la empresa', '', Number(data.costoVentas)],
+    ];
+
+    const wb = XLSX.utils.book_new();
+
+    const ws1 = XLSX.utils.aoa_to_sheet(resumen);
+    ws1['!cols'] = [{ wch: 25 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
+
+    const ws2 = XLSX.utils.aoa_to_sheet([encabezado, ...filas, [], totalFila]);
+    ws2['!cols'] = [{ wch: 20 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 14 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Inventario');
+
+    const ws3 = XLSX.utils.aoa_to_sheet(asiento);
+    ws3['!cols'] = [{ wch: 10 }, { wch: 40 }, { wch: 16 }, { wch: 16 }];
+    XLSX.utils.book_append_sheet(wb, ws3, 'Asiento Contable');
+
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    saveAs(new Blob([buf], { type: 'application/octet-stream' }), `ReporteKardex_${fecha.replace(/\//g, '-')}.xlsx`);
+  };
+
+  const exportarPDF = () => window.print();
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -52,11 +113,22 @@ export default function ReporteKardex() {
           <h1 className="text-2xl font-semibold text-white">Reporte Kardex</h1>
           <p className="text-sm text-[#8fae5a] mt-1">Método PEPS · Insumos Agrícolas</p>
         </div>
-        <button onClick={imprimir}
-          className="px-6 py-2 bg-[#d4a843] text-[#2d4a1e] rounded-lg text-sm
-                     font-semibold hover:opacity-90 transition-opacity flex items-center gap-2">
-          🖨️ Imprimir / Exportar PDF
-        </button>
+
+        {/* Botones de exportación */}
+        <div className="flex items-center gap-2">
+          <button onClick={exportarExcel} disabled={!data}
+            className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2
+                       transition-opacity hover:opacity-90 disabled:opacity-40"
+            style={{ background: '#1e6e3a', color: '#ffffff' }}>
+            <span>📊</span> Exportar Excel
+          </button>
+          <button onClick={exportarPDF} disabled={!data}
+            className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2
+                       transition-opacity hover:opacity-90 disabled:opacity-40"
+            style={{ background: '#d4a843', color: '#2d4a1e' }}>
+            <span>🖨️</span> Exportar PDF
+          </button>
+        </div>
       </div>
 
       <div id="reporte-print" className="bg-white text-[#2d4a1e] rounded-xl p-8">
@@ -81,60 +153,39 @@ export default function ReporteKardex() {
           </div>
         </div>
 
-        {/* Estado: cargando */}
         {loading && (
           <div className="text-center py-16">
             <p className="text-[#6b8c3e] animate-pulse">Cargando reporte...</p>
           </div>
         )}
 
-        {/* Estado: error */}
         {error && (
           <div className="text-center py-16">
             <div className="text-4xl mb-3">⚠️</div>
             <p className="text-red-600 font-semibold">{error}</p>
-            <p className="text-sm text-[#6b8c3e] mt-1">
-              Verifica que el backend esté corriendo
-            </p>
+            <p className="text-sm text-[#6b8c3e] mt-1">Verifica que el backend esté corriendo</p>
           </div>
         )}
 
-        {/* Contenido principal */}
         {!loading && !error && data && (
           <>
             {/* Resumen ejecutivo */}
             <div className="grid grid-cols-4 gap-3 mb-6">
               <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                <p className="text-[10px] text-green-700 uppercase font-semibold tracking-wider">
-                  Valor Inventario
-                </p>
-                <p className="text-base font-bold text-green-700 mt-1">
-                  {fmt(data.totalInventario)}
-                </p>
+                <p className="text-[10px] text-green-700 uppercase font-semibold tracking-wider">Valor Inventario</p>
+                <p className="text-base font-bold text-green-700 mt-1">{fmt(data.totalInventario)}</p>
               </div>
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-                <p className="text-[10px] text-red-700 uppercase font-semibold tracking-wider">
-                  Costo Ventas
-                </p>
-                <p className="text-base font-bold text-red-700 mt-1">
-                  {fmt(Number(data.costoVentas))}
-                </p>
+                <p className="text-[10px] text-red-700 uppercase font-semibold tracking-wider">Costo Ventas</p>
+                <p className="text-base font-bold text-red-700 mt-1">{fmt(Number(data.costoVentas))}</p>
               </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                <p className="text-[10px] text-blue-700 uppercase font-semibold tracking-wider">
-                  Entradas
-                </p>
-                <p className="text-base font-bold text-blue-700 mt-1">
-                  {data.totalEntradas} mov.
-                </p>
+                <p className="text-[10px] text-blue-700 uppercase font-semibold tracking-wider">Entradas</p>
+                <p className="text-base font-bold text-blue-700 mt-1">{data.totalEntradas} mov.</p>
               </div>
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
-                <p className="text-[10px] text-orange-700 uppercase font-semibold tracking-wider">
-                  Salidas
-                </p>
-                <p className="text-base font-bold text-orange-700 mt-1">
-                  {data.totalSalidas} mov.
-                </p>
+                <p className="text-[10px] text-orange-700 uppercase font-semibold tracking-wider">Salidas</p>
+                <p className="text-base font-bold text-orange-700 mt-1">{data.totalSalidas} mov.</p>
               </div>
             </div>
 
@@ -142,12 +193,8 @@ export default function ReporteKardex() {
             {data.productos.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-5xl mb-4">📋</div>
-                <p className="text-[#2d4a1e] font-semibold">
-                  No hay productos registrados
-                </p>
-                <p className="text-sm text-[#6b8c3e] mt-1">
-                  Registra movimientos en el módulo Kardex
-                </p>
+                <p className="text-[#2d4a1e] font-semibold">No hay productos registrados</p>
+                <p className="text-sm text-[#6b8c3e] mt-1">Registra movimientos en el módulo Kardex</p>
               </div>
             ) : (
               <table className="w-full text-xs border-collapse">
@@ -163,17 +210,10 @@ export default function ReporteKardex() {
                 </thead>
                 <tbody>
                   {data.productos.map((p, i) => (
-                    <tr key={p.id_producto}
-                      className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className="px-3 py-2 border-b border-gray-100 font-medium text-[#2d4a1e]">
-                        {p.nombre}
-                      </td>
-                      <td className="px-3 py-2 border-b border-gray-100 text-[#6b8c3e]">
-                        {p.categoria}
-                      </td>
-                      <td className="px-3 py-2 border-b border-gray-100 text-[#6b8c3e]">
-                        {p.finca}
-                      </td>
+                    <tr key={p.id_producto} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="px-3 py-2 border-b border-gray-100 font-medium text-[#2d4a1e]">{p.nombre}</td>
+                      <td className="px-3 py-2 border-b border-gray-100 text-[#6b8c3e]">{p.categoria}</td>
+                      <td className="px-3 py-2 border-b border-gray-100 text-[#6b8c3e]">{p.finca}</td>
                       <td className={`px-3 py-2 border-b border-gray-100 text-right font-mono font-bold
                         ${Number(p.saldo_cantidad) < 10 ? 'text-red-600' : 'text-[#2d4a1e]'}`}>
                         {Number(p.saldo_cantidad).toLocaleString('es-CO')} {p.unidadmedida}
@@ -190,8 +230,7 @@ export default function ReporteKardex() {
                 </tbody>
                 <tfoot>
                   <tr className="bg-[#f5f0e0] font-bold">
-                    <td colSpan={5}
-                      className="px-3 py-2 text-right text-[#2d4a1e] font-semibold uppercase tracking-wider text-xs">
+                    <td colSpan={5} className="px-3 py-2 text-right text-[#2d4a1e] font-semibold uppercase tracking-wider text-xs">
                       TOTAL INVENTARIO:
                     </td>
                     <td className="px-3 py-2 text-right text-[#2d4a1e] font-mono font-bold text-sm">
@@ -202,7 +241,6 @@ export default function ReporteKardex() {
               </table>
             )}
 
-            {/* Alerta stock bajo */}
             {data.productos.some(p => Number(p.saldo_cantidad) < 10) && (
               <p className="text-xs text-red-500 mt-3">
                 ⚠️ Los productos en <span className="font-bold">rojo</span> tienen stock bajo
@@ -228,20 +266,14 @@ export default function ReporteKardex() {
                     <tr className="border-b border-gray-100">
                       <td className="px-3 py-1.5 text-[#d4a843] font-mono">613501</td>
                       <td className="px-3 py-1.5 text-[#2d4a1e]">Costo de Ventas</td>
-                      <td className="px-3 py-1.5 text-right font-mono text-green-700">
-                        {fmt(Number(data.costoVentas))}
-                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono text-green-700">{fmt(Number(data.costoVentas))}</td>
                       <td className="px-3 py-1.5 text-right text-[#6b8c3e]">—</td>
                     </tr>
                     <tr>
                       <td className="px-3 py-1.5 text-[#d4a843] font-mono">143501</td>
-                      <td className="px-3 py-1.5 text-[#2d4a1e]">
-                        Mercancías no fabricadas por la empresa
-                      </td>
+                      <td className="px-3 py-1.5 text-[#2d4a1e]">Mercancías no fabricadas por la empresa</td>
                       <td className="px-3 py-1.5 text-right text-[#6b8c3e]">—</td>
-                      <td className="px-3 py-1.5 text-right font-mono text-red-600">
-                        {fmt(Number(data.costoVentas))}
-                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono text-red-600">{fmt(Number(data.costoVentas))}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -250,7 +282,6 @@ export default function ReporteKardex() {
           </>
         )}
 
-        {/* Pie de página */}
         <div className="mt-8 pt-4 border-t border-[#c8d9a0] flex justify-between text-xs text-[#6b8c3e]">
           <span>AgroGestión — Sistema de Inventario PEPS · Miraflores Monterrey</span>
           <span>Generado: {new Date().toLocaleString('es-CO')}</span>
