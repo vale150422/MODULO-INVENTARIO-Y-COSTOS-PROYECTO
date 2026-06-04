@@ -1,7 +1,11 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
-import { LayoutDashboard, Leaf, Users, Store, Tag, ShoppingCart, Package, BarChart2, ClipboardList, UserCircle, Home} from 'lucide-react';
+import {
+  LayoutDashboard, Leaf, Users, Store, Tag, ShoppingCart,
+  Package, BarChart2, ClipboardList, UserCircle, Home,
+  Sun, Moon, LogOut
+} from 'lucide-react';
 
 const adminItems = [
   { to: '/',               label: 'Dashboard',    icon: LayoutDashboard },
@@ -74,9 +78,14 @@ export default function Sidebar() {
         <button onClick={toggle}
           className="w-full flex items-center justify-between px-3 py-2 rounded-lg
                      bg-[#3d6b2e] text-sm hover:bg-[#4a7c3f] transition-colors">
-          <span className="text-[#c8d9a0] text-xs font-semibold">
-            {dark ? '🌙 Modo oscuro' : '☀️ Modo claro'}
-          </span>
+          <div className="flex items-center gap-2 text-[#c8d9a0]">
+            {dark
+              ? <Moon size={14} strokeWidth={1.75} />
+              : <Sun size={14} strokeWidth={1.75} />}
+            <span className="text-xs font-semibold">
+              {dark ? 'Modo oscuro' : 'Modo claro'}
+            </span>
+          </div>
           <div className={`w-9 h-5 rounded-full transition-colors duration-300 relative
                           ${dark ? 'bg-[#d4a843]' : 'bg-[#8fae5a]'}`}>
             <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow
@@ -98,7 +107,9 @@ export default function Sidebar() {
             <p className="text-xs text-[#8fae5a]">{isAdmin ? 'Administrador' : 'Empleado'}</p>
           </div>
           <button onClick={logout} title="Cerrar sesión"
-            className="text-[#8fae5a] hover:text-red-400 transition-colors text-xs">✕</button>
+            className="text-[#8fae5a] hover:text-red-400 transition-colors">
+            <LogOut size={14} strokeWidth={1.75} />
+          </button>
         </div>
       </div>
     </aside>
