@@ -26,6 +26,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
+  const [showForgot, setShowForgot] = useState(false);
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -53,6 +54,42 @@ export default function Login() {
 
   return (
     <div className="login-wrapper">
+
+      {/* ===== MODAL OLVIDÉ CONTRASEÑA ===== */}
+      {showForgot && (
+        <div className="forgot-overlay" onClick={() => setShowForgot(false)}>
+          <div className="forgot-modal" onClick={e => e.stopPropagation()}>
+            <div className="forgot-modal__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+                fill="none" stroke="#4a7c3f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <h3 className="forgot-modal__title">¿Olvidaste tu contraseña?</h3>
+            <p className="forgot-modal__text">
+              Comunícate con el administrador del sistema para restablecer tu acceso.
+            </p>
+            <div className="forgot-modal__contact">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                fill="none" stroke="#4a7c3f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <div>
+                <span className="forgot-modal__contact-label">Administrador</span>
+                <span className="forgot-modal__contact-name">Administrador</span>
+              </div>
+            </div>
+            <p className="forgot-modal__hint">
+              Tu contraseña inicial es tu número de cédula.
+            </p>
+            <button className="forgot-modal__btn" onClick={() => setShowForgot(false)}>
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ===== PANEL IZQUIERDO ===== */}
       <div className="login-left">
@@ -166,7 +203,7 @@ export default function Login() {
             <button type="submit" disabled={loading} className="login-form__submit">
               {loading ? 'Iniciando...' : 'Iniciar sesión'}
             </button>
-            <button type="button" className="login-form__forgot">
+            <button type="button" className="login-form__forgot" onClick={() => setShowForgot(true)}>
               ¿Olvidaste tu contraseña?
             </button>
           </form>
