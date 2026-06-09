@@ -2,6 +2,7 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { FileSpreadsheet, Printer, AlertTriangle, ClipboardList } from 'lucide-react';
 
 interface Producto {
   id_producto: number;
@@ -45,13 +46,10 @@ export default function ReporteKardex() {
       .finally(() => setLoading(false));
   }, []);
 
-  const imprimir = () => window.print();
-
   const exportarExcel = () => {
     if (!data) return;
     const fecha = new Date().toLocaleDateString('es-CO');
 
-    // Hoja 1 — Resumen
     const resumen = [
       ['REPORTE KARDEX — AGROGESTION'],
       ['Método: PEPS · Insumos Agrícolas'],
@@ -64,20 +62,14 @@ export default function ReporteKardex() {
       ['Salidas',          `${data.totalSalidas} mov.`],
     ];
 
-    // Hoja 2 — Productos
     const encabezado = ['Producto', 'Categoría', 'Finca', 'Saldo Cantidad', 'Unidad', 'Costo Unit.', 'Saldo Valor'];
     const filas = data.productos.map(p => [
-      p.nombre,
-      p.categoria,
-      p.finca,
-      Number(p.saldo_cantidad),
-      p.unidadmedida,
-      Number(p.costo_unitario),
-      Number(p.saldo_valor),
+      p.nombre, p.categoria, p.finca,
+      Number(p.saldo_cantidad), p.unidadmedida,
+      Number(p.costo_unitario), Number(p.saldo_valor),
     ]);
     const totalFila = ['', '', 'TOTAL INVENTARIO', '', '', '', Number(data.totalInventario)];
 
-    // Hoja 3 — Asiento contable
     const asiento = [
       ['ASIENTO CONTABLE — COSTO DE VENTAS'],
       [],
@@ -114,19 +106,20 @@ export default function ReporteKardex() {
           <p className="text-sm text-[#8fae5a] mt-1">Método PEPS · Insumos Agrícolas</p>
         </div>
 
-        {/* Botones de exportación */}
         <div className="flex items-center gap-2">
           <button onClick={exportarExcel} disabled={!data}
             className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2
                        transition-opacity hover:opacity-90 disabled:opacity-40"
             style={{ background: '#1e6e3a', color: '#ffffff' }}>
-            <span>📊</span> Exportar Excel
+            <FileSpreadsheet size={16} strokeWidth={1.75} />
+            Exportar Excel
           </button>
           <button onClick={exportarPDF} disabled={!data}
             className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2
                        transition-opacity hover:opacity-90 disabled:opacity-40"
             style={{ background: '#d4a843', color: '#2d4a1e' }}>
-            <span>🖨️</span> Exportar PDF
+            <Printer size={16} strokeWidth={1.75} />
+            Exportar PDF
           </button>
         </div>
       </div>
@@ -137,7 +130,7 @@ export default function ReporteKardex() {
         <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-[#2d4a1e]">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#d4a843] bg-[#f5f0e0]">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-[1.35]"/>
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-[1.35]" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-[#2d4a1e]">AgroGestión</h2>
@@ -161,7 +154,7 @@ export default function ReporteKardex() {
 
         {error && (
           <div className="text-center py-16">
-            <div className="text-4xl mb-3">⚠️</div>
+            <AlertTriangle size={40} strokeWidth={1.75} className="mx-auto mb-3 text-red-500" />
             <p className="text-red-600 font-semibold">{error}</p>
             <p className="text-sm text-[#6b8c3e] mt-1">Verifica que el backend esté corriendo</p>
           </div>
@@ -192,7 +185,7 @@ export default function ReporteKardex() {
             {/* Tabla de productos */}
             {data.productos.length === 0 ? (
               <div className="text-center py-12">
-                <div className="text-5xl mb-4">📋</div>
+                <ClipboardList size={48} strokeWidth={1.5} className="mx-auto mb-4 text-[#8fae5a]" />
                 <p className="text-[#2d4a1e] font-semibold">No hay productos registrados</p>
                 <p className="text-sm text-[#6b8c3e] mt-1">Registra movimientos en el módulo Kardex</p>
               </div>
@@ -242,8 +235,9 @@ export default function ReporteKardex() {
             )}
 
             {data.productos.some(p => Number(p.saldo_cantidad) < 10) && (
-              <p className="text-xs text-red-500 mt-3">
-                ⚠️ Los productos en <span className="font-bold">rojo</span> tienen stock bajo
+              <p className="text-xs text-red-500 mt-3 flex items-center gap-1">
+                <AlertTriangle size={12} strokeWidth={1.75} />
+                Los productos en <span className="font-bold">rojo</span> tienen stock bajo
               </p>
             )}
 
