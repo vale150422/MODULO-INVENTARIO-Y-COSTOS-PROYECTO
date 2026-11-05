@@ -1,0 +1,471 @@
+[33mcommit 45f6570c218a5e1a64d7c1466c31d6afb5817c3b[m
+Author: Pedro Perdomo <pedroperdomo@ejemplo.com>
+Date:   Mon Jun 8 21:17:48 2026 -0500
+
+    Cambie los iconos
+
+[1mdiff --git a/frontend/src/pages/Kardex.tsx b/frontend/src/pages/Kardex.tsx[m
+[1mindex 412dfc3..1001622 100644[m
+[1m--- a/frontend/src/pages/Kardex.tsx[m
+[1m+++ b/frontend/src/pages/Kardex.tsx[m
+[36m@@ -1,6 +1,10 @@[m
+ import { useState, useEffect, useCallback } from 'react';[m
+ import { usePageTitle } from '../hooks/usePageTitle';[m
+ import { api } from '../services/api';[m
+[32m+[m[32mimport {[m
+[32m+[m[32m  Package, ClipboardList, Plus, X, RefreshCw,[m
+[32m+[m[32m  AlertTriangle, CheckCircle, Clock, Eye[m
+[32m+[m[32m} from 'lucide-react';[m
+ [m
+ type Unidad = 'GRS' | 'ML' | string;[m
+ [m
+[36m@@ -39,13 +43,10 @@[m [minterface Producto {[m
+ [m
+ const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO') + ' COP';[m
+ const fmtU = (n: number, u: string) => Number(n).toLocaleString('es-CO') + ' ' + u;[m
+[31m-[m
+ const parseCOP = (val: string): number => {[m
+[31m-  [m
+   const limpio = val.replace(/\./g, '').replace(/,/g, '.');[m
+   return parseFloat(limpio) || 0;[m
+ };[m
+[31m-[m
+ const diasParaVencer = (fecha: string | null): number | null => {[m
+   if (!fecha) return null;[m
+   const hoy = new Date();[m
+[36m@@ -54,7 +55,6 @@[m [mconst diasParaVencer = (fecha: string | null): number | null => {[m
+   vence.setHours(0, 0, 0, 0);[m
+   return Math.ceil((vence.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));[m
+ };[m
+[31m-[m
+ const generarNumFactura = (): string => {[m
+   const now = new Date();[m
+   const fecha = now.getFullYear().toString() +[m
+[36m@@ -66,13 +66,13 @@[m [mconst generarNumFactura = (): string => {[m
+ [m
+ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+   usePageTitle('Kardex');[m
+[32m+[m
+   const [productos, setProductos] = useState<Producto[]>([]);[m
+   const [selectedId, setSelectedId] = useState<number | null>(null);[m
+   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);[m
+   const [lotes, setLotes] = useState<Lote[]>([]);[m
+   const [loadingProd, setLoadingProd] = useState(true);[m
+   const [loadingMov, setLoadingMov] = useState(false);[m
+[31m-[m
+   const [showForm, setShowForm] = useState(false);[m
+   const [tipo, setTipo] = useState<'ENTRADA' | 'SALIDA'>('ENTRADA');[m
+   const [detalle, setDetalle] = useState('');[m
+[36m@@ -139,10 +139,7 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+     setTipo(t);[m
+     setLoteSeleccionado(null);[m
+     setCantidad(''); setError('');[m
+[31m-    // Al cambiar a SALIDA, preseleccionar el primer lote (el que vence primero)[m
+[31m-    if (t === 'SALIDA' && lotes.length > 0) {[m
+[31m-      setLoteSeleccionado(lotes[0]);[m
+[31m-    }[m
+[32m+[m[32m    if (t === 'SALIDA' && lotes.length > 0) setLoteSeleccionado(lotes[0]);[m
+   };[m
+ [m
+   const registrar = async () => {[m
+[36m@@ -156,7 +153,6 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+     if (tipo === 'SALIDA' && qty > loteSeleccionado!.cantidad)[m
+       return setError(`Stock insuficiente en este lote. Disponible: ${loteSeleccionado!.cantidad} ${producto?.unidadmedida}`);[m
+     if (!producto) return;[m
+[31m-[m
+     setSaving(true);[m
+     try {[m
+       await api.registrarMovimiento({[m
+[36m@@ -195,9 +191,10 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+             Primeras en Entrar — Primeras en Salir · Insumos Agrícolas[m
+           </p>[m
+           {!canEdit && ([m
+[31m-            <span className="inline-block mt-1 px-2 py-0.5 bg-blue-800[m
+[32m+[m[32m            <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-blue-800[m
+                              text-blue-200 rounded text-[10px] font-semibold">[m
+[31m-              👁 Modo visualización — solo lectura[m
+[32m+[m[32m              {/* 👁 → Eye */}[m
+[32m+[m[32m              <Eye size={10} strokeWidth={1.75} /> Modo visualización — solo lectura[m
+             </span>[m
+           )}[m
+         </div>[m
+[36m@@ -207,8 +204,11 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+               <button[m
+                 onClick={() => { setShowFacturas(!showFacturas); setShowForm(false); }}[m
+                 className="px-4 py-2 bg-[#264d35] text-[#c8d9a0] rounded-lg text-sm[m
+[31m-                           font-semibold hover:bg-[#3d6b2e] transition-colors border border-[#4a7c3f]">[m
+[31m-                📋 Facturas ({facturasHistorial.length})[m
+[32m+[m[32m                           font-semibold hover:bg-[#3d6b2e] transition-colors border border-[#4a7c3f][m
+[32m+[m[32m                           flex items-center gap-2">[m
+[32m+[m[32m                {/* 📋 → ClipboardList */}[m
+[32m+[m[32m                <ClipboardList size={16} strokeWidth={1.75} />[m
+[32m+[m[32m                Facturas ({facturasHistorial.length})[m
+               </button>[m
+               {showFacturas && ([m
+                 <div className="absolute right-0 top-10 z-50 w-72 bg-[#111c17] border border-[#4a7c3f][m
+[36m@@ -231,7 +231,7 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                       return ([m
+                         <div key={i}[m
+                           className={`px-3 py-2 border-b border-[#1a2e22] flex items-center justify-between[m
+[31m-                            ${vencido ? 'bg-red-950' : urgente ? 'bg-orange-950' : 'hover:bg-[#1a2e22]'}`}>[m
+[32m+[m[32m                          ${vencido ? 'bg-red-950' : urgente ? 'bg-orange-950' : 'hover:bg-[#1a2e22]'}`}>[m
+                           <div>[m
+                             <p className={`text-xs font-bold font-mono[m
+                               ${vencido ? 'text-red-400' : urgente ? 'text-orange-400' : 'text-white'}`}>[m
+[36m@@ -243,10 +243,16 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                           </div>[m
+                           {diasMin !== undefined && ([m
+                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded[m
+[32m+[m[32m                              flex items-center gap-1[m
+                               ${vencido ? 'bg-red-700 text-white'[m
+[31m-                              : urgente ? 'bg-orange-700 text-white'[m
+[31m-                              : 'bg-[#264d35] text-[#8fae5a]'}`}>[m
+[31m-                              {vencido ? '⚠ Vencida' : urgente ? `🔴 ${diasMin}d` : `✓ ${diasMin}d`}[m
+[32m+[m[32m                                : urgente ? 'bg-orange-700 text-white'[m
+[32m+[m[32m                                : 'bg-[#264d35] text-[#8fae5a]'}`}>[m
+[32m+[m[32m                              {/* ⚠ → AlertTriangle, ✓ → CheckCircle */}[m
+[32m+[m[32m                              {vencido[m
+[32m+[m[32m                                ? <><AlertTriangle size={10} strokeWidth={1.75} /> Vencida</>[m
+[32m+[m[32m                                : urgente[m
+[32m+[m[32m                                  ? <><Clock size={10} strokeWidth={1.75} /> {diasMin}d</>[m
+[32m+[m[32m                                  : <><CheckCircle size={10} strokeWidth={1.75} /> {diasMin}d</>}[m
+                             </span>[m
+                           )}[m
+                         </div>[m
+[36m@@ -260,8 +266,11 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+           {canEdit && producto && ([m
+             <button onClick={abrirForm}[m
+               className="px-4 py-2 bg-[#4a7c3f] text-white rounded-lg text-sm[m
+[31m-                         font-semibold hover:bg-[#3d6b2e] transition-colors">[m
+[31m-              {showForm ? '✕ Cancelar' : '+ Movimiento'}[m
+[32m+[m[32m                         font-semibold hover:bg-[#3d6b2e] transition-colors flex items-center gap-2">[m
+[32m+[m[32m              {/* ✕ → X, + → Plus */}[m
+[32m+[m[32m              {showForm[m
+[32m+[m[32m                ? <><X size={16} strokeWidth={1.75} /> Cancelar</>[m
+[32m+[m[32m                : <><Plus size={16} strokeWidth={1.75} /> Movimiento</>}[m
+             </button>[m
+           )}[m
+         </div>[m
+[36m@@ -270,7 +279,8 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+       {productos.length === 0 ? ([m
+         <div className="flex flex-col items-center justify-center py-24[m
+                         bg-[#1a2e22] border border-[#264d35] rounded-xl mt-4">[m
+[31m-          <div className="text-5xl mb-4">📦</div>[m
+[32m+[m[32m          {/* 📦 → Package */}[m
+[32m+[m[32m          <Package size={48} strokeWidth={1.5} className="mb-4 text-[#8fae5a]" />[m
+           <p className="text-white font-semibold">No hay insumos registrados</p>[m
+           <p className="text-sm text-[#8fae5a] mt-1">Registra productos desde el módulo Productos</p>[m
+         </div>[m
+[36m@@ -297,7 +307,6 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                 ))}[m
+               </div>[m
+             </div>[m
+[31m-[m
+             <div className="bg-[#1a2e22] border border-[#d4a843]/40 rounded-xl p-3">[m
+               <p className="text-xs font-semibold text-[#d4a843] uppercase tracking-widest mb-3">[m
+                 Inventario consolidado[m
+[36m@@ -324,16 +333,17 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                     <div>[m
+                       <h2 className="text-base font-semibold text-white">{producto.nombre}</h2>[m
+                       <div className="flex gap-2 mt-1 flex-wrap">[m
+[31m-                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-[#ffffff]  rounded text-[10px] font-semibold">[m
+[32m+[m[32m                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-white rounded text-[10px] font-semibold">[m
+                           {producto.categoria}[m
+                         </span>[m
+[31m-                        <span className="px-2 py-0.5 bg-[#d4a843] text-[#ffffff]  rounded text-[10px] font-semibold">[m
+[32m+[m[32m                        <span className="px-2 py-0.5 bg-[#d4a843] text-white rounded text-[10px] font-semibold">[m
+                           {producto.unidadmedida}[m
+                         </span>[m
+[31m-                        <span className="px-2 py-0.5 bg-green-700 text-[#ffffff] rounded text-[10px] font-semibold">[m
+[32m+[m[32m                        <span className="px-2 py-0.5 bg-green-700 text-white rounded text-[10px] font-semibold">[m
+                           MÉTODO PEPS[m
+                         </span>[m
+[31m-                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-[#ffffff]  rounded text-[10px]">[m
+[32m+[m[32m                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-white rounded text-[10px][m
+[32m+[m[32m                                         flex items-center gap-1">[m
+                           🌿 {producto.finca}[m
+                         </span>[m
+                       </div>[m
+[36m@@ -359,21 +369,20 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                           const urgente = dias !== null && dias >= 0 && dias <= 15;[m
+                           const proximo = dias !== null && dias > 15 && dias <= 30;[m
+                           const esElPrimero = i === 0;[m
+[31m-[m
+                           return ([m
+                             <div key={l.id_lote}[m
+                               className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs border[m
+                                 ${vencido ? 'bg-red-950 border-red-600'[m
+[31m-                                : urgente ? 'bg-orange-950 border-orange-600'[m
+[31m-                                : esElPrimero ? 'bg-[#1a3d1a] border-[#4a7c3f]'[m
+[31m-                                : 'bg-[#111c17] border-[#264d35]'}`}>[m
+[32m+[m[32m                                  : urgente ? 'bg-orange-950 border-orange-600'[m
+[32m+[m[32m                                  : esElPrimero ? 'bg-[#1a3d1a] border-[#4a7c3f]'[m
+[32m+[m[32m                                  : 'bg-[#111c17] border-[#264d35]'}`}>[m
+                               <div className="flex items-center gap-3">[m
+                                 <span className={`w-5 h-5 rounded-full flex items-center justify-center[m
+                                                   text-[10px] font-bold flex-shrink-0[m
+                                   ${vencido ? 'bg-red-700 text-white'[m
+[31m-                                  : urgente ? 'bg-orange-700 text-white'[m
+[31m-                                  : esElPrimero ? 'bg-[#4a7c3f] text-white'[m
+[31m-                                  : 'bg-[#264d35] text-[#8fae5a]'}`}>[m
+[32m+[m[32m                                    : urgente ? 'bg-orange-700 text-white'[m
+[32m+[m[32m                                    : esElPrimero ? 'bg-[#4a7c3f] text-white'[m
+[32m+[m[32m                                    : 'bg-[#264d35] text-[#8fae5a]'}`}>[m
+                                   {i + 1}[m
+                                 </span>[m
+                                 <div>[m
+[36m@@ -391,14 +400,19 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                               <div className="flex items-center gap-2 flex-shrink-0">[m
+                                 {l.fecha_vencimiento ? ([m
+                                   <span className={`px-2 py-0.5 rounded text-[10px] font-semibold[m
+[32m+[m[32m                                    flex items-center gap-1[m
+                                     ${vencido ? 'bg-red-700 text-white'[m
+[31m-                                    : urgente ? 'bg-orange-700 text-white'[m
+[31m-                                    : proximo ? 'bg-yellow-700 text-white'[m
+[31m-                                    : 'bg-[#264d35] text-[#a8d97f]'}`}>[m
+[31m-                                    {vencido ? `⚠️ Vencido hace ${Math.abs(dias!)} días`[m
+[31m-                                    : urgente ? `🔴 Vence en ${dias} días`[m
+[31m-                                    : proximo ? `🟡 Vence en ${dias} días`[m
+[31m-                                    : `✓ Vence ${new Date(l.fecha_vencimiento).toLocaleDateString('es-CO')}`}[m
+[32m+[m[32m                                      : urgente ? 'bg-orange-700 text-white'[m
+[32m+[m[32m                                      : proximo ? 'bg-yellow-700 text-white'[m
+[32m+[m[32m                                      : 'bg-[#264d35] text-[#a8d97f]'}`}>[m
+[32m+[m[32m                                    {/* ⚠️/🔴/🟡/✓ → iconos Lucide */}[m
+[32m+[m[32m                                    {vencido[m
+[32m+[m[32m                                      ? <><AlertTriangle size={10} strokeWidth={1.75} /> Vencido hace {Math.abs(dias!)} días</>[m
+[32m+[m[32m                                      : urgente[m
+[32m+[m[32m                                        ? <><Clock size={10} strokeWidth={1.75} /> Vence en {dias} días</>[m
+[32m+[m[32m                                        : proximo[m
+[32m+[m[32m                                          ? <><Clock size={10} strokeWidth={1.75} /> Vence en {dias} días</>[m
+[32m+[m[32m                                          : <><CheckCircle size={10} strokeWidth={1.75} /> Vence {new Date(l.fecha_vencimiento).toLocaleDateString('es-CO')}</>}[m
+                                   </span>[m
+                                 ) : ([m
+                                   <span className="px-2 py-0.5 rounded text-[10px] bg-[#264d35] text-[#8fae5a]">[m
+[36m@@ -427,7 +441,6 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                       Registrar movimiento — {producto.nombre}[m
+                     </h3>[m
+                     <div className="grid grid-cols-2 gap-4 mb-4">[m
+[31m-[m
+                       {/* Tipo */}[m
+                       <div>[m
+                         <label className="block text-xs font-semibold text-[#8fae5a][m
+[36m@@ -444,7 +457,6 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                           ))}[m
+                         </div>[m
+                       </div>[m
+[31m-[m
+                       {/* Factura */}[m
+                       <div>[m
+                         <label className="block text-xs font-semibold text-[#8fae5a][m
+[36m@@ -461,8 +473,9 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                           <button type="button" onClick={() => setDetalle(generarNumFactura())}[m
+                             className="px-3 py-2 bg-[#264d35] text-[#a8d97f] rounded-lg text-xs[m
+                                        hover:bg-[#3d6b2e] transition-colors border border-[#4a7c3f][m
+[31m-                                       font-semibold">[m
+[31m-                            🔄 Auto[m
+[32m+[m[32m                                       font-semibold flex items-center gap-1">[m
+[32m+[m[32m                            {/* 🔄 → RefreshCw */}[m
+[32m+[m[32m                            <RefreshCw size={12} strokeWidth={1.75} /> Auto[m
+                           </button>[m
+                         </div>[m
+                       </div>[m
+[36m@@ -489,12 +502,11 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                                 const vencido = dias !== null && dias < 0;[m
+                                 const urgente = dias !== null && dias >= 0 && dias <= 15;[m
+                                 const seleccionado = loteSeleccionado?.id_lote === l.id_lote;[m
+[31m-[m
+                                 return ([m
+                                   <button key={l.id_lote} type="button"[m
+                                     onClick={() => setLoteSeleccionado(l)}[m
+                                     className={`w-full text-left rounded-lg px-3 py-2 text-xs border[m
+[31m-                                                transition-all flex items-center justify-between[m
+[32m+[m[32m                                      transition-all flex items-center justify-between[m
+                                       ${seleccionado[m
+                                         ? 'bg-[#4a7c3f] border-[#6aae5a]'[m
+                                         : vencido ? 'bg-red-950 border-red-600 hover:border-red-400'[m
+[36m@@ -504,10 +516,10 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                                       <span className={`w-5 h-5 rounded-full flex items-center justify-center[m
+                                                         text-[10px] font-bold flex-shrink-0[m
+                                         ${seleccionado ? 'bg-white text-[#4a7c3f]'[m
+[31m-                                        : vencido ? 'bg-red-700 text-white'[m
+[31m-                                        : urgente ? 'bg-orange-700 text-white'[m
+[31m-                                        : i === 0 ? 'bg-[#4a7c3f] text-white'[m
+[31m-                                        : 'bg-[#264d35] text-[#8fae5a]'}`}>[m
+[32m+[m[32m                                          : vencido ? 'bg-red-700 text-white'[m
+[32m+[m[32m                                          : urgente ? 'bg-orange-700 text-white'[m
+[32m+[m[32m                                          : i === 0 ? 'bg-[#4a7c3f] text-white'[m
+[32m+[m[32m                                          : 'bg-[#264d35] text-[#8fae5a]'}`}>[m
+                                         {i + 1}[m
+                                       </span>[m
+                                       <div>[m
+[36m@@ -527,12 +539,15 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                                     <div className="flex items-center gap-2 flex-shrink-0">[m
+                                       {l.fecha_vencimiento ? ([m
+                                         <span className={`px-2 py-0.5 rounded text-[10px] font-semibold[m
+[32m+[m[32m                                          flex items-center gap-1[m
+                                           ${vencido ? 'bg-red-700 text-white'[m
+[31m-                                          : urgente ? 'bg-orange-700 text-white'[m
+[31m-                                          : 'bg-[#264d35] text-[#a8d97f]'}`}>[m
+[31m-                                          {vencido ? `⚠️ Vencido`[m
+[31m-                                          : urgente ? `🔴 Vence en ${dias} días`[m
+[31m-                                          : `✓ Vence ${new Date(l.fecha_vencimiento).toLocaleDateString('es-CO')}`}[m
+[32m+[m[32m                                            : urgente ? 'bg-orange-700 text-white'[m
+[32m+[m[32m                                            : 'bg-[#264d35] text-[#a8d97f]'}`}>[m
+[32m+[m[32m                                          {vencido[m
+[32m+[m[32m                                            ? <><AlertTriangle size={10} strokeWidth={1.75} /> Vencido</>[m
+[32m+[m[32m                                            : urgente[m
+[32m+[m[32m                                              ? <><Clock size={10} strokeWidth={1.75} /> Vence en {dias} días</>[m
+[32m+[m[32m                                              : <><CheckCircle size={10} strokeWidth={1.75} /> Vence {new Date(l.fecha_vencimiento).toLocaleDateString('es-CO')}</>}[m
+                                         </span>[m
+                                       ) : ([m
+                                         <span className="px-2 py-0.5 rounded text-[10px] bg-[#264d35] text-[#8fae5a]">[m
+[36m@@ -546,7 +561,7 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                                         </span>[m
+                                       )}[m
+                                       {seleccionado && ([m
+[31m-                                        <span className="text-white font-bold text-sm">✓</span>[m
+[32m+[m[32m                                        <CheckCircle size={16} strokeWidth={1.75} className="text-white" />[m
+                                       )}[m
+                                     </div>[m
+                                   </button>[m
+[36m@@ -555,8 +570,9 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                             )}[m
+                           </div>[m
+                           {loteSeleccionado && ([m
+[31m-                            <p className="text-xs text-[#a8d97f] mt-2 font-semibold">[m
+[31m-                              ✓ Lote seleccionado: {fmtU(loteSeleccionado.cantidad, producto.unidadmedida)} disponibles[m
+[32m+[m[32m                            <p className="text-xs text-[#a8d97f] mt-2 font-semibold flex items-center gap-1">[m
+[32m+[m[32m                              <CheckCircle size={12} strokeWidth={1.75} />[m
+[32m+[m[32m                              Lote seleccionado: {fmtU(loteSeleccionado.cantidad, producto.unidadmedida)} disponibles[m
+                               {loteSeleccionado.factura && ` · ${loteSeleccionado.factura}`}[m
+                             </p>[m
+                           )}[m
+[36m@@ -620,9 +636,7 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                             <label className="block text-xs font-semibold text-[#8fae5a][m
+                                               uppercase tracking-widest mb-2">[m
+                               Fecha de vencimiento[m
+[31m-                              <span className="normal-case text-[#4a7c3f] ml-1 font-normal">[m
+[31m-                                (opcional)[m
+[31m-                              </span>[m
+[32m+[m[32m                              <span className="normal-case text-[#4a7c3f] ml-1 font-normal">(opcional)</span>[m
+                             </label>[m
+                             <input[m
+                               type="date" value={fechaVenc}[m
+[36m@@ -647,11 +661,11 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+ [m
+                     {error && ([m
+                       <p className="text-white text-xs mb-3 bg-red-700 border border-red-500[m
+[31m-                                    rounded px-3 py-2 font-semibold">[m
+[31m-                        ⚠ {error}[m
+[32m+[m[32m                                    rounded px-3 py-2 font-semibold flex items-center gap-2">[m
+[32m+[m[32m                        {/* ⚠ → AlertTriangle */}[m
+[32m+[m[32m                        <AlertTriangle size={14} strokeWidth={1.75} /> {error}[m
+                       </p>[m
+                     )}[m
+[31m-[m
+                     <button onClick={registrar} disabled={saving}[m
+                       className="px-6 py-2 bg-[#4a7c3f] text-white rounded-lg text-sm[m
+                                  font-semibold hover:bg-[#3d6b2e] disabled:opacity-50 transition-colors">[m
+[36m@@ -675,17 +689,17 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                     <table className="w-full text-xs font-mono min-w-[800px]">[m
+                       <thead>[m
+                         <tr className="border-b border-[#264d35]">[m
+[31m-                          {['Fecha','Factura','Usuario','Tipo',[m
+[31m-                            'E.Cant','E.Costo','E.Total',[m
+[31m-                            'S.Cant','S.Costo','S.Total',[m
+[31m-                            'Sal.Cant','Sal.Total'].map(h => ([m
+[31m-                            <th key={h}[m
+[31m-                              className={`pb-2 px-2 text-[#8fae5a] uppercase text-[10px][m
+[31m-                                ${['Fecha','Factura','Usuario','Tipo'].includes(h)[m
+[31m-                                  ? 'text-left' : 'text-right'}`}>[m
+[31m-                              {h}[m
+[31m-                            </th>[m
+[31m-                          ))}[m
+[32m+[m[32m                          {['Fecha', 'Factura', 'Usuario', 'Tipo',[m
+[32m+[m[32m                            'E.Cant', 'E.Costo', 'E.Total',[m
+[32m+[m[32m                            'S.Cant', 'S.Costo', 'S.Total',[m
+[32m+[m[32m                            'Sal.Cant', 'Sal.Total'].map(h => ([m
+[32m+[m[32m                              <th key={h}[m
+[32m+[m[32m                                className={`pb-2 px-2 text-[#8fae5a] uppercase text-[10px][m
+[32m+[m[32m                                  ${['Fecha', 'Factura', 'Usuario', 'Tipo'].includes(h)[m
+[32m+[m[32m                                    ? 'text-left' : 'text-right'}`}>[m
+[32m+[m[32m                                {h}[m
+[32m+[m[32m                              </th>[m
+[32m+[m[32m                            ))}[m
+                         </tr>[m
+                       </thead>[m
+                       <tbody>[m
+
+[33mcommit 7f14aa8a147bbd0a65dd71fe3e9f895d28d00b40[m
+Author: vale150422 <katherin.vasquez@correounivalle.edu.co>
+Date:   Thu May 28 19:22:39 2026 -0500
+
+    Actualice modulo proovedores con requerimientos pedidos y kardex css
+
+[1mdiff --git a/frontend/src/pages/Kardex.tsx b/frontend/src/pages/Kardex.tsx[m
+[1mindex 8c79269..412dfc3 100644[m
+[1m--- a/frontend/src/pages/Kardex.tsx[m
+[1m+++ b/frontend/src/pages/Kardex.tsx[m
+[36m@@ -324,16 +324,16 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                     <div>[m
+                       <h2 className="text-base font-semibold text-white">{producto.nombre}</h2>[m
+                       <div className="flex gap-2 mt-1 flex-wrap">[m
+[31m-                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-white rounded text-[10px] font-semibold">[m
+[32m+[m[32m                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-[#ffffff]  rounded text-[10px] font-semibold">[m
+                           {producto.categoria}[m
+                         </span>[m
+[31m-                        <span className="px-2 py-0.5 bg-[#d4a843] text-[#1a1a1a] rounded text-[10px] font-semibold">[m
+[32m+[m[32m                        <span className="px-2 py-0.5 bg-[#d4a843] text-[#ffffff]  rounded text-[10px] font-semibold">[m
+                           {producto.unidadmedida}[m
+                         </span>[m
+[31m-                        <span className="px-2 py-0.5 bg-blue-700 text-white rounded text-[10px] font-semibold">[m
+[32m+[m[32m                        <span className="px-2 py-0.5 bg-green-700 text-[#ffffff] rounded text-[10px] font-semibold">[m
+                           MÉTODO PEPS[m
+                         </span>[m
+[31m-                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-white rounded text-[10px]">[m
+[32m+[m[32m                        <span className="px-2 py-0.5 bg-[#3d6b2e] text-[#ffffff]  rounded text-[10px]">[m
+                           🌿 {producto.finca}[m
+                         </span>[m
+                       </div>[m
+[36m@@ -703,7 +703,7 @@[m [mexport default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+                                                  rounded text-[10px] font-semibold">ENTRADA</span>[m
+                               )}[m
+                               {m.tipo === 'SALIDA' && ([m
+[31m-                                <span className="px-2 py-0.5 bg-red-800 text-white[m
+[32m+[m[32m                                <span className="px-2 py-0.5 bg-red-800 text-[#FC9AA6][m
+                                                  rounded text-[10px] font-semibold">SALIDA</span>[m
+                               )}[m
+                               {m.tipo === 'INICIO' && ([m
+
+[33mcommit a396c74a54735a63e6ef74318ee13d40c58607fc[m
+Author: Pedro Perdomo <pedroperdomo@ejemplo.com>
+Date:   Thu May 28 09:52:32 2026 -0500
+
+    Termine de agregar las rutas y arregle lo del kardex y producto
+
+[1mdiff --git a/frontend/src/pages/Kardex.tsx b/frontend/src/pages/Kardex.tsx[m
+[1mindex 772f064..8c79269 100644[m
+[1m--- a/frontend/src/pages/Kardex.tsx[m
+[1m+++ b/frontend/src/pages/Kardex.tsx[m
+[36m@@ -1,4 +1,5 @@[m
+ import { useState, useEffect, useCallback } from 'react';[m
+[32m+[m[32mimport { usePageTitle } from '../hooks/usePageTitle';[m
+ import { api } from '../services/api';[m
+ [m
+ type Unidad = 'GRS' | 'ML' | string;[m
+[36m@@ -40,6 +41,7 @@[m [mconst fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO') + ' COP';[m
+ const fmtU = (n: number, u: string) => Number(n).toLocaleString('es-CO') + ' ' + u;[m
+ [m
+ const parseCOP = (val: string): number => {[m
+[32m+[m[41m  [m
+   const limpio = val.replace(/\./g, '').replace(/,/g, '.');[m
+   return parseFloat(limpio) || 0;[m
+ };[m
+[36m@@ -63,6 +65,7 @@[m [mconst generarNumFactura = (): string => {[m
+ };[m
+ [m
+ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {[m
+[32m+[m[32m  usePageTitle('Kardex');[m
+   const [productos, setProductos] = useState<Producto[]>([]);[m
+   const [selectedId, setSelectedId] = useState<number | null>(null);[m
+   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);[m
