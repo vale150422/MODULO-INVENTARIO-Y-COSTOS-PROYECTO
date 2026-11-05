@@ -789,7 +789,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                       color: '#ffffff',
                     }}
                   >
-                    📷 {mostrarEscaner ? 'Cerrar escáner' : 'Entrada con factura'}
+                     {mostrarEscaner ? 'Cerrar escáner' : 'Entrada con factura'}
                   </button>
 
                   {mostrarEscaner && producto && (
