@@ -1,6 +1,6 @@
 import { pool } from '../database/connection';
 import { enviarSMS, ResultadoSMS } from './smsService';
-import { pool } from '../database';
+
 
 /* ───────────── Lotes por vencer ───────────── */
 
