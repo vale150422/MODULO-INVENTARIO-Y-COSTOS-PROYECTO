@@ -1,5 +1,10 @@
+
 import express from 'express';
 import cors from 'cors';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 import './database';
 
 import productoRoutes from './routes/productoRoutes';
@@ -20,6 +25,7 @@ app.use(cors({
       'https://agrogestioninventario.netlify.app',
       'http://localhost:5173'
     ];
+
     if (!origin || allowed.includes(origin) || origin.endsWith('.netlify.app')) {
       callback(null, true);
     } else {
@@ -28,6 +34,7 @@ app.use(cors({
   },
   credentials: true
 }));
+
 app.use(express.json());
 
 app.get('/', (req, res) => {
@@ -44,6 +51,7 @@ app.use('/api/categorias', categoriaRoutes);
 app.use('/api/alertas', alertasRoutes);
 
 const PORT = process.env.PORT || 3001;
+
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
   iniciarAlertasJob();
