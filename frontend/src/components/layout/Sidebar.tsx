@@ -18,6 +18,7 @@ const adminItems = [
   { to: '/reportes',       label: 'Reportes',     icon: BarChart2 },
   { to: '/reporte-kardex', label: 'Rep. Kardex',  icon: ClipboardList },
   { to: '/perfil',         label: 'Mi Perfil',    icon: UserCircle },
+  { to: '/alertas', label: 'Alertas', icon: alert },
 ];
 
 const empleadoItems = [
@@ -25,6 +26,7 @@ const empleadoItems = [
   { to: '/fincas',         label: 'Mis Fincas',     icon: Leaf },
   { to: '/kardex',         label: 'Kardex',         icon: Package },
   { to: '/reporte-kardex', label: 'Reporte Kardex', icon: BarChart2 },
+  { to: '/alertas', label: 'Alertas', icon: alert },
 ];
 
 export default function Sidebar() {

@@ -9,6 +9,8 @@ import trabajadorRoutes from './routes/trabajadorRoutes';
 import authRoutes from './routes/authRoutes';
 import kardexRoutes from './routes/kardexRoutes';
 import categoriaRoutes from './routes/categoriaRoutes';
+import alertasRoutes from './routes/alertasRoutes';
+import { iniciarAlertasJob } from './jobs/alertasJob';
 
 const app = express();
 
@@ -39,8 +41,10 @@ app.use('/api/proveedores', proveedorRoutes);
 app.use('/api/trabajadores', trabajadorRoutes);
 app.use('/api/kardex', kardexRoutes);
 app.use('/api/categorias', categoriaRoutes);
+app.use('/api/alertas', alertasRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
+  iniciarAlertasJob();
 });

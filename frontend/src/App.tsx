@@ -14,6 +14,7 @@ import ReporteKardex from './pages/ReporteKardex';
 import Kardex from './pages/Kardex';
 import CategoriaPage from './pages/CategoriaPage/CategoriaPage';
 import PerfilAdmin from './pages/PerfilAdmin';
+import AlertasPage from './pages/AlertasPage';
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="/reporte-kardex" element={<ProtectedLayout><ReporteKardex /></ProtectedLayout>} />
         <Route path="/categorias" element={<ProtectedLayout><CategoriaPage /></ProtectedLayout>} />
         <Route path="/perfil" element={<ProtectedLayout><PerfilAdmin /></ProtectedLayout>} />
+        <Route path="/alertas" element={<ProtectedLayout><AlertasPage /></ProtectedLayout>} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
