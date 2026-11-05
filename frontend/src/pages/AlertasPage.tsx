@@ -22,7 +22,7 @@ interface Telefono {
   activo: boolean;
 }
 
-const API = 'http://localhost:3001/api/alertas';
+
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO');
 const headers = () => ({
   'Content-Type': 'application/json',
