@@ -33,7 +33,8 @@ export const getLotes = async (req: Request, res: Response) => {
   try {
     const result = await pool.query(`
       SELECT id_lote, cantidad, costo_unitario, factura, 
-             fecha_entrada, fecha_vencimiento
+             fecha_entrada, fecha_vencimiento,
+             numero_lote, factura_proveedor
       FROM kardex_lote
       WHERE id_producto = $1 AND cantidad > 0
       ORDER BY 
@@ -151,6 +152,113 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
     await client.query('COMMIT');
     res.json({ success: true, kardex: kardexResult.rows[0] });
 
+  } catch (error: any) {
+    await client.query('ROLLBACK');
+    console.error(error);
+    res.status(400).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// NUEVO: registra todos los ítems de una factura escaneada
+// en UNA sola transacción (si uno falla, no se guarda ninguno)
+// ─────────────────────────────────────────────────────────────
+export const registrarEntradaFactura = async (req: Request, res: Response) => {
+  const { id_finca, id_proveedor, factura_proveedor, items } = req.body;
+  const id_usuario = (req as any).user?.id;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'La factura no tiene ítems' });
+  }
+
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    if (factura_proveedor) {
+      const dup = await client.query(
+        `SELECT 1 FROM kardex_lote
+         WHERE factura_proveedor = $1 AND id_proveedor IS NOT DISTINCT FROM $2
+         LIMIT 1`,
+        [factura_proveedor, id_proveedor ?? null]
+      );
+      if (dup.rowCount) {
+        throw new Error(`La factura ${factura_proveedor} de este proveedor ya fue registrada`);
+      }
+    }
+
+    const registrados = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const n = i + 1;
+      const { id_producto, numero_lote, fecha_vencimiento } = items[i];
+      const cantidad = Number(items[i].cantidad);
+      const costo = Number(items[i].costo_unitario);
+
+      if (!id_producto) throw new Error(`Ítem ${n}: falta seleccionar el producto`);
+      if (!(cantidad > 0)) throw new Error(`Ítem ${n}: la cantidad debe ser mayor a 0`);
+      if (!(costo > 0)) throw new Error(`Ítem ${n}: el costo unitario debe ser mayor a 0`);
+      if (fecha_vencimiento) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha_vencimiento)) {
+          throw new Error(`Ítem ${n}: fecha de vencimiento inválida`);
+        }
+        if (fecha_vencimiento < hoy) {
+          throw new Error(`Ítem ${n}: el producto ya está vencido (${fecha_vencimiento})`);
+        }
+      }
+
+      const prod = await client.query(
+        'SELECT nombre, activo FROM producto WHERE id_producto = $1 FOR UPDATE',
+        [id_producto]
+      );
+      if (!prod.rows.length) throw new Error(`Ítem ${n}: producto no encontrado`);
+      if (!prod.rows[0].activo) {
+        throw new Error(`Ítem ${n}: el producto "${prod.rows[0].nombre}" está inactivo`);
+      }
+
+      // Desempate por id_kardex: dentro de una transacción todas las filas
+      // comparten la misma hora, así que ordenar solo por fecha no es confiable
+      const saldoRes = await client.query(
+        `SELECT saldo_cantidad, saldo_valor FROM kardex
+         WHERE id_producto = $1
+         ORDER BY fecha DESC, id_kardex DESC LIMIT 1`,
+        [id_producto]
+      );
+      const saldo = saldoRes.rows[0] || { saldo_cantidad: 0, saldo_valor: 0 };
+
+      const total = cantidad * costo;
+      const nuevoSaldoCant = Number(saldo.saldo_cantidad) + cantidad;
+      const nuevoSaldoValor = Number(saldo.saldo_valor) + total;
+      const detalle = `Factura ${factura_proveedor ?? 'S/N'}${numero_lote ? ` · Lote ${numero_lote}` : ''}`;
+
+      await client.query(
+        `INSERT INTO kardex_lote
+           (id_producto, id_finca, cantidad, costo_unitario, factura,
+            fecha_vencimiento, numero_lote, factura_proveedor, id_proveedor)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [id_producto, id_finca, cantidad, costo, detalle,
+         fecha_vencimiento || null, numero_lote || null,
+         factura_proveedor || null, id_proveedor || null]
+      );
+
+      const k = await client.query(
+        `INSERT INTO kardex
+           (id_producto, id_finca, id_usuario, tipo, cantidad,
+            costo_unitario, total, saldo_cantidad, saldo_valor, detalle)
+         VALUES ($1,$2,$3,'ENTRADA',$4,$5,$6,$7,$8,$9)
+         RETURNING *`,
+        [id_producto, id_finca, id_usuario, cantidad, costo, total,
+         nuevoSaldoCant, nuevoSaldoValor, detalle]
+      );
+      registrados.push(k.rows[0]);
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, registrados });
   } catch (error: any) {
     await client.query('ROLLBACK');
     console.error(error);

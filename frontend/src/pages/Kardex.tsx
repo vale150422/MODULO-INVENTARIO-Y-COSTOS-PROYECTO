@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, type ReactNode, type CSSProperties } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { api } from '../services/api';
+import EscanerFactura from '../components/EscanerFactura';
 import {
   Package, ClipboardList, Plus, X, RefreshCw,
   AlertTriangle, CheckCircle, Clock, Eye, Leaf
@@ -179,6 +180,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [showFacturas, setShowFacturas] = useState(false);
+  const [mostrarEscaner, setMostrarEscaner] = useState(false);
 
   const producto = productos.find(p => p.id_producto === selectedId);
   const totalInventario = productos.reduce((acc, p) => acc + Number(p.saldo_valor), 0);
@@ -261,6 +263,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     setSelectedId(id);
     setShowFacturas(false);
     setShowForm(false);
+    setMostrarEscaner(false);
   };
 
   const irAInsumo = (id: number) => {
@@ -274,6 +277,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
       setTipo('ENTRADA');
       setCantidad(''); setCosto(''); setFechaVenc('');
       setLoteSeleccionado(null); setError('');
+      setMostrarEscaner(false);
     }
     setShowForm(!showForm);
     setShowFacturas(false);
@@ -283,7 +287,54 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     setTipo(t);
     setLoteSeleccionado(null);
     setCantidad(''); setError('');
+    if (t === 'SALIDA') setMostrarEscaner(false);
     if (t === 'SALIDA' && lotes.length > 0) setLoteSeleccionado(lotes[0]);
+  };
+
+  // Registra en el backend todos los productos detectados en una factura.
+  const confirmarFactura = async (f: {
+    numero_factura: string | null;
+    id_proveedor: number | null;
+    items: any[];
+  }) => {
+    if (!producto) throw new Error('Selecciona una finca antes de registrar la factura.');
+
+    const respuesta = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/kardex/entrada-factura`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          id_finca: producto.id_finca,
+          id_proveedor: f.id_proveedor,
+          factura_proveedor: f.numero_factura,
+          items: f.items.map(it => ({
+            id_producto: it.id_producto,
+            numero_lote: it.numero_lote,
+            fecha_vencimiento: it.fecha_vencimiento,
+            cantidad: it.cantidad,
+            costo_unitario: it.costo_unitario,
+          })),
+        }),
+      }
+    );
+
+    const data = await respuesta.json().catch(() => ({}));
+    if (!respuesta.ok) {
+      throw new Error(data.error || 'No fue posible registrar la factura.');
+    }
+
+    setMostrarEscaner(false);
+
+    // Actualiza el inventario y la información del producto seleccionado.
+    await cargarProductos();
+    if (selectedId !== null) {
+      await cargarMovimientos(selectedId);
+      await cargarLotes(selectedId);
+    }
   };
 
   const registrar = async () => {
@@ -725,6 +776,33 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                   </div>
                 )}
               </div>
+
+              {/* Escáner de factura: disponible únicamente para entradas */}
+              {tipo === 'ENTRADA' && (
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setMostrarEscaner(v => !v)}
+                    className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                    style={{
+                      background: mostrarEscaner ? '#854d0e' : '#166534',
+                      color: '#ffffff',
+                    }}
+                  >
+                    📷 {mostrarEscaner ? 'Cerrar escáner' : 'Entrada con factura'}
+                  </button>
+
+                  {mostrarEscaner && producto && (
+                    <div className="mt-3">
+                      <EscanerFactura
+                        idFinca={producto.id_finca}
+                        productos={productos.filter(p => p.id_finca === producto.id_finca)}
+                        onConfirmar={confirmarFactura}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {error && (
                 <p className="text-xs mb-3 rounded px-3 py-2 font-bold flex items-center gap-2"
