@@ -15,7 +15,7 @@ import authRoutes from './routes/authRoutes';
 import kardexRoutes from './routes/kardexRoutes';
 import categoriaRoutes from './routes/categoriaRoutes';
 import alertasRoutes from './routes/alertasRoutes';
-import { iniciarAlertasJob } from './jobs/alertasJob';
+import { iniciarAlertasJob } from './job/alertasJob';
 
 const app = express();
 
