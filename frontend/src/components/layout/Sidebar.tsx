@@ -4,7 +4,7 @@ import { useTheme } from '../../hooks/useTheme';
 import {
   LayoutDashboard, Leaf, Users, Store, Tag, ShoppingCart,
   Package, BarChart2, ClipboardList, UserCircle, Home,
-  Sun, Moon, LogOut
+  Sun, Moon, LogOut, AlertTriangle
 } from 'lucide-react';
 
 const adminItems = [
@@ -18,7 +18,7 @@ const adminItems = [
   { to: '/reportes',       label: 'Reportes',     icon: BarChart2 },
   { to: '/reporte-kardex', label: 'Rep. Kardex',  icon: ClipboardList },
   { to: '/perfil',         label: 'Mi Perfil',    icon: UserCircle },
-  { to: '/alertas', label: 'Alertas', icon: alert },
+  { to: '/alertas',        label: 'Alertas',      icon: AlertTriangle },
 ];
 
 const empleadoItems = [
@@ -26,7 +26,7 @@ const empleadoItems = [
   { to: '/fincas',         label: 'Mis Fincas',     icon: Leaf },
   { to: '/kardex',         label: 'Kardex',         icon: Package },
   { to: '/reporte-kardex', label: 'Reporte Kardex', icon: BarChart2 },
-  { to: '/alertas', label: 'Alertas', icon: alert },
+  { to: '/alertas',        label: 'Alertas',        icon: AlertTriangle },
 ];
 
 export default function Sidebar() {
