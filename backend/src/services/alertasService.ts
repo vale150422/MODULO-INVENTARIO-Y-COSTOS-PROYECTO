@@ -29,7 +29,7 @@ export const obtenerLotesPorVencer = async (dias = 30): Promise<LoteAlerta[]> =>
        l.costo_unitario,
        l.factura,
        to_char(l.fecha_vencimiento, 'YYYY-MM-DD') AS fecha_vencimiento,
-       (l.fecha_vencimiento - CURRENT_DATE) AS dias_restantes
+       (l.fecha_vencimiento::date - CURRENT_DATE) AS dias_restantes
      FROM kardex_lote l
      JOIN producto p ON p.id_producto = l.id_producto
      JOIN finca f ON f.id_finca = l.id_finca

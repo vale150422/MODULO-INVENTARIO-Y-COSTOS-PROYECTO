@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Bell, Send, CircleCheck, Smartphone } from 'lucide-react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useAuth } from '../hooks/useAuth';
-const API = `${import.meta.env.VITE_API_URL ?? 'http://localhost:3001'}/api/alertas`;
+import { BASE } from '../services/api';
+
+const API = `${BASE}/alertas`;
 
 interface LoteAlerta {
   id_lote: number;
@@ -171,7 +174,9 @@ export default function AlertasPage() {
       {/* Encabezado */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-white">🔔 Alertas de Vencimiento</h1>
+          <h1 className="text-2xl font-semibold text-white flex items-center gap-2">
+            <Bell className="w-6 h-6 text-white" /> Alertas de Vencimiento
+          </h1>
           <p className="text-sm text-[#8fae5a] mt-1">
             Lotes de insumos vencidos o próximos a vencer
           </p>
@@ -191,8 +196,8 @@ export default function AlertasPage() {
             <button
               onClick={enviarSMS}
               disabled={enviando}
-              className="px-4 py-2 bg-[#d4a843] text-[#2d4a1e] rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50">
-              {enviando ? 'Enviando...' : '📲 Enviar SMS ahora'}
+              className="px-4 py-2 bg-[#d4a843] text-[#2d4a1e] rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2">
+              {enviando ? 'Enviando...' : <><Send className="w-4 h-4" /> Enviar SMS ahora</>}
             </button>
           )}
         </div>
@@ -228,7 +233,7 @@ export default function AlertasPage() {
           <p className="text-center text-red-400 text-xs py-10">{error}</p>
         ) : lotes.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-5xl mb-3">✅</div>
+            <CircleCheck className="w-14 h-14 text-white mx-auto mb-3" />
             <p className="text-white font-semibold">Sin alertas</p>
             <p className="text-sm text-[#8fae5a] mt-1">
               No hay insumos vencidos ni próximos a vencer en los próximos {dias} días
@@ -281,7 +286,9 @@ export default function AlertasPage() {
       {esAdmin && (
         <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="text-sm font-semibold text-[#4a7c3f]">📱 Números para recibir alertas por SMS</h2>
+            <h2 className="text-sm font-semibold text-[#4a7c3f] flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-white" /> Números para recibir alertas por SMS
+            </h2>
             <span className="text-[10px] text-[#8fae5a]">{activos} activo(s)</span>
           </div>
           <p className="text-xs text-[#8fae5a] mb-4">
