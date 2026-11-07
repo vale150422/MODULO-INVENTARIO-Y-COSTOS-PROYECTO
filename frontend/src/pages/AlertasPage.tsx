@@ -174,13 +174,9 @@ export default function AlertasPage() {
       {/* Encabezado */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-<<<<<<< HEAD
           <h1 className="text-2xl font-semibold text-white flex items-center gap-2">
             <Bell className="w-6 h-6 text-white" /> Alertas de Vencimiento
           </h1>
-=======
-          <h1 className="text-2xl font-semibold text-white"> Alertas de Vencimiento</h1>
->>>>>>> 3b3b251 (implemente cerrar sesión en esquina superiorderecha)
           <p className="text-sm text-[#8fae5a] mt-1">
             Lotes de insumos vencidos o próximos a vencer
           </p>
@@ -200,13 +196,8 @@ export default function AlertasPage() {
             <button
               onClick={enviarSMS}
               disabled={enviando}
-<<<<<<< HEAD
               className="px-4 py-2 bg-[#d4a843] text-[#2d4a1e] rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2">
               {enviando ? 'Enviando...' : <><Send className="w-4 h-4" /> Enviar SMS ahora</>}
-=======
-              className="px-4 py-2 bg-[#d4a843] text-[#2d4a1e] rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50">
-              {enviando ? 'Enviando...' : ' Enviar SMS ahora'}
->>>>>>> 3b3b251 (implemente cerrar sesión en esquina superiorderecha)
             </button>
           )}
         </div>
@@ -295,13 +286,9 @@ export default function AlertasPage() {
       {esAdmin && (
         <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
           <div className="flex items-center justify-between mb-1">
-<<<<<<< HEAD
             <h2 className="text-sm font-semibold text-[#4a7c3f] flex items-center gap-2">
               <Smartphone className="w-4 h-4 text-white" /> Números para recibir alertas por SMS
             </h2>
-=======
-            <h2 className="text-sm font-semibold text-[#4a7c3f]"> Números para recibir alertas por SMS</h2>
->>>>>>> 3b3b251 (implemente cerrar sesión en esquina superiorderecha)
             <span className="text-[10px] text-[#8fae5a]">{activos} activo(s)</span>
           </div>
           <p className="text-xs text-[#8fae5a] mb-4">
