@@ -36,11 +36,13 @@ export default function Sidebar() {
   const items = isAdmin ? adminItems : empleadoItems;
 
   return (
-    <aside className={`w-52 flex flex-col h-screen flex-shrink-0 border-r transition-colors duration-200
+    <aside
+      style={{ height: '100dvh' }}
+      className={`w-52 flex flex-col h-screen flex-shrink-0 border-r transition-colors duration-200
       ${dark ? 'bg-[#1e3512] border-[#2d4a1e]' : 'bg-[#2d4a1e] border-[#4a7c3f]'}`}>
 
       {/* Logo */}
-      <div className="p-4 border-b border-[#4a7c3f]">
+      <div className="p-4 border-b border-[#4a7c3f] shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-[#f5f0e0] border-2 border-[#d4a843]
                           overflow-hidden flex-shrink-0">
@@ -56,8 +58,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 p-3 space-y-1">
+      {/* Nav: aquí está el scroll */}
+      <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1">
         <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest px-2 pt-2 pb-2">
           {isAdmin ? 'Principal' : 'Mi Panel'}
         </p>
@@ -76,7 +78,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Theme toggle */}
-      <div className="px-3 pb-2">
+      <div className="px-3 pb-2 shrink-0">
         <button onClick={toggle}
           className="w-full flex items-center justify-between px-3 py-2 rounded-lg
                      bg-[#3d6b2e] text-sm hover:bg-[#4a7c3f] transition-colors">
@@ -97,8 +99,8 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-[#4a7c3f]">
+      {/* Footer: siempre visible */}
+      <div className="p-3 border-t border-[#4a7c3f] shrink-0">
         <div className="flex items-center gap-2 p-2 rounded-lg bg-[#3d6b2e]">
           <div className="w-8 h-8 rounded-full bg-[#d4a843] flex items-center justify-center
                           text-xs font-bold text-[#2d4a1e] flex-shrink-0">
