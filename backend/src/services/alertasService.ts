@@ -134,22 +134,27 @@ export interface ResumenEnvio {
   resultado: ResultadoSMS | null;
 }
 
-export const ejecutarAlertasSMS = async (): Promise<ResumenEnvio> => {
+// enviarSiVacio = true → también envía un SMS informativo cuando no hay insumos por vencer
+// (se usa en el botón manual; la tarea de las 7:00 a.m. no lo usa para no gastar SMS a diario)
+export const ejecutarAlertasSMS = async (enviarSiVacio = false): Promise<ResumenEnvio> => {
   const dias = Number(process.env.ALERT_DIAS || 15);
   const lotes = await obtenerLotesPorVencer(dias);
 
-  if (lotes.length === 0) {
-    console.log('[Alertas] No hay insumos por vencer. No se envía SMS.');
+  if (lotes.length === 0 && !enviarSiVacio) {
+    console.log('[Alertas] No hay insumos por vencer dentro del rango configurado. No se envió SMS.');
     return { total: 0, mensaje: '', sinNumeros: false, resultado: null };
   }
 
   const destinos = await obtenerDestinosActivos();
   if (destinos.length === 0) {
-    console.log('[Alertas] Hay insumos por vencer pero no hay números activos registrados.');
+    console.log('[Alertas] No hay números activos registrados. No se envió SMS.');
     return { total: lotes.length, mensaje: '', sinNumeros: true, resultado: null };
   }
 
-  const mensaje = construirMensaje(lotes);
+  const mensaje = lotes.length === 0
+    ? `AgroGestion: No hay insumos por vencer en los proximos ${dias} dias.`
+    : construirMensaje(lotes);
+
   const resultado = await enviarSMS(mensaje, destinos);
   return { total: lotes.length, mensaje, sinNumeros: false, resultado };
 };

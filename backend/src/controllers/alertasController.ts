@@ -32,7 +32,7 @@ export const getVencimientos = async (req: Request, res: Response) => {
 export const enviarSMSManual = async (req: AuthRequest, res: Response) => {
   if (!esAdmin(req, res)) return;
   try {
-    const resumen = await ejecutarAlertasSMS();
+    const resumen = await ejecutarAlertasSMS(true);
     res.json(resumen);
   } catch (error) {
     console.error(error);
