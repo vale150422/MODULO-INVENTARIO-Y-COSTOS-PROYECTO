@@ -138,16 +138,15 @@ export default function AlertasPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar');
 
-      if (data.total === 0) {
-        setMsg({ tipo: 'info', texto: 'No hay insumos por vencer dentro del rango configurado. No se envió SMS.' });
-      } else if (data.sinNumeros) {
-        setMsg({ tipo: 'error', texto: 'Hay insumos por vencer, pero no tienes números activos. Agrega uno abajo.' });
+      if (data.sinNumeros) {
+        setMsg({ tipo: 'error', texto: 'No tienes números activos para enviar el SMS. Agrega uno abajo.' });
       } else if (data.resultado?.simulado) {
-        setMsg({ tipo: 'info', texto: 'Twilio no está configurado: el mensaje se mostró en la consola del backend (modo simulación).' });
+        setMsg({ tipo: 'ok', texto: `Notificación procesada correctamente para ${telefonos.filter(t => t.activo).length} destinatario(s). Entorno de pruebas: el envío por SMS fue simulado.` });
       } else if (data.resultado?.errores?.length) {
         setMsg({ tipo: 'error', texto: `Enviado a ${data.resultado.enviados}. Fallaron: ${data.resultado.errores.join(' | ')}` });
       } else {
-        setMsg({ tipo: 'ok', texto: `SMS enviado a ${data.resultado.enviados} número(s).` });
+        const detalle = data.total === 0 ? ' (aviso: no hay insumos por vencer)' : '';
+        setMsg({ tipo: 'ok', texto: `SMS enviado a ${data.resultado.enviados} número(s)${detalle}.` });
       }
     } catch (e: any) {
       setMsg({ tipo: 'error', texto: e.message });
