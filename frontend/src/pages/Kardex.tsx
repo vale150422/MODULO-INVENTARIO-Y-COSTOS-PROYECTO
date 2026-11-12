@@ -1,10 +1,14 @@
-import { useState, useEffect, useCallback, type ReactNode, type CSSProperties } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback, type ReactNode, type CSSProperties, type ChangeEvent } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { api } from '../services/api';
-import EscanerFactura from '../components/EscanerFactura';
 import {
-  Package, ClipboardList, Plus, X, RefreshCw,
-  AlertTriangle, CheckCircle, Clock, Eye, Leaf
+  getProductosInfo, getFacturasAdjuntas, subirFacturaArchivo, obtenerUrlFactura,
+  type ProductoInfo
+} from '../services/facturasApi';
+import {
+  Package, ClipboardList, Plus, X,
+  AlertTriangle, CheckCircle, Clock, Eye, Leaf, Search, Upload, FileText
 } from 'lucide-react';
 
 type Unidad = 'GRS' | 'ML' | string;
@@ -51,9 +55,18 @@ interface Alerta {
   detalle: string;
 }
 
+/* ───────── Configuración ───────── */
+// Pon true si el profesor quiere que la factura sea OBLIGATORIA en cada entrada
+const FACTURA_OBLIGATORIA = false;
+const MAX_MB = 5;
+const TIPOS_OK = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const ACCEPT = '.jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf';
+
 /* ───────── Utilidades ───────── */
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO') + ' COP';
 const fmtU = (n: number, u: string) => Number(n).toLocaleString('es-CO') + ' ' + u;
+const fmtFecha = (f: string | null | undefined) =>
+  f ? new Date(f).toLocaleDateString('es-CO') : '—';
 
 const parseCOP = (val: string): number => {
   const limpio = val.replace(/\./g, '').replace(/,/g, '.');
@@ -69,18 +82,26 @@ const diasParaVencer = (fecha: string | null): number | null => {
   return Math.ceil((vence.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 };
 
-const generarNumFactura = (): string => {
-  const now = new Date();
-  const fecha = now.getFullYear().toString() +
-    String(now.getMonth() + 1).padStart(2, '0') +
-    String(now.getDate()).padStart(2, '0');
-  const rand = String(Math.floor(Math.random() * 900) + 100);
-  return `FAC-${fecha}-${rand}`;
+const norm = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+// Todas las formas en que se puede escribir la fecha de ingreso al buscar
+const textoFecha = (f: string): string => {
+  const d = new Date(f);
+  const [y, m, dia] = d.toLocaleDateString('en-CA').split('-'); // YYYY-MM-DD local
+  return `${d.toLocaleDateString('es-CO')} ${dia}/${m}/${y} ${y}-${m}-${dia}`;
+};
+
+const validarArchivo = (f: File): string => {
+  if (!TIPOS_OK.includes(f.type)) return 'Formato no permitido: sube una foto JPG, PNG, WEBP o un PDF';
+  if (f.size === 0) return 'El archivo está vacío';
+  if (f.size > MAX_MB * 1024 * 1024) return `El archivo pesa más de ${MAX_MB} MB`;
+  return '';
 };
 
 const STOCK_BAJO = 10; // mismo umbral que usa el Reporte Kardex
 
-/* ───────── Colores (alto contraste, no dependen del modo claro/oscuro) ───────── */
+/* ───────── Colores: paleta de verdes + rojo solo para alertas ───────── */
 const C = {
   card: '#ffffff',
   border: '#b9d3a3',
@@ -91,13 +112,13 @@ const C = {
   dark: '#1e3d10',
   green: '#15803d',
   red: '#b91c1c',
-  gold: '#854d0e',
+  valor: '#2d6a1e',
 };
 
 const estiloLote = (dias: number | null, primero: boolean) => {
   if (dias !== null && dias < 0) return { bg: '#fee2e2', border: '#dc2626', text: '#7f1d1d', badge: '#b91c1c' };
-  if (dias !== null && dias <= 15) return { bg: '#ffedd5', border: '#ea580c', text: '#7c2d12', badge: '#c2410c' };
-  if (dias !== null && dias <= 30) return { bg: '#fef9c3', border: '#ca8a04', text: '#713f12', badge: '#a16207' };
+  if (dias !== null && dias <= 15) return { bg: '#fef2f2', border: '#ef4444', text: '#991b1b', badge: '#dc2626' };
+  if (dias !== null && dias <= 30) return { bg: '#fff5f5', border: '#fca5a5', text: '#991b1b', badge: '#ef4444' };
   if (primero) return { bg: '#dcfce7', border: '#16a34a', text: '#14532d', badge: '#15803d' };
   return { bg: '#f4f9ee', border: '#b9d3a3', text: '#10281a', badge: '#3f5f2f' };
 };
@@ -111,10 +132,10 @@ const etiquetaVenc = (fecha: string | null, dias: number | null): ReactNode => {
 
 const estiloAlerta: Record<NivelAlerta, { bg: string; border: string; text: string; badge: string; label: string; orden: number }> = {
   vencido: { bg: '#fee2e2', border: '#dc2626', text: '#7f1d1d', badge: '#b91c1c', label: 'VENCIDO', orden: 0 },
-  urgente: { bg: '#ffedd5', border: '#ea580c', text: '#7c2d12', badge: '#c2410c', label: 'VENCE EN ≤15 DÍAS', orden: 1 },
+  urgente: { bg: '#fef2f2', border: '#ef4444', text: '#991b1b', badge: '#dc2626', label: 'VENCE EN ≤15 DÍAS', orden: 1 },
   agotado: { bg: '#fee2e2', border: '#dc2626', text: '#7f1d1d', badge: '#991b1b', label: 'AGOTADO', orden: 2 },
-  bajo: { bg: '#ffedd5', border: '#ea580c', text: '#7c2d12', badge: '#c2410c', label: 'STOCK BAJO', orden: 3 },
-  proximo: { bg: '#fef9c3', border: '#ca8a04', text: '#713f12', badge: '#a16207', label: 'VENCE EN ≤30 DÍAS', orden: 4 },
+  bajo: { bg: '#fef2f2', border: '#f87171', text: '#991b1b', badge: '#dc2626', label: 'STOCK BAJO', orden: 3 },
+  proximo: { bg: '#fff5f5', border: '#fca5a5', text: '#991b1b', badge: '#ef4444', label: 'VENCE EN ≤30 DÍAS', orden: 4 },
 };
 
 const card: CSSProperties = {
@@ -156,7 +177,7 @@ function Badge({ bg, color = '#ffffff', children }: { bg: string; color?: string
 }
 
 const HEADERS = ['Fecha', 'Factura', 'Usuario', 'Tipo', 'E.Cant', 'E.Costo', 'E.Total',
-  'S.Cant', 'S.Costo', 'S.Total', 'Sal.Cant', 'Sal.Total'];
+  'S.Cant', 'S.Costo', 'S.Total', 'Sal.Cant', 'Sal.Total', 'Soporte'];
 const HEADERS_IZQ = ['Fecha', 'Factura', 'Usuario', 'Tipo'];
 
 export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
@@ -170,6 +191,13 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const [loadingMov, setLoadingMov] = useState(false);
   const [tab, setTab] = useState<Tab>('resumen');
 
+  const [info, setInfo] = useState<Record<number, ProductoInfo>>({});
+  const [infoListo, setInfoListo] = useState(false);
+  const [adjuntas, setAdjuntas] = useState<string[]>([]);
+  const [busqueda, setBusqueda] = useState('');
+  const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
+  const [subiendoId, setSubiendoId] = useState<number | null>(null);
+
   const [showForm, setShowForm] = useState(false);
   const [tipo, setTipo] = useState<'ENTRADA' | 'SALIDA'>('ENTRADA');
   const [detalle, setDetalle] = useState('');
@@ -177,16 +205,24 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const [cantidad, setCantidad] = useState('');
   const [costo, setCosto] = useState('');
   const [fechaVenc, setFechaVenc] = useState('');
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [errorArchivo, setErrorArchivo] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [showFacturas, setShowFacturas] = useState(false);
-  const [mostrarEscaner, setMostrarEscaner] = useState(false);
 
+  /* ───────── Derivados ───────── */
+  const esAgotado = (id: number) => info[id]?.agotado === true;
+  const productosActivos = productos.filter(p => !esAgotado(p.id_producto));
+  const productosAgotados = productos.filter(p => esAgotado(p.id_producto));
   const producto = productos.find(p => p.id_producto === selectedId);
+  const esAgotadoSel = producto ? esAgotado(producto.id_producto) : false;
   const totalInventario = productos.reduce((acc, p) => acc + Number(p.saldo_valor), 0);
   const facturasHistorial = Array.from(
     new Set(movimientos.map(m => m.detalle).filter(Boolean))
   );
+  const opcionesSelector = producto && esAgotadoSel ? [...productosActivos, producto] : productosActivos;
 
   /* ───────── Carga de datos ───────── */
   const cargarLotes = useCallback(async (id: number) => {
@@ -215,28 +251,80 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     finally { setLoadingMov(false); }
   }, []);
 
-  const cargarProductos = useCallback(async () => {
+  const cargarAdjuntas = useCallback(async (id: number) => {
+    try { setAdjuntas(await getFacturasAdjuntas(id)); }
+    catch { setAdjuntas([]); }
+  }, []);
+
+  // Estado de cada insumo (agotado/inactivo) y fechas de ingreso
+  const cargarInfo = useCallback(async (): Promise<Record<number, ProductoInfo>> => {
+    const mapa: Record<number, ProductoInfo> = {};
+    try {
+      const lista = await getProductosInfo();
+      lista.forEach(i => { mapa[Number(i.id_producto)] = i; });
+    } catch (err) { console.error(err); }
+    setInfo(mapa);
+    setInfoListo(true);
+    return mapa;
+  }, []);
+
+  const cargarProductos = useCallback(async (): Promise<Record<number, ProductoInfo>> => {
     setLoadingProd(true);
+    let mapa: Record<number, ProductoInfo> = {};
     try {
       const data = await api.getKardexProductos();
+      mapa = await cargarInfo();
       setProductos(data);
       if (data.length > 0) setSelectedId(prev => prev ?? data[0].id_producto);
       void cargarTodosLotes(data);
     } catch (err) { console.error(err); }
     finally { setLoadingProd(false); }
-  }, [cargarTodosLotes]);
+    return mapa;
+  }, [cargarTodosLotes, cargarInfo]);
 
   useEffect(() => { void cargarProductos(); }, []); // eslint-disable-line
   useEffect(() => {
     if (selectedId) {
       void cargarMovimientos(selectedId);
       void cargarLotes(selectedId);
+      void cargarAdjuntas(selectedId);
     }
   }, [selectedId]); // eslint-disable-line
 
-  /* ───────── Alertas (todos los insumos) ───────── */
+  // Un insumo agotado solo se consulta en "Historial completo"
+  useEffect(() => {
+    if (!infoListo || selectedId === null || productosActivos.length === 0) return;
+    if (info[selectedId]?.agotado && tab !== 'historial') {
+      setShowForm(false);
+      setSelectedId(productosActivos[0].id_producto);
+    }
+  }, [infoListo, info, selectedId, tab, productos]); // eslint-disable-line
+
+  // Vista previa de la factura (solo imágenes)
+  useEffect(() => {
+    if (!archivo || !archivo.type.startsWith('image/')) { setPreviewUrl(null); return; }
+    const url = URL.createObjectURL(archivo);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [archivo]);
+
+  /* ───────── Búsqueda ───────── */
+  const q = norm(busqueda.trim());
+  const resultados = q
+    ? productos.filter(p => {
+        const i = info[p.id_producto];
+        const texto = norm([
+          p.nombre, p.categoria, p.finca,
+          ...(i?.facturas ?? []),
+          ...(i?.ingresos ?? []).map(textoFecha),
+        ].join(' '));
+        return texto.includes(q);
+      }).slice(0, 8)
+    : [];
+
+  /* ───────── Alertas (solo insumos activos) ───────── */
   const alertas: Alerta[] = [];
-  productos.forEach(p => {
+  productosActivos.forEach(p => {
     (todosLotes[p.id_producto] ?? []).forEach(l => {
       const d = diasParaVencer(l.fecha_vencimiento);
       if (d === null) return;
@@ -259,11 +347,12 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   };
 
   /* ───────── Acciones ───────── */
+  const limpiarArchivo = () => { setArchivo(null); setErrorArchivo(''); };
+
   const cambiarProducto = (id: number) => {
     setSelectedId(id);
     setShowFacturas(false);
     setShowForm(false);
-    setMostrarEscaner(false);
   };
 
   const irAInsumo = (id: number) => {
@@ -271,69 +360,82 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     setTab('resumen');
   };
 
+  const irAHistorial = (id: number) => {
+    cambiarProducto(id);
+    setTab('historial');
+  };
+
+  const elegirResultado = (p: Producto) => {
+    setBusqueda('');
+    if (esAgotado(p.id_producto)) irAHistorial(p.id_producto);
+    else irAInsumo(p.id_producto);
+  };
+
+  const resetForm = () => {
+    setDetalle(''); setTipo('ENTRADA');
+    setCantidad(''); setCosto(''); setFechaVenc('');
+    setLoteSeleccionado(null); setError(''); limpiarArchivo();
+  };
+
   const abrirForm = () => {
-    if (!showForm) {
-      setDetalle(generarNumFactura());
-      setTipo('ENTRADA');
-      setCantidad(''); setCosto(''); setFechaVenc('');
-      setLoteSeleccionado(null); setError('');
-      setMostrarEscaner(false);
-    }
+    if (!showForm) resetForm();
     setShowForm(!showForm);
     setShowFacturas(false);
+  };
+
+  const reabastecer = (id: number) => {
+    setSelectedId(id);
+    setTab('historial');
+    setShowFacturas(false);
+    resetForm();
+    setShowForm(true);
   };
 
   const cambiarTipo = (t: 'ENTRADA' | 'SALIDA') => {
     setTipo(t);
     setLoteSeleccionado(null);
     setCantidad(''); setError('');
-    if (t === 'SALIDA') setMostrarEscaner(false);
+    if (t === 'SALIDA') limpiarArchivo();
     if (t === 'SALIDA' && lotes.length > 0) setLoteSeleccionado(lotes[0]);
   };
 
-  // Registra en el backend todos los productos detectados en una factura.
-  const confirmarFactura = async (f: {
-    numero_factura: string | null;
-    id_proveedor: number | null;
-    items: any[];
-  }) => {
-    if (!producto) throw new Error('Selecciona una finca antes de registrar la factura.');
+  const onElegirArchivo = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    const msg = validarArchivo(f);
+    if (msg) { setArchivo(null); setErrorArchivo(msg); return; }
+    setErrorArchivo('');
+    setArchivo(f);
+  };
 
-    const respuesta = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/kardex/entrada-factura`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          id_finca: producto.id_finca,
-          id_proveedor: f.id_proveedor,
-          factura_proveedor: f.numero_factura,
-          items: f.items.map(it => ({
-            id_producto: it.id_producto,
-            numero_lote: it.numero_lote,
-            fecha_vencimiento: it.fecha_vencimiento,
-            cantidad: it.cantidad,
-            costo_unitario: it.costo_unitario,
-          })),
-        }),
-      }
-    );
-
-    const data = await respuesta.json().catch(() => ({}));
-    if (!respuesta.ok) {
-      throw new Error(data.error || 'No fue posible registrar la factura.');
+  const verFactura = async (idKardex: number) => {
+    // Se abre la ventana de inmediato para que el navegador no la bloquee
+    const w = window.open('', '_blank');
+    if (!w) {
+      setAviso({ tipo: 'error', texto: 'Tu navegador bloqueó la ventana. Permite las ventanas emergentes para ver la factura.' });
+      return;
     }
+    try {
+      w.location.href = await obtenerUrlFactura(idKardex);
+    } catch (err: any) {
+      w.close();
+      setAviso({ tipo: 'error', texto: err.message });
+    }
+  };
 
-    setMostrarEscaner(false);
-
-    // Actualiza el inventario y la información del producto seleccionado.
-    await cargarProductos();
-    if (selectedId !== null) {
-      await cargarMovimientos(selectedId);
-      await cargarLotes(selectedId);
+  const adjuntarEnMovimiento = async (idKardex: number, file: File) => {
+    const msg = validarArchivo(file);
+    if (msg) { setAviso({ tipo: 'error', texto: msg }); return; }
+    setSubiendoId(idKardex);
+    try {
+      await subirFacturaArchivo(idKardex, file);
+      if (selectedId) await cargarAdjuntas(selectedId);
+      setAviso({ tipo: 'ok', texto: 'Factura adjuntada correctamente' });
+    } catch (err: any) {
+      setAviso({ tipo: 'error', texto: err.message });
+    } finally {
+      setSubiendoId(null);
     }
   };
 
@@ -341,9 +443,20 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     setError('');
     const qty = parseCOP(cantidad);
     const cost = parseCOP(costo);
-    if (!detalle.trim()) return setError('Ingresa un número de factura');
+    const detalleLimpio = detalle.trim();
+
+    if (!detalleLimpio) {
+      return setError(tipo === 'ENTRADA'
+        ? 'Escribe el número de la factura de la compra'
+        : 'Escribe el detalle de la salida');
+    }
     if (!qty || qty <= 0) return setError('Cantidad inválida');
     if (tipo === 'ENTRADA' && (!cost || cost <= 0)) return setError('Costo inválido');
+    if (tipo === 'ENTRADA' && movimientos.some(m =>
+      m.tipo === 'ENTRADA' && m.detalle.trim().toLowerCase() === detalleLimpio.toLowerCase()))
+      return setError('Ya existe una entrada de este insumo con ese número de factura');
+    if (tipo === 'ENTRADA' && FACTURA_OBLIGATORIA && !archivo)
+      return setError('Adjunta la foto o el PDF de la factura de la compra');
     if (tipo === 'SALIDA' && !loteSeleccionado) return setError('Selecciona el lote a consumir');
     if (tipo === 'SALIDA' && qty > loteSeleccionado!.cantidad)
       return setError(`Stock insuficiente en este lote. Disponible: ${loteSeleccionado!.cantidad} ${producto?.unidadmedida}`);
@@ -356,15 +469,41 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
         tipo,
         cantidad: qty,
         costo_unitario: tipo === 'SALIDA' ? 0 : cost,
-        detalle,
+        detalle: detalleLimpio,
         id_finca: producto.id_finca,
         fecha_vencimiento: fechaVenc || null,
       });
-      await cargarProductos();
+
+      // Adjuntar la factura al movimiento recién creado
+      let problemaArchivo = '';
+      if (tipo === 'ENTRADA' && archivo) {
+        try {
+          const lista: Movimiento[] = await api.getKardex(selectedId!);
+          const nuevo = lista
+            .filter(m => m.tipo === 'ENTRADA' && m.detalle === detalleLimpio)
+            .sort((a, b) => Number(b.id_kardex) - Number(a.id_kardex))[0];
+          if (!nuevo) throw new Error('no se encontró el movimiento recién creado');
+          await subirFacturaArchivo(nuevo.id_kardex, archivo);
+        } catch (e: any) {
+          problemaArchivo = `La entrada se registró, pero la factura no se pudo adjuntar (${e.message}). Puedes adjuntarla desde el Historial completo.`;
+        }
+      }
+
+      const mapa = await cargarProductos();
       await cargarMovimientos(selectedId!);
       await cargarLotes(selectedId!);
-      setDetalle(''); setCantidad(''); setCosto(''); setFechaVenc('');
-      setLoteSeleccionado(null); setShowForm(false);
+      await cargarAdjuntas(selectedId!);
+
+      if (problemaArchivo) {
+        setAviso({ tipo: 'error', texto: problemaArchivo });
+      } else if (tipo === 'SALIDA' && mapa[selectedId!]?.agotado) {
+        setAviso({ tipo: 'ok', texto: `${producto.nombre} se agotó y pasó a inactivo. Su historial queda en "Historial completo".` });
+      } else {
+        setAviso({ tipo: 'ok', texto: 'Movimiento registrado correctamente' });
+      }
+
+      resetForm();
+      setShowForm(false);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -375,13 +514,13 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   /* ───────── Tabla de movimientos (se reutiliza en Resumen e Historial) ───────── */
   const tablaMovs = (lista: Movimiento[], p: Producto, conPie: boolean) => (
     <div className="overflow-x-auto">
-      <table className="w-full text-xs font-mono min-w-[900px]"
+      <table className="w-full text-xs font-mono min-w-[1000px]"
         style={{ color: C.text, borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ background: C.head }}>
             {HEADERS.map(h => (
               <th key={h}
-                className={`py-2 px-2 uppercase text-[10px] ${HEADERS_IZQ.includes(h) ? 'text-left' : 'text-right'}`}
+                className={`py-2 px-2 uppercase text-[10px] ${HEADERS_IZQ.includes(h) ? 'text-left' : h === 'Soporte' ? 'text-center' : 'text-right'}`}
                 style={{ color: C.dark, fontWeight: 800 }}>
                 {h}
               </th>
@@ -398,9 +537,9 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
               <td className="py-2 px-2 font-bold" style={{ color: C.text }}>{m.detalle}</td>
               <td className="py-2 px-2 text-[10px]" style={{ color: C.muted }}>{m.usuario}</td>
               <td className="py-2 px-2">
-                {m.tipo === 'ENTRADA' && <Badge bg="#166534">ENTRADA</Badge>}
-                {m.tipo === 'SALIDA' && <Badge bg="#b91c1c">SALIDA</Badge>}
-                {m.tipo === 'INICIO' && <Badge bg="#6b21a8">INICIO</Badge>}
+                {m.tipo === 'ENTRADA' && <Badge bg="#15803d">ENTRADA</Badge>}
+                {m.tipo === 'SALIDA' && <Badge bg="#4d7c0f">SALIDA</Badge>}
+                {m.tipo === 'INICIO' && <Badge bg="#14532d">INICIO</Badge>}
               </td>
               <td className="py-2 px-2 text-right font-semibold" style={{ color: '#166534' }}>
                 {m.tipo !== 'SALIDA' ? fmtU(m.cantidad, p.unidadmedida) : '—'}
@@ -411,20 +550,41 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
               <td className="py-2 px-2 text-right font-semibold" style={{ color: '#166534' }}>
                 {m.tipo !== 'SALIDA' ? fmt(m.total) : '—'}
               </td>
-              <td className="py-2 px-2 text-right font-semibold" style={{ color: C.red }}>
+              <td className="py-2 px-2 text-right font-semibold" style={{ color: C.muted }}>
                 {m.tipo === 'SALIDA' ? fmtU(m.cantidad, p.unidadmedida) : '—'}
               </td>
-              <td className="py-2 px-2 text-right font-semibold" style={{ color: C.red }}>
+              <td className="py-2 px-2 text-right font-semibold" style={{ color: C.muted }}>
                 {m.tipo === 'SALIDA' ? fmt(m.costo_unitario) : '—'}
               </td>
-              <td className="py-2 px-2 text-right font-semibold" style={{ color: C.red }}>
+              <td className="py-2 px-2 text-right font-semibold" style={{ color: C.muted }}>
                 {m.tipo === 'SALIDA' ? fmt(m.total) : '—'}
               </td>
               <td className="py-2 px-2 text-right font-bold" style={{ color: C.text }}>
                 {fmtU(m.saldo_cantidad, p.unidadmedida)}
               </td>
-              <td className="py-2 px-2 text-right font-bold" style={{ color: C.gold }}>
+              <td className="py-2 px-2 text-right font-bold" style={{ color: C.valor }}>
                 {fmt(m.saldo_valor)}
+              </td>
+              <td className="py-2 px-2 text-center">
+                {m.tipo === 'SALIDA' ? '—' : adjuntas.includes(String(m.id_kardex)) ? (
+                  <button type="button" onClick={() => void verFactura(m.id_kardex)}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold"
+                    style={{ background: C.dark, color: '#ffffff' }}>
+                    <FileText size={10} strokeWidth={2} /> Ver
+                  </button>
+                ) : canEdit ? (
+                  <label className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold cursor-pointer"
+                    style={{ background: '#ffffff', color: C.dark, border: `1px solid ${C.dark}`, opacity: subiendoId !== null ? 0.6 : 1 }}>
+                    <Upload size={10} strokeWidth={2} />
+                    {subiendoId === m.id_kardex ? 'Subiendo…' : 'Adjuntar'}
+                    <input type="file" accept={ACCEPT} hidden disabled={subiendoId !== null}
+                      onChange={e => {
+                        const f = e.target.files?.[0];
+                        e.target.value = '';
+                        if (f) void adjuntarEnMovimiento(m.id_kardex, f);
+                      }} />
+                  </label>
+                ) : '—'}
               </td>
             </tr>
           ))}
@@ -439,9 +599,10 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
               <td className="py-2 px-2 text-right font-bold" style={{ color: C.text }}>
                 {fmtU(p.saldo_cantidad, p.unidadmedida)}
               </td>
-              <td className="py-2 px-2 text-right font-bold" style={{ color: C.gold }}>
+              <td className="py-2 px-2 text-right font-bold" style={{ color: C.valor }}>
                 {fmt(p.saldo_valor)}
               </td>
+              <td />
             </tr>
           </tfoot>
         )}
@@ -457,11 +618,13 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: 'resumen', label: 'Resumen' },
-    { id: 'insumos', label: 'Insumos', count: productos.length },
+    { id: 'insumos', label: 'Insumos', count: productosActivos.length },
     { id: 'consolidado', label: 'Inventario consolidado' },
     { id: 'alertas', label: 'Alertas', count: alertas.length },
     { id: 'historial', label: 'Historial completo' },
   ];
+
+  const tiposDisponibles: ('ENTRADA' | 'SALIDA')[] = esAgotadoSel ? ['ENTRADA'] : ['ENTRADA', 'SALIDA'];
 
   return (
     <div className="p-6">
@@ -473,11 +636,29 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
         </p>
         {!canEdit && (
           <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-[11px] font-semibold"
-            style={{ background: '#1e40af', color: '#ffffff' }}>
+            style={{ background: C.dark, color: '#ffffff' }}>
             <Eye size={11} strokeWidth={1.75} /> Modo visualización — solo lectura
           </span>
         )}
       </div>
+
+      {/* Avisos */}
+      {aviso && (
+        <div className="mb-4 rounded-lg px-3 py-2 text-sm font-bold flex items-center justify-between gap-3"
+          style={aviso.tipo === 'ok'
+            ? { background: '#dcfce7', border: '1px solid #16a34a', color: '#14532d' }
+            : { background: '#fee2e2', border: '1px solid #dc2626', color: '#7f1d1d' }}>
+          <span className="flex items-center gap-2">
+            {aviso.tipo === 'ok'
+              ? <CheckCircle size={16} strokeWidth={2} />
+              : <AlertTriangle size={16} strokeWidth={2} />}
+            {aviso.texto}
+          </span>
+          <button type="button" aria-label="Cerrar aviso" onClick={() => setAviso(null)}>
+            <X size={16} strokeWidth={2} />
+          </button>
+        </div>
+      )}
 
       {productos.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 mt-4" style={card}>
@@ -493,24 +674,87 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
           {producto && (
             <div className="sticky top-0 z-30 mb-4"
               style={{ ...card, padding: 12, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
+
+              {/* Buscador */}
+              <div className="relative mb-3">
+                <label style={lbl}>Buscar insumo</label>
+                <div className="relative">
+                  <Search size={16} strokeWidth={1.75}
+                    style={{ position: 'absolute', left: 10, top: 11, color: C.muted }} />
+                  <input
+                    value={busqueda}
+                    onChange={e => setBusqueda(e.target.value)}
+                    placeholder="Nombre, categoría, finca, N° de factura o fecha de ingreso (ej: 05/06/2026)"
+                    style={{ ...inp, paddingLeft: 34, paddingRight: 34 }} />
+                  {busqueda && (
+                    <button type="button" aria-label="Limpiar búsqueda" onClick={() => setBusqueda('')}
+                      style={{ position: 'absolute', right: 8, top: 8, color: C.muted }}>
+                      <X size={16} strokeWidth={2} />
+                    </button>
+                  )}
+                </div>
+                {q && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl overflow-hidden"
+                    style={{ background: '#ffffff', border: `2px solid ${C.dark}`, boxShadow: '0 10px 30px rgba(0,0,0,0.25)' }}>
+                    {resultados.length === 0 ? (
+                      <p className="px-3 py-3 text-xs font-semibold" style={{ color: C.muted }}>
+                        Sin resultados para "{busqueda}"
+                      </p>
+                    ) : resultados.map(p => {
+                      const i = info[p.id_producto];
+                      const agot = esAgotado(p.id_producto);
+                      return (
+                        <button key={p.id_producto} type="button" onClick={() => elegirResultado(p)}
+                          className="w-full text-left px-3 py-2 flex items-center justify-between gap-3"
+                          style={{ borderBottom: `1px solid ${C.border}`, background: '#ffffff', color: C.text }}>
+                          <div>
+                            <p className="text-sm font-bold flex items-center gap-2">
+                              {p.nombre}
+                              {agot && <Badge bg="#3f5f2f">INACTIVO · AGOTADO</Badge>}
+                            </p>
+                            <p className="text-[11px]" style={{ color: C.muted }}>
+                              {p.categoria} · {p.finca}
+                            </p>
+                            <p className="text-[11px] font-semibold" style={{ color: C.valor }}>
+                              {i?.primer_ingreso ? `Ingresó: ${fmtFecha(i.primer_ingreso)}` : 'Sin ingresos registrados'}
+                              {i?.ultimo_ingreso && i.ultimo_ingreso !== i.primer_ingreso
+                                ? ` · Última compra: ${fmtFecha(i.ultimo_ingreso)}` : ''}
+                            </p>
+                          </div>
+                          <span className="text-xs font-mono font-bold flex-shrink-0">
+                            {fmtU(p.saldo_cantidad, p.unidadmedida)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div className="flex flex-wrap items-center justify-between gap-3">
                 {/* Selector + badges */}
                 <div className="min-w-[260px] flex-1">
                   <label style={lbl}>Insumo seleccionado</label>
                   <select value={selectedId ?? ''}
                     onChange={e => cambiarProducto(Number(e.target.value))}
-                    style={{ ...inp, fontWeight: 700, maxWidth: 420 }}>
-                    {productos.map(p => (
-                      <option key={p.id_producto} value={p.id_producto}>
-                        {p.nombre} — {p.categoria} · {fmtU(p.saldo_cantidad, p.unidadmedida)}
-                      </option>
-                    ))}
+                    style={{ ...inp, fontWeight: 700, maxWidth: 520 }}>
+                    {opcionesSelector.map(p => {
+                      const i = info[p.id_producto];
+                      return (
+                        <option key={p.id_producto} value={p.id_producto}>
+                          {p.nombre} — {p.categoria} · {fmtU(p.saldo_cantidad, p.unidadmedida)}
+                          {i?.primer_ingreso ? ` · ingresó ${fmtFecha(i.primer_ingreso)}` : ''}
+                          {esAgotado(p.id_producto) ? ' · AGOTADO' : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                   <div className="flex gap-2 mt-2 flex-wrap">
                     <Badge bg="#2d6a1e">{producto.categoria}</Badge>
-                    <Badge bg="#854d0e">{producto.unidadmedida}</Badge>
+                    <Badge bg="#3f5f2f">{producto.unidadmedida}</Badge>
                     <Badge bg="#15803d">MÉTODO PEPS</Badge>
                     <Badge bg="#1e3d10"><Leaf size={11} strokeWidth={2} /> {producto.finca}</Badge>
+                    {esAgotadoSel && <Badge bg="#4d7c0f">INACTIVO · AGOTADO</Badge>}
                   </div>
                 </div>
 
@@ -520,7 +764,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                   <p className="text-2xl font-bold font-mono" style={{ color: C.text }}>
                     {fmtU(producto.saldo_cantidad, producto.unidadmedida)}
                   </p>
-                  <p className="text-sm font-bold font-mono" style={{ color: C.gold }}>
+                  <p className="text-sm font-bold font-mono" style={{ color: C.valor }}>
                     {fmt(producto.saldo_valor)}
                   </p>
                 </div>
@@ -559,11 +803,11 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                                   className="px-3 py-2 flex items-center justify-between"
                                   style={{
                                     borderBottom: `1px solid ${C.border}`,
-                                    background: vencido ? '#fee2e2' : urgente ? '#ffedd5' : '#ffffff',
+                                    background: vencido ? '#fee2e2' : urgente ? '#fef2f2' : '#ffffff',
                                   }}>
                                   <div>
                                     <p className="text-xs font-bold font-mono"
-                                      style={{ color: vencido ? '#7f1d1d' : urgente ? '#7c2d12' : C.text }}>
+                                      style={{ color: vencido ? '#7f1d1d' : urgente ? '#991b1b' : C.text }}>
                                       {f}
                                     </p>
                                     <p className="text-[10px]" style={{ color: C.muted }}>
@@ -571,7 +815,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                                     </p>
                                   </div>
                                   {diasMin !== undefined && (
-                                    <Badge bg={vencido ? '#b91c1c' : urgente ? '#c2410c' : '#3f5f2f'}>
+                                    <Badge bg={vencido ? '#b91c1c' : urgente ? '#dc2626' : '#3f5f2f'}>
                                       {vencido
                                         ? <><AlertTriangle size={10} strokeWidth={2} /> Vencida</>
                                         : urgente
@@ -590,10 +834,10 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                   {canEdit && (
                     <button onClick={abrirForm}
                       className="px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
-                      style={{ background: showForm ? C.red : C.green, color: '#ffffff' }}>
+                      style={{ background: showForm ? '#3f5f2f' : C.green, color: '#ffffff' }}>
                       {showForm
                         ? <><X size={16} strokeWidth={2} /> Cancelar</>
-                        : <><Plus size={16} strokeWidth={2} /> Movimiento</>}
+                        : <><Plus size={16} strokeWidth={2} /> {esAgotadoSel ? 'Reabastecer' : 'Movimiento'}</>}
                     </button>
                   )}
                 </div>
@@ -605,7 +849,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
           {canEdit && showForm && producto && (
             <div className="mb-4" style={{ ...card, border: `2px solid ${C.green}` }}>
               <h3 className="text-sm font-bold mb-4" style={{ color: C.dark }}>
-                Registrar movimiento — {producto.nombre}
+                {esAgotadoSel ? 'Reabastecer' : 'Registrar movimiento'} — {producto.nombre}
               </h3>
               <div className="grid grid-cols-2 gap-4 mb-4">
 
@@ -613,11 +857,11 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                 <div>
                   <label style={lbl}>Tipo</label>
                   <div className="flex gap-2">
-                    {(['ENTRADA', 'SALIDA'] as const).map(t => (
+                    {tiposDisponibles.map(t => (
                       <button key={t} onClick={() => cambiarTipo(t)}
                         className="flex-1 py-2 rounded-lg text-sm font-bold"
                         style={tipo === t
-                          ? { background: t === 'ENTRADA' ? '#166534' : '#b91c1c', color: '#ffffff', border: '2px solid transparent' }
+                          ? { background: t === 'ENTRADA' ? '#15803d' : '#3f5f2f', color: '#ffffff', border: '2px solid transparent' }
                           : { background: '#ffffff', color: C.text, border: `2px solid ${C.border}` }}>
                         {t === 'ENTRADA' ? '↑ Entrada' : '↓ Salida'}
                       </button>
@@ -625,21 +869,18 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                   </div>
                 </div>
 
-                {/* Factura */}
+                {/* Factura / detalle (se escribe a mano) */}
                 <div>
-                  <label style={lbl}>N° Factura / Detalle</label>
-                  <div className="flex gap-2">
-                    <input value={detalle}
-                      onChange={e => setDetalle(e.target.value)}
-                      placeholder="Ej: FAC-20260526-001"
-                      className="flex-1 font-mono"
-                      style={inp} />
-                    <button type="button" onClick={() => setDetalle(generarNumFactura())}
-                      className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1"
-                      style={{ background: C.dark, color: '#ffffff' }}>
-                      <RefreshCw size={12} strokeWidth={2} /> Auto
-                    </button>
-                  </div>
+                  <label style={lbl}>
+                    {tipo === 'ENTRADA' ? 'N° de factura de la compra' : 'Detalle de la salida'}
+                  </label>
+                  <input value={detalle}
+                    onChange={e => setDetalle(e.target.value)}
+                    placeholder={tipo === 'ENTRADA'
+                      ? 'Escríbelo como aparece en la factura'
+                      : 'Ej: aplicación en lote 3'}
+                    className="font-mono"
+                    style={inp} />
                 </div>
 
                 {/* SALIDA: selector de lote */}
@@ -712,7 +953,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                   <label style={lbl}>
                     Cantidad ({producto.unidadmedida})
                     {tipo === 'SALIDA' && loteSeleccionado && (
-                      <span style={{ color: C.gold, textTransform: 'none', marginLeft: 6 }}>
+                      <span style={{ color: C.valor, textTransform: 'none', marginLeft: 6 }}>
                         máx: {loteSeleccionado.cantidad}
                       </span>
                     )}
@@ -764,6 +1005,44 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                         min={new Date().toISOString().split('T')[0]}
                         style={{ ...inp, width: 256 }} />
                     </div>
+
+                    {/* Factura de la compra (foto o PDF) */}
+                    <div className="col-span-2">
+                      <label style={lbl}>
+                        Factura de la compra
+                        <span style={{ textTransform: 'none', fontWeight: 400, marginLeft: 6 }}>
+                          (foto o PDF, máx. {MAX_MB} MB{FACTURA_OBLIGATORIA ? '' : ' · opcional'})
+                        </span>
+                      </label>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <label className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 cursor-pointer"
+                          style={{ background: C.dark, color: '#ffffff' }}>
+                          <Upload size={16} strokeWidth={1.75} />
+                          {archivo ? 'Cambiar archivo' : 'Subir factura'}
+                          <input type="file" accept={ACCEPT} hidden onChange={onElegirArchivo} />
+                        </label>
+                        {archivo && (
+                          <>
+                            <span className="text-xs font-semibold" style={{ color: C.text }}>
+                              {archivo.name} · {(archivo.size / 1024 / 1024).toFixed(2)} MB
+                            </span>
+                            <button type="button" onClick={limpiarArchivo}
+                              className="text-xs font-bold underline" style={{ color: C.muted }}>
+                              Quitar
+                            </button>
+                          </>
+                        )}
+                      </div>
+                      {previewUrl && (
+                        <img src={previewUrl} alt="Vista previa de la factura"
+                          style={{ marginTop: 8, maxHeight: 160, borderRadius: 8, border: `1px solid ${C.border}` }} />
+                      )}
+                      {errorArchivo && (
+                        <p className="text-xs mt-2 font-bold flex items-center gap-1" style={{ color: C.red }}>
+                          <AlertTriangle size={12} strokeWidth={2} /> {errorArchivo}
+                        </p>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <div className="rounded-lg p-3" style={{ background: C.zebra, border: `1px solid ${C.green}` }}>
@@ -776,33 +1055,6 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                   </div>
                 )}
               </div>
-
-              {/* Escáner de factura: disponible únicamente para entradas */}
-              {tipo === 'ENTRADA' && (
-                <div className="mb-4">
-                  <button
-                    type="button"
-                    onClick={() => setMostrarEscaner(v => !v)}
-                    className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
-                    style={{
-                      background: mostrarEscaner ? '#854d0e' : '#166534',
-                      color: '#ffffff',
-                    }}
-                  >
-                     {mostrarEscaner ? 'Cerrar escáner' : 'Entrada con factura'}
-                  </button>
-
-                  {mostrarEscaner && producto && (
-                    <div className="mt-3">
-                      <EscanerFactura
-                        idFinca={producto.id_finca}
-                        productos={productos.filter(p => p.id_finca === producto.id_finca)}
-                        onConfirmar={confirmarFactura}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
 
               {error && (
                 <p className="text-xs mb-3 rounded px-3 py-2 font-bold flex items-center gap-2"
@@ -846,93 +1098,112 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
 
           {/* ═════════ PESTAÑA: RESUMEN ═════════ */}
           {tab === 'resumen' && producto && (
-            <div className="space-y-4">
-              {/* Lotes FEFO */}
+            esAgotadoSel ? (
               <div style={card}>
                 <h3 className="text-sm font-bold mb-1" style={{ color: C.dark }}>
-                  Lotes disponibles — orden FEFO
+                  {producto.nombre} está agotado (inactivo)
                 </h3>
                 <p className="text-xs mb-3" style={{ color: C.muted }}>
-                  El lote que vence primero debe salir primero (usar primero ↓)
+                  Los insumos agotados no aparecen en el resumen. Sus movimientos se consultan en el historial.
                 </p>
-                {lotes.length === 0 ? (
-                  <p className="text-xs py-4 text-center" style={{ color: C.muted }}>
-                    Este insumo no tiene lotes disponibles.
+                <button onClick={() => setTab('historial')}
+                  className="px-4 py-2 rounded-lg text-sm font-bold"
+                  style={{ background: C.dark, color: '#ffffff' }}>
+                  Ver historial completo
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Lotes FEFO */}
+                <div style={card}>
+                  <h3 className="text-sm font-bold mb-1" style={{ color: C.dark }}>
+                    Lotes disponibles — orden FEFO
+                  </h3>
+                  <p className="text-xs mb-3" style={{ color: C.muted }}>
+                    El lote que vence primero debe salir primero (usar primero ↓)
                   </p>
-                ) : (
-                  <div className="space-y-2">
-                    {lotes.map((l, i) => {
-                      const dias = diasParaVencer(l.fecha_vencimiento);
-                      const est = estiloLote(dias, i === 0);
-                      return (
-                        <div key={l.id_lote}
-                          className="flex items-center justify-between rounded-lg px-3 py-2 text-xs"
-                          style={{ background: est.bg, border: `1px solid ${est.border}`, color: est.text }}>
-                          <div className="flex items-center gap-3">
-                            <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
-                              style={{ background: est.badge, color: '#ffffff' }}>
-                              {i + 1}
-                            </span>
-                            <div>
-                              <span className="font-mono font-bold">{fmtU(l.cantidad, producto.unidadmedida)}</span>
-                              <span className="mx-1">@</span>
-                              <span className="font-mono font-bold" style={{ color: C.gold }}>{fmt(l.costo_unitario)}</span>
-                              <span className="ml-2 text-[11px]">
-                                {new Date(l.fecha_entrada).toLocaleDateString('es-CO')}
-                                {l.factura && ` · ${l.factura}`}
+                  {lotes.length === 0 ? (
+                    <p className="text-xs py-4 text-center" style={{ color: C.muted }}>
+                      Este insumo no tiene lotes disponibles.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {lotes.map((l, i) => {
+                        const dias = diasParaVencer(l.fecha_vencimiento);
+                        const est = estiloLote(dias, i === 0);
+                        return (
+                          <div key={l.id_lote}
+                            className="flex items-center justify-between rounded-lg px-3 py-2 text-xs"
+                            style={{ background: est.bg, border: `1px solid ${est.border}`, color: est.text }}>
+                            <div className="flex items-center gap-3">
+                              <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                                style={{ background: est.badge, color: '#ffffff' }}>
+                                {i + 1}
                               </span>
+                              <div>
+                                <span className="font-mono font-bold">{fmtU(l.cantidad, producto.unidadmedida)}</span>
+                                <span className="mx-1">@</span>
+                                <span className="font-mono font-bold" style={{ color: C.valor }}>{fmt(l.costo_unitario)}</span>
+                                <span className="ml-2 text-[11px]">
+                                  {new Date(l.fecha_entrada).toLocaleDateString('es-CO')}
+                                  {l.factura && ` · ${l.factura}`}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <Badge bg={est.badge}>{etiquetaVenc(l.fecha_vencimiento, dias)}</Badge>
+                              {i === 0 && lotes.length > 1 && <Badge bg={C.dark}>← USAR PRIMERO</Badge>}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <Badge bg={est.badge}>{etiquetaVenc(l.fecha_vencimiento, dias)}</Badge>
-                            {i === 0 && lotes.length > 1 && <Badge bg={C.dark}>← USAR PRIMERO</Badge>}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Últimos 5 movimientos */}
-              <div style={card}>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-bold" style={{ color: C.dark }}>
-                    Últimos 5 movimientos — {producto.nombre}
-                  </h3>
-                  {movimientos.length > 5 && (
-                    <button onClick={() => setTab('historial')}
-                      className="text-xs font-bold underline" style={{ color: C.green }}>
-                      Ver historial completo ({movimientos.length}) →
-                    </button>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
-                {loadingMov ? (
-                  <p className="text-center text-xs py-8" style={{ color: C.muted }}>Cargando movimientos...</p>
-                ) : movimientos.length === 0 ? (
-                  <p className="text-center text-xs py-8" style={{ color: C.muted }}>
-                    Sin movimientos aún. Registra el inventario inicial.
-                  </p>
-                ) : (
-                  tablaMovs(movimientos.slice(-5).reverse(), producto, false)
-                )}
+
+                {/* Últimos 5 movimientos */}
+                <div style={card}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold" style={{ color: C.dark }}>
+                      Últimos 5 movimientos — {producto.nombre}
+                    </h3>
+                    {movimientos.length > 5 && (
+                      <button onClick={() => setTab('historial')}
+                        className="text-xs font-bold underline" style={{ color: C.green }}>
+                        Ver historial completo ({movimientos.length}) →
+                      </button>
+                    )}
+                  </div>
+                  {loadingMov ? (
+                    <p className="text-center text-xs py-8" style={{ color: C.muted }}>Cargando movimientos...</p>
+                  ) : movimientos.length === 0 ? (
+                    <p className="text-center text-xs py-8" style={{ color: C.muted }}>
+                      Sin movimientos aún. Registra el inventario inicial.
+                    </p>
+                  ) : (
+                    tablaMovs(movimientos.slice(-5).reverse(), producto, false)
+                  )}
+                </div>
               </div>
-            </div>
+            )
           )}
 
           {/* ═════════ PESTAÑA: INSUMOS ═════════ */}
           {tab === 'insumos' && (
             <div style={card}>
               <h3 className="text-sm font-bold mb-1" style={{ color: C.dark }}>
-                Insumos ({productos.length})
+                Insumos activos ({productosActivos.length})
               </h3>
               <p className="text-xs mb-4" style={{ color: C.muted }}>
                 Haz clic en un insumo para ver sus lotes y movimientos.
+                {productosAgotados.length > 0 &&
+                  ` Los ${productosAgotados.length} insumos agotados se consultan en "Historial completo".`}
               </p>
               <div className="grid grid-cols-3 gap-3">
-                {productos.map(p => {
+                {productosActivos.map(p => {
                   const sel = p.id_producto === selectedId;
                   const est = estadoStock(p);
+                  const i = info[p.id_producto];
                   return (
                     <button key={p.id_producto} onClick={() => irAInsumo(p.id_producto)}
                       className="text-left rounded-xl p-3"
@@ -950,10 +1221,15 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                       <p className="text-[11px] mt-0.5" style={{ color: C.muted }}>
                         {p.categoria} · {p.finca}
                       </p>
+                      {i?.primer_ingreso && (
+                        <p className="text-[11px] font-semibold" style={{ color: C.valor }}>
+                          Ingresó: {fmtFecha(i.primer_ingreso)}
+                        </p>
+                      )}
                       <p className="text-lg font-bold font-mono mt-2">
                         {fmtU(p.saldo_cantidad, p.unidadmedida)}
                       </p>
-                      <p className="text-xs font-bold font-mono" style={{ color: C.gold }}>
+                      <p className="text-xs font-bold font-mono" style={{ color: C.valor }}>
                         {fmt(p.saldo_valor)}
                       </p>
                     </button>
@@ -966,10 +1242,10 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
           {/* ═════════ PESTAÑA: INVENTARIO CONSOLIDADO ═════════ */}
           {tab === 'consolidado' && (
             <div className="space-y-4">
-              <div style={{ ...card, border: `2px solid ${C.gold}` }}>
+              <div style={{ ...card, border: `2px solid ${C.valor}` }}>
                 <p style={lbl}>Inventario consolidado</p>
                 <p className="text-xs mb-1" style={{ color: C.muted }}>Valor total (COP $):</p>
-                <p className="text-3xl font-bold font-mono" style={{ color: C.gold }}>
+                <p className="text-3xl font-bold font-mono" style={{ color: C.valor }}>
                   {fmt(totalInventario)}
                 </p>
               </div>
@@ -992,7 +1268,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {productos.map((p, idx) => (
+                      {productosActivos.map((p, idx) => (
                         <tr key={p.id_producto}
                           style={{ background: idx % 2 ? C.zebra : '#ffffff', borderBottom: `1px solid ${C.border}` }}>
                           <td className="py-2 px-3 font-bold">{p.nombre}</td>
@@ -1001,7 +1277,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                           <td className="py-2 px-3 text-right font-mono font-semibold">
                             {fmtU(p.saldo_cantidad, p.unidadmedida)}
                           </td>
-                          <td className="py-2 px-3 text-right font-mono font-bold" style={{ color: C.gold }}>
+                          <td className="py-2 px-3 text-right font-mono font-bold" style={{ color: C.valor }}>
                             {fmt(p.saldo_valor)}
                           </td>
                           <td className="py-2 px-3 text-right font-mono" style={{ color: C.muted }}>
@@ -1018,7 +1294,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                           style={{ color: C.dark, letterSpacing: '0.08em' }}>
                           Total inventario:
                         </td>
-                        <td className="py-2 px-3 text-right font-mono font-bold" style={{ color: C.gold }}>
+                        <td className="py-2 px-3 text-right font-mono font-bold" style={{ color: C.valor }}>
                           {fmt(totalInventario)}
                         </td>
                         <td />
@@ -1037,7 +1313,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                 Alertas del inventario ({alertas.length})
               </h3>
               <p className="text-xs mb-4" style={{ color: C.muted }}>
-                Lotes vencidos o por vencer (≤30 días) e insumos con stock bajo (menos de {STOCK_BAJO}) o agotados.
+                Lotes vencidos o por vencer (≤30 días) e insumos con stock bajo (menos de {STOCK_BAJO}).
               </p>
               {alertas.length === 0 ? (
                 <div className="flex flex-col items-center text-center py-10 rounded-lg"
@@ -1075,19 +1351,72 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
 
           {/* ═════════ PESTAÑA: HISTORIAL COMPLETO ═════════ */}
           {tab === 'historial' && producto && (
-            <div style={card}>
-              <h3 className="text-sm font-bold mb-3" style={{ color: C.dark }}>
-                Historial Kardex — PEPS · {producto.nombre}
-              </h3>
-              {loadingMov ? (
-                <p className="text-center text-xs py-8" style={{ color: C.muted }}>Cargando movimientos...</p>
-              ) : movimientos.length === 0 ? (
-                <p className="text-center text-xs py-8" style={{ color: C.muted }}>
-                  Sin movimientos aún. Registra el inventario inicial.
-                </p>
-              ) : (
-                tablaMovs(movimientos, producto, true)
+            <div className="space-y-4">
+              {productosAgotados.length > 0 && (
+                <div style={card}>
+                  <h3 className="text-sm font-bold mb-1" style={{ color: C.dark }}>
+                    Insumos agotados — inactivos ({productosAgotados.length})
+                  </h3>
+                  <p className="text-xs mb-3" style={{ color: C.muted }}>
+                    Cuando un insumo se gasta por completo pasa a inactivo y solo se consulta aquí.
+                    Si registras una nueva compra, se activa de nuevo.
+                  </p>
+                  <div className="space-y-2">
+                    {productosAgotados.map(p => {
+                      const i = info[p.id_producto];
+                      const sel = p.id_producto === selectedId;
+                      return (
+                        <div key={p.id_producto}
+                          className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
+                          style={{
+                            background: sel ? '#dcfce7' : C.zebra,
+                            border: `1px solid ${sel ? '#15803d' : C.border}`,
+                          }}>
+                          <div>
+                            <p className="text-sm font-bold" style={{ color: C.text }}>{p.nombre}</p>
+                            <p className="text-[11px]" style={{ color: C.muted }}>
+                              {p.categoria} · {p.finca}
+                              {i?.primer_ingreso ? ` · Ingresó: ${fmtFecha(i.primer_ingreso)}` : ''}
+                              {i?.ultimo_ingreso && i.ultimo_ingreso !== i.primer_ingreso
+                                ? ` · Última compra: ${fmtFecha(i.ultimo_ingreso)}` : ''}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button onClick={() => setSelectedId(p.id_producto)}
+                              className="px-3 py-1 rounded-lg text-xs font-bold"
+                              style={{ background: C.dark, color: '#ffffff' }}>
+                              Ver historial
+                            </button>
+                            {canEdit && (
+                              <button onClick={() => reabastecer(p.id_producto)}
+                                className="px-3 py-1 rounded-lg text-xs font-bold"
+                                style={{ background: '#ffffff', color: C.dark, border: `1px solid ${C.dark}` }}>
+                                Reabastecer
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
+
+              <div style={card}>
+                <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: C.dark }}>
+                  Historial Kardex — PEPS · {producto.nombre}
+                  {esAgotadoSel && <Badge bg="#4d7c0f">INACTIVO · AGOTADO</Badge>}
+                </h3>
+                {loadingMov ? (
+                  <p className="text-center text-xs py-8" style={{ color: C.muted }}>Cargando movimientos...</p>
+                ) : movimientos.length === 0 ? (
+                  <p className="text-center text-xs py-8" style={{ color: C.muted }}>
+                    Sin movimientos aún. Registra el inventario inicial.
+                  </p>
+                ) : (
+                  tablaMovs(movimientos, producto, true)
+                )}
+              </div>
             </div>
           )}
         </>

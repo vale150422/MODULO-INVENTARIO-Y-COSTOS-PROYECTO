@@ -32,6 +32,10 @@ const headers = () => ({
   Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
 
+// Extrae el mensaje de cualquier error sin usar `any`
+const msgError = (err: unknown, porDefecto = 'Ocurrió un error') =>
+  err instanceof Error && err.message ? err.message : porDefecto;
+
 // +573001234567 → +57 300 123 4567
 const fmtTel = (t: string) =>
   t.startsWith('+57') && t.length === 13
@@ -74,8 +78,8 @@ export default function AlertasPage() {
       const res = await fetch(`${API}/vencimientos?dias=${dias}`, { headers: headers() });
       if (!res.ok) throw new Error(`Error ${res.status}`);
       setLotes(await res.json());
-    } catch (e: any) {
-      setError(e.message || 'No se pudo cargar las alertas');
+    } catch (err) {
+      setError(msgError(err, 'No se pudo cargar las alertas'));
     } finally {
       setLoading(false);
     }
@@ -90,8 +94,11 @@ export default function AlertasPage() {
     }
   };
 
-  useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [dias]);
-  useEffect(() => { if (esAdmin) cargarTelefonos(); /* eslint-disable-next-line */ }, [esAdmin]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+  useEffect(() => { cargar(); }, [dias]);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+  useEffect(() => { if (esAdmin) cargarTelefonos(); }, [esAdmin]);
 
   const agregarTelefono = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,8 +115,8 @@ export default function AlertasPage() {
       setNombre('');
       setTelefono('');
       cargarTelefonos();
-    } catch (e: any) {
-      setErrTel(e.message);
+    } catch (err) {
+      setErrTel(msgError(err, 'No se pudo guardar el número'));
     } finally {
       setGuardando(false);
     }
@@ -148,8 +155,8 @@ export default function AlertasPage() {
         const detalle = data.total === 0 ? ' (aviso: no hay insumos por vencer)' : '';
         setMsg({ tipo: 'ok', texto: `SMS enviado a ${data.resultado.enviados} número(s)${detalle}.` });
       }
-    } catch (e: any) {
-      setMsg({ tipo: 'error', texto: e.message });
+    } catch (err) {
+      setMsg({ tipo: 'error', texto: msgError(err, 'Error al enviar') });
     } finally {
       setEnviando(false);
     }
