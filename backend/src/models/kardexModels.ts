@@ -46,7 +46,7 @@ export const getKardexByProducto = async (id_producto: number) => {
     SELECT 
       k.id_kardex, k.tipo, k.cantidad, k.costo_unitario,
       k.total, k.saldo_cantidad, k.saldo_valor,
-      k.detalle, k.fecha,
+      k.detalle, k.descripcion, k.fecha,
       u.nombre as usuario, p.nombre as producto,
       p.unidadmedida
     FROM kardex k
@@ -246,7 +246,7 @@ export const getDashboardModel = async () => {
     ORDER BY k.fecha DESC LIMIT 10
   `);
 
-  // ✅ Usa stock_minimo de cada producto en vez de hardcodear 10
+  // Usa stock_minimo de cada producto en vez de hardcodear 10
   const bajoStock = await pool.query(`
     SELECT COUNT(*) FROM (
       SELECT DISTINCT ON (k.id_producto) k.saldo_cantidad, p.stock_minimo

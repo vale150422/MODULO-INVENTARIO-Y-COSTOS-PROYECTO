@@ -27,7 +27,8 @@ interface Lote {
 interface Movimiento {
   id_kardex: number;
   fecha: string;
-  detalle: string;
+  detalle: string;          // N° de factura
+  descripcion: string | null;
   tipo: 'ENTRADA' | 'SALIDA' | 'INICIO';
   cantidad: number;
   costo_unitario: number;
@@ -176,9 +177,9 @@ function Badge({ bg, color = '#ffffff', children }: { bg: string; color?: string
   );
 }
 
-const HEADERS = ['Fecha', 'Factura', 'Usuario', 'Tipo', 'E.Cant', 'E.Costo', 'E.Total',
+const HEADERS = ['Fecha', 'Factura', 'Descripción', 'Usuario', 'Tipo', 'E.Cant', 'E.Costo', 'E.Total',
   'S.Cant', 'S.Costo', 'S.Total', 'Sal.Cant', 'Sal.Total', 'Soporte'];
-const HEADERS_IZQ = ['Fecha', 'Factura', 'Usuario', 'Tipo'];
+const HEADERS_IZQ = ['Fecha', 'Factura', 'Descripción', 'Usuario', 'Tipo'];
 
 export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   usePageTitle('Kardex');
@@ -201,6 +202,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const [showForm, setShowForm] = useState(false);
   const [tipo, setTipo] = useState<'ENTRADA' | 'SALIDA'>('ENTRADA');
   const [detalle, setDetalle] = useState('');
+  const [descripcion, setDescripcion] = useState('');
   const [loteSeleccionado, setLoteSeleccionado] = useState<Lote | null>(null);
   const [cantidad, setCantidad] = useState('');
   const [costo, setCosto] = useState('');
@@ -372,7 +374,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   };
 
   const resetForm = () => {
-    setDetalle(''); setTipo('ENTRADA');
+    setDetalle(''); setDescripcion(''); setTipo('ENTRADA');
     setCantidad(''); setCosto(''); setFechaVenc('');
     setLoteSeleccionado(null); setError(''); limpiarArchivo();
   };
@@ -443,13 +445,16 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     setError('');
     const qty = parseCOP(cantidad);
     const cost = parseCOP(costo);
-    const detalleLimpio = detalle.trim();
+    // En ENTRADA el N° de factura se escribe; en SALIDA se toma del lote elegido
+    const detalleLimpio = tipo === 'ENTRADA'
+      ? detalle.trim()
+      : (loteSeleccionado?.factura ?? '').trim();
+    const descripcionLimpia = descripcion.trim();
 
-    if (!detalleLimpio) {
-      return setError(tipo === 'ENTRADA'
-        ? 'Escribe el número de la factura de la compra'
-        : 'Escribe el detalle de la salida');
-    }
+    if (tipo === 'ENTRADA' && !detalleLimpio)
+      return setError('Escribe el número de la factura de la compra');
+    if (tipo === 'SALIDA' && !descripcionLimpia)
+      return setError('Escribe la descripción de la salida');
     if (!qty || qty <= 0) return setError('Cantidad inválida');
     if (tipo === 'ENTRADA' && (!cost || cost <= 0)) return setError('Costo inválido');
     if (tipo === 'ENTRADA' && movimientos.some(m =>
@@ -470,6 +475,8 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
         cantidad: qty,
         costo_unitario: tipo === 'SALIDA' ? 0 : cost,
         detalle: detalleLimpio,
+        descripcion: descripcionLimpia || null,
+        id_lote: tipo === 'SALIDA' ? loteSeleccionado!.id_lote : null,
         id_finca: producto.id_finca,
         fecha_vencimiento: fechaVenc || null,
       });
@@ -534,7 +541,8 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
               <td className="py-2 px-2" style={{ color: C.muted }}>
                 {new Date(m.fecha).toLocaleDateString('es-CO')}
               </td>
-              <td className="py-2 px-2 font-bold" style={{ color: C.text }}>{m.detalle}</td>
+              <td className="py-2 px-2 font-bold" style={{ color: C.text }}>{m.detalle || '—'}</td>
+              <td className="py-2 px-2" style={{ color: C.text }}>{m.descripcion || '—'}</td>
               <td className="py-2 px-2 text-[10px]" style={{ color: C.muted }}>{m.usuario}</td>
               <td className="py-2 px-2">
                 {m.tipo === 'ENTRADA' && <Badge bg="#15803d">ENTRADA</Badge>}
@@ -592,7 +600,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
         {conPie && (
           <tfoot>
             <tr style={{ borderTop: `2px solid ${C.dark}`, background: C.head }}>
-              <td colSpan={10} className="py-2 px-2 text-right font-bold uppercase text-xs"
+              <td colSpan={11} className="py-2 px-2 text-right font-bold uppercase text-xs"
                 style={{ color: C.dark, letterSpacing: '0.08em' }}>
                 Inventario Final:
               </td>
@@ -869,17 +877,34 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                   </div>
                 </div>
 
-                {/* Factura / detalle (se escribe a mano) */}
+                {/* N° de factura: en ENTRADA se escribe, en SALIDA sale del lote elegido */}
+                <div>
+                  <label style={lbl}>N° de factura</label>
+                  {tipo === 'ENTRADA' ? (
+                    <input value={detalle}
+                      onChange={e => setDetalle(e.target.value)}
+                      placeholder="Escríbelo como aparece en la factura"
+                      className="font-mono"
+                      style={inp} />
+                  ) : (
+                    <input value={loteSeleccionado?.factura ?? ''}
+                      readOnly
+                      placeholder="Se toma del lote seleccionado"
+                      className="font-mono"
+                      style={{ ...inp, opacity: 0.7 }} />
+                  )}
+                </div>
+
+                {/* Descripción (texto libre) */}
                 <div>
                   <label style={lbl}>
-                    {tipo === 'ENTRADA' ? 'N° de factura de la compra' : 'Detalle de la salida'}
+                    Descripción{tipo === 'ENTRADA' ? ' (opcional)' : ''}
                   </label>
-                  <input value={detalle}
-                    onChange={e => setDetalle(e.target.value)}
+                  <input value={descripcion}
+                    onChange={e => setDescripcion(e.target.value)}
                     placeholder={tipo === 'ENTRADA'
-                      ? 'Escríbelo como aparece en la factura'
-                      : 'Ej: aplicación en lote 3'}
-                    className="font-mono"
+                      ? 'Ej: compra a proveedor X'
+                      : 'Ej: usado en cultivo 03'}
                     style={inp} />
                 </div>
 

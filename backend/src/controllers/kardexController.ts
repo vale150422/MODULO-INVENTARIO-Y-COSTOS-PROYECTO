@@ -50,7 +50,9 @@ export const getLotes = async (req: Request, res: Response) => {
 };
 
 export const registrarMovimiento = async (req: Request, res: Response) => {
-  const { id_producto, tipo, cantidad, costo_unitario, detalle, id_finca, fecha_vencimiento } = req.body;
+  const { id_producto, tipo, cantidad, costo_unitario, id_finca, fecha_vencimiento, id_lote } = req.body;
+  let detalle: string = (req.body.detalle ?? '').toString().trim();          // N° de factura
+  const descripcion: string | null = (req.body.descripcion ?? '').toString().trim() || null;
   const id_usuario = (req as any).user?.id;
   const client = await pool.connect();
 
@@ -104,24 +106,37 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
         throw new Error(`Stock insuficiente. Disponible: ${saldoActual.saldo_cantidad}`);
       }
 
-      const lotesResult = await client.query(`
-        SELECT id_lote, cantidad, costo_unitario
-        FROM kardex_lote
-        WHERE id_producto = $1 AND cantidad > 0
-        ORDER BY
-          CASE WHEN fecha_vencimiento IS NULL THEN 1 ELSE 0 END,
-          fecha_vencimiento ASC,
-          fecha_entrada ASC
-      `, [id_producto]);
+      // Si el usuario eligió un lote, se consume ESE lote; si no, el más próximo a vencer
+      const lotesResult = id_lote
+        ? await client.query(`
+            SELECT id_lote, cantidad, costo_unitario, factura
+            FROM kardex_lote
+            WHERE id_lote = $1 AND id_producto = $2 AND cantidad > 0
+          `, [id_lote, id_producto])
+        : await client.query(`
+            SELECT id_lote, cantidad, costo_unitario, factura
+            FROM kardex_lote
+            WHERE id_producto = $1 AND cantidad > 0
+            ORDER BY
+              CASE WHEN fecha_vencimiento IS NULL THEN 1 ELSE 0 END,
+              fecha_vencimiento ASC,
+              fecha_entrada ASC
+          `, [id_producto]);
+
+      if (id_lote && (lotesResult.rows.length === 0 || Number(lotesResult.rows[0].cantidad) < cantidad)) {
+        throw new Error('Stock insuficiente en el lote seleccionado');
+      }
 
       let restante = cantidad;
       let costoTotal = 0;
+      const facturasUsadas: string[] = [];
 
       for (const lote of lotesResult.rows) {
         if (restante <= 0) break;
         const consumir = Math.min(lote.cantidad, restante);
         costoTotal += consumir * lote.costo_unitario;
         restante -= consumir;
+        if (lote.factura && !facturasUsadas.includes(lote.factura)) facturasUsadas.push(lote.factura);
 
         await client.query(`
           UPDATE kardex_lote 
@@ -134,19 +149,22 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
       costoFinal = Math.round(costoTotal / cantidad);
       nuevaSaldoCant = Number(saldoActual.saldo_cantidad) - cantidad;
       nuevaSaldoValor = Number(saldoActual.saldo_valor) - costoTotal;
+
+      // En una SALIDA la factura es la del lote (o lotes) que se consumió
+      detalle = facturasUsadas.join(', ');
     }
 
     const kardexResult = await client.query(`
       INSERT INTO kardex 
         (id_producto, id_finca, id_usuario, tipo, cantidad, 
-         costo_unitario, total, saldo_cantidad, saldo_valor, detalle)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         costo_unitario, total, saldo_cantidad, saldo_valor, detalle, descripcion)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `, [
       id_producto, id_finca, id_usuario, tipo,
       cantidad, costoFinal, total,
       nuevaSaldoCant, Math.max(0, nuevaSaldoValor),
-      detalle
+      detalle, descripcion
     ]);
 
     await client.query('COMMIT');

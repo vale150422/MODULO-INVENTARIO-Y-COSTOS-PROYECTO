@@ -54,6 +54,8 @@ export const api = {
   id_producto: number; tipo: string; cantidad: number;
   costo_unitario: number; detalle: string; id_finca: number;
   fecha_vencimiento?: string | null;
+  descripcion?: string | null;
+  id_lote?: number | null;
 }) {
   const r = await fetch(`${BASE}/kardex/movimiento`, {
     method: 'POST',
