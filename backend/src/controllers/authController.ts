@@ -34,7 +34,8 @@ export const login = async (req: Request, res: Response) => {
     if (!valid) return res.status(401).json({ error: 'Credenciales incorrectas' });
 
     // Si tu frontend espera otros nombres de rol (por ejemplo 'admin'), cámbialo aquí:
-    const role = user.rol;
+    
+    const role = user.rol === 'administrador' ? 'admin' : 'empleado';
 
     const token = jwt.sign(
       { id: user.id_usuario, email: user.email, role, nombre: user.nombre },
