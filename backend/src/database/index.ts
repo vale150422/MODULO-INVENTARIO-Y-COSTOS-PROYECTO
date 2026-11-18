@@ -1,7 +1,8 @@
-
-export { pool } from './connection';
-export { default } from './connection';
 import { AsyncLocalStorage } from 'async_hooks';
+import pool from './connection';
+
+export { pool };
+export default pool;
 
 export const auditStore = new AsyncLocalStorage<{ idUsuario: number; ip: string | null }>();
 
