@@ -24,8 +24,10 @@ const CategoriaPage = () => {
     try {
       const res = await getCategorias();
       setCategorias(Array.isArray(res) ? res : []);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      setCategorias([]);
+      showToast(error.message || 'Error al cargar las categorías', 'error');
     }
   };
 
@@ -49,8 +51,8 @@ const CategoriaPage = () => {
       showToast('Categoría creada exitosamente', 'success');
       cerrarModal();
       cargarCategorias();
-    } catch {
-      showToast('Error al crear la categoría', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Error al crear la categoría', 'error');
     }
   };
 
@@ -59,8 +61,8 @@ const CategoriaPage = () => {
       await deleteCategoria(id);
       showToast('Categoría eliminada', 'warning');
       cargarCategorias();
-    } catch {
-      showToast('Error al eliminar la categoría', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Error al eliminar la categoría', 'error');
     }
   };
 

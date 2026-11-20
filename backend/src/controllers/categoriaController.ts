@@ -1,13 +1,18 @@
 import { Request, Response } from 'express';
 import { getCategorias, createCategoria, deleteCategoria } from '../models/categoriaModels';
+import { currentUserId } from '../utils/currentUser';
+
+const ctx = (req: Request) => ({
+  idUsuario: currentUserId(req),
+  ip: req.ip ?? null,
+});
 
 export const getAllCategorias = async (_req: Request, res: Response) => {
   try {
-    const data = await getCategorias();
-    res.json(data);
-  } catch (error) {
-    console.error('ERROR CATEGORIAS:', error);
-    res.status(500).json({ message: 'Error al obtener categorías' });
+    res.json(await getCategorias());
+  } catch (error: any) {
+    console.error('getAllCategorias:', error);
+    res.status(500).json({ message: error.message || 'Error al obtener categorías' });
   }
 };
 
@@ -15,20 +20,24 @@ export const addCategoria = async (req: Request, res: Response) => {
   try {
     const { nombre } = req.body;
     if (!nombre?.trim()) return res.status(400).json({ message: 'Nombre requerido' });
-    const data = await createCategoria(nombre.trim());
-    res.json(data);
-  } catch (error) {
-    console.error('ERROR CREAR CATEGORIA:', error);
-    res.status(500).json({ message: 'Error al crear categoría' });
+    res.json(await createCategoria(nombre.trim(), ctx(req)));
+  } catch (error: any) {
+    console.error('addCategoria:', error);
+    res.status(500).json({ message: error.message || 'Error al crear categoría' });
   }
 };
 
 export const removeCategoria = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    await deleteCategoria(Number(id));
+    await deleteCategoria(Number(req.params.id), ctx(req));
     res.json({ message: 'Categoría eliminada' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error al eliminar categoría' });
+  } catch (error: any) {
+    console.error('removeCategoria:', error);
+    if (error.code === '23503') {
+      return res.status(400).json({
+        message: 'No se puede eliminar la categoría porque tiene productos asociados',
+      });
+    }
+    res.status(500).json({ message: error.message || 'Error al eliminar categoría' });
   }
 };
