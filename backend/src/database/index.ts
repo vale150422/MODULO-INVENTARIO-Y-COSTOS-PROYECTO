@@ -6,8 +6,6 @@ export default pool;
 
 export const auditStore = new AsyncLocalStorage<{ idUsuario: number; ip: string | null }>();
 
-const rawQuery = pool.query.bind(pool) as any;
-
 (pool as any).query = async (text: any, params?: any) => {
   const store = auditStore.getStore();
   const client = await pool.connect();
@@ -23,7 +21,8 @@ const rawQuery = pool.query.bind(pool) as any;
     const result = await client.query(text, params);
     await client.query('COMMIT');
     return result;
-  } catch (e) {
+  } catch (e: any) {
+    console.error('SQL error:', e.message, '|', String(text?.text ?? text).slice(0, 200));
     await client.query('ROLLBACK');
     throw e;
   } finally {

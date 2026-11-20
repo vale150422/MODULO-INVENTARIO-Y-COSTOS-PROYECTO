@@ -1,4 +1,3 @@
-
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -7,6 +6,7 @@ dotenv.config();
 
 import './database';
 
+import { auditContext } from './middlewares/auditContext';
 import productoRoutes from './routes/productoRoutes';
 import fincaRoutes from './routes/fincaRoutes';
 import proveedorRoutes from './routes/proveedorRoutes';
@@ -36,6 +36,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Identifica al usuario del token para la auditoría de la base de datos
+app.use(auditContext);
 
 app.get('/', (req, res) => {
   res.send('API Inventario Finca funcionando 🚀');
