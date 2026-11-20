@@ -1,8 +1,8 @@
-import { currentUserId } from '../utils/currentUser';
 import { Request, Response } from 'express';
 import { getTrabajadores, getTrabajadorById, createTrabajador, updateTrabajador, deleteTrabajador } from '../models/trabajadorModels';
+import { currentUserId, debugAuth } from '../utils/currentUser';
 
-// Usuario que hace la acción, tomado del token (el login lo guarda como "id")
+// Usuario que hace la acción, tomado del token
 const ctx = (req: Request) => ({
   idUsuario: currentUserId(req),
   ip: req.ip ?? null,
@@ -41,7 +41,9 @@ export const addTrabajador = async (req: Request, res: Response) => {
     res.json(await createTrabajador(req.body, ctx(req)));
   } catch (error: any) {
     console.error('addTrabajador:', error);
-    res.status(500).json({ message: mensajeError(error, 'Error al crear trabajador') });
+    res.status(500).json({
+      message: mensajeError(error, 'Error al crear trabajador') + ' [' + debugAuth(req) + ']'
+    });
   }
 };
 
@@ -50,7 +52,9 @@ export const editTrabajador = async (req: Request, res: Response) => {
     res.json(await updateTrabajador(Number(req.params.id), req.body, ctx(req)));
   } catch (error: any) {
     console.error('editTrabajador:', error);
-    res.status(500).json({ message: mensajeError(error, 'Error al actualizar trabajador') });
+    res.status(500).json({
+      message: mensajeError(error, 'Error al actualizar trabajador') + ' [' + debugAuth(req) + ']'
+    });
   }
 };
 
@@ -60,6 +64,8 @@ export const removeTrabajador = async (req: Request, res: Response) => {
     res.json({ message: 'Trabajador desactivado' });
   } catch (error: any) {
     console.error('removeTrabajador:', error);
-    res.status(500).json({ message: mensajeError(error, 'Error al eliminar trabajador') });
+    res.status(500).json({
+      message: mensajeError(error, 'Error al eliminar trabajador') + ' [' + debugAuth(req) + ']'
+    });
   }
 };
