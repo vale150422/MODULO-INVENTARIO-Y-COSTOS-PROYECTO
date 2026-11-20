@@ -1,9 +1,10 @@
+import { currentUserId } from '../utils/currentUser';
 import { Request, Response } from 'express';
 import { getTrabajadores, getTrabajadorById, createTrabajador, updateTrabajador, deleteTrabajador } from '../models/trabajadorModels';
 
 // Usuario que hace la acción, tomado del token (el login lo guarda como "id")
 const ctx = (req: Request) => ({
-  idUsuario: Number((req as any).user?.id ?? (req as any).user?.id_usuario),
+  idUsuario: currentUserId(req),
   ip: req.ip ?? null,
 });
 
