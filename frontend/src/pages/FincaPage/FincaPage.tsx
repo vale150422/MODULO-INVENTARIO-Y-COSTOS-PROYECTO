@@ -95,8 +95,8 @@ const FincasPage = () => {
       showToast('Finca creada exitosamente', 'success');
       cerrarModal();
       cargarFincas();
-    } catch {
-      showToast('Error al crear la finca', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Error al crear la finca', 'error');
     }
   };
 
@@ -112,9 +112,9 @@ const FincasPage = () => {
 
   const abrirEditar = (f: any) => {
     setFincaSeleccionada(f);
-    setNombreEditar(f.nombre);
-    setMunicipioEditar(f.municipio);
-    setVeredaEditar(f.vereda);
+    setNombreEditar(f.nombre ?? '');
+    setMunicipioEditar(f.municipio ?? '');
+    setVeredaEditar(f.vereda ?? '');
     setErroresEditar({});
     setModalEditarAbierto(true);
   };
@@ -130,8 +130,8 @@ const FincasPage = () => {
       showToast('Finca actualizada correctamente', 'success');
       cerrarModalEditar();
       cargarFincas();
-    } catch {
-      showToast('Error al actualizar la finca', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Error al actualizar la finca', 'error');
     }
   };
 
