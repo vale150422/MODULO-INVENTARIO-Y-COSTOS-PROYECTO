@@ -1,50 +1,64 @@
 import { Request, Response } from 'express';
 import { getTrabajadores, getTrabajadorById, createTrabajador, updateTrabajador, deleteTrabajador } from '../models/trabajadorModels';
 
+// Usuario que hace la acción, tomado del token (el login lo guarda como "id")
+const ctx = (req: Request) => ({
+  idUsuario: Number((req as any).user?.id ?? (req as any).user?.id_usuario),
+  ip: req.ip ?? null,
+});
+
+// Convierte errores de la base en mensajes entendibles
+const mensajeError = (error: any, porDefecto: string) => {
+  if (error?.code === '23505') {
+    if (String(error.constraint).includes('identificacion')) return 'Ya existe un usuario con esa cédula';
+    return 'Ya existe un usuario con ese correo';
+  }
+  if (error?.code === '23503') return 'La finca seleccionada no existe';
+  return error?.message || porDefecto;
+};
+
 export const getAllTrabajadores = async (_req: Request, res: Response) => {
   try {
-    const data = await getTrabajadores();
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ message: 'Error al obtener trabajadores' });
+    res.json(await getTrabajadores());
+  } catch (error: any) {
+    console.error('getAllTrabajadores:', error);
+    res.status(500).json({ message: mensajeError(error, 'Error al obtener trabajadores') });
   }
 };
 
 export const getTrabajador = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const data = await getTrabajadorById(Number(id));
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ message: 'Error al obtener trabajador' });
+    res.json(await getTrabajadorById(Number(req.params.id)));
+  } catch (error: any) {
+    console.error('getTrabajador:', error);
+    res.status(500).json({ message: mensajeError(error, 'Error al obtener trabajador') });
   }
 };
 
 export const addTrabajador = async (req: Request, res: Response) => {
   try {
-    const newTrabajador = await createTrabajador(req.body);
-    res.json(newTrabajador);
-  } catch (error) {
-    res.status(500).json({ message: 'Error al crear trabajador' });
+    res.json(await createTrabajador(req.body, ctx(req)));
+  } catch (error: any) {
+    console.error('addTrabajador:', error);
+    res.status(500).json({ message: mensajeError(error, 'Error al crear trabajador') });
   }
 };
 
 export const editTrabajador = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const updated = await updateTrabajador(Number(id), req.body);
-    res.json(updated);
-  } catch (error) {
-    res.status(500).json({ message: 'Error al actualizar trabajador' });
+    res.json(await updateTrabajador(Number(req.params.id), req.body, ctx(req)));
+  } catch (error: any) {
+    console.error('editTrabajador:', error);
+    res.status(500).json({ message: mensajeError(error, 'Error al actualizar trabajador') });
   }
 };
 
 export const removeTrabajador = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    await deleteTrabajador(Number(id));
-    res.json({ message: 'Trabajador eliminado' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error al eliminar trabajador' });
+    await deleteTrabajador(Number(req.params.id), ctx(req));
+    res.json({ message: 'Trabajador desactivado' });
+  } catch (error: any) {
+    console.error('removeTrabajador:', error);
+    res.status(500).json({ message: mensajeError(error, 'Error al eliminar trabajador') });
   }
 };
