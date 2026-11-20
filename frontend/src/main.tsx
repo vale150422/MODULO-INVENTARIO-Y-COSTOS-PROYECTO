@@ -1,31 +1,33 @@
-import { AsyncLocalStorage } from 'async_hooks';
-import pool from './connection';
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App'
 
-export { pool };
-export default pool;
+// Agrega el token a TODAS las llamadas al backend, sin tocar cada servicio
+const API_HOST = 'modulo-inventario-y-costos-proyecto.onrender.com';
+const originalFetch = window.fetch.bind(window);
 
-export const auditStore = new AsyncLocalStorage<{ idUsuario: number; ip: string | null }>();
+window.fetch = (input: RequestInfo | URL, init: RequestInit = {}) => {
+  const url =
+    typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
 
-(pool as any).query = async (text: any, params?: any) => {
-  const store = auditStore.getStore();
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query('SET LOCAL search_path = inventario, public');
-    if (store) {
-      await client.query(
-        'SELECT public.fn_auditoria_contexto($1::int, $2::text, NULL, NULL, NULL, NULL)',
-        [store.idUsuario, store.ip]
+  if (url.includes(API_HOST)) {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const headers = new Headers(
+        init.headers || (input instanceof Request ? input.headers : undefined)
       );
+      if (!headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+      init = { ...init, headers };
     }
-    const result = await client.query(text, params);
-    await client.query('COMMIT');
-    return result;
-  } catch (e: any) {
-    console.error('SQL error:', e.message, '|', String(text?.text ?? text).slice(0, 200));
-    await client.query('ROLLBACK');
-    throw e;
-  } finally {
-    client.release();
   }
+  return originalFetch(input, init);
 };
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
