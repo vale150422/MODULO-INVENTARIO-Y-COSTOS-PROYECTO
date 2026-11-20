@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { getFincas, createFinca, getFincaById, updateFinca, deleteFinca } from '../models/fincaModels';
+import { currentUserId } from '../utils/currentUser';
 
-// El login guarda el id del usuario en el token como "id"
+// Identifica al usuario a partir del token (igual que en productos y categorías)
 const ctx = (req: Request) => ({
-  idUsuario: Number((req as any).user?.id ?? (req as any).user?.id_usuario),
+  idUsuario: currentUserId(req),
   ip: req.ip ?? null,
 });
 
@@ -19,9 +20,9 @@ export const getAllFincas = async (_req: Request, res: Response) => {
 export const addFinca = async (req: Request, res: Response) => {
   try {
     res.json(await createFinca(req.body, ctx(req)));
-  } catch (error) {
+  } catch (error: any) {
     console.error('addFinca:', error);
-    res.status(500).json({ message: 'Error al crear finca' });
+    res.status(500).json({ message: error?.message || 'Error al crear finca' });
   }
 };
 
@@ -37,9 +38,9 @@ export const getFinca = async (req: Request, res: Response) => {
 export const editFinca = async (req: Request, res: Response) => {
   try {
     res.json(await updateFinca(Number(req.params.id), req.body, ctx(req)));
-  } catch (error) {
+  } catch (error: any) {
     console.error('editFinca:', error);
-    res.status(500).json({ message: 'Error al actualizar finca' });
+    res.status(500).json({ message: error?.message || 'Error al actualizar finca' });
   }
 };
 
