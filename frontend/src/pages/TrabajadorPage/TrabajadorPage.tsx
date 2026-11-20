@@ -64,7 +64,10 @@ const TrabajadoresPage = () => {
 
   const cargarFincas = async () => {
     try {
-      const res = await fetch('https://modulo-inventario-y-costos-proyecto.onrender.com/api/fincas');
+      const token = localStorage.getItem('token');
+      const res = await fetch('https://modulo-inventario-y-costos-proyecto.onrender.com/api/fincas', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       setFincas(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -80,6 +83,7 @@ const TrabajadoresPage = () => {
   const validarCrear = (): boolean => {
     const e: ErroresCrear = {};
     if (!nombre.trim()) e.nombre = 'El nombre es obligatorio';
+    else if (nombre.trim().split(/\s+/).length < 2) e.nombre = 'Escribe nombre y apellido';
     if (!cedula.trim()) e.cedula = 'La cédula es obligatoria';
     else if (cedula.length < 6) e.cedula = 'La cédula debe tener al menos 6 dígitos';
     if (!cargo.trim()) e.cargo = 'El cargo es obligatorio';
@@ -95,6 +99,7 @@ const TrabajadoresPage = () => {
   const validarEditar = (): boolean => {
     const e: ErroresEditar = {};
     if (!nombreEditar.trim()) e.nombreEditar = 'El nombre es obligatorio';
+    else if (nombreEditar.trim().split(/\s+/).length < 2) e.nombreEditar = 'Escribe nombre y apellido';
     if (!cedulaEditar.trim()) e.cedulaEditar = 'La cédula es obligatoria';
     else if (cedulaEditar.length < 6) e.cedulaEditar = 'La cédula debe tener al menos 6 dígitos';
     if (!cargoEditar.trim()) e.cargoEditar = 'El cargo es obligatorio';
@@ -114,27 +119,27 @@ const TrabajadoresPage = () => {
       showToast('Trabajador creado exitosamente', 'success');
       cerrarModal();
       cargarTrabajadores();
-    } catch {
-      showToast('Error al crear el trabajador', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Error al crear el trabajador', 'error');
     }
   };
 
   const handleEliminar = async (id: number) => {
     try {
       await deleteTrabajador(id);
-      showToast('Trabajador eliminado', 'warning');
+      showToast('Trabajador desactivado', 'warning');
       cargarTrabajadores();
-    } catch {
-      showToast('Error al eliminar el trabajador', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Error al eliminar el trabajador', 'error');
     }
   };
 
   const abrirEditar = (t: any) => {
     setTrabajadorSeleccionado(t);
-    setNombreEditar(t.nombre); setCedulaEditar(t.cedula);
-    setCargoEditar(t.cargo); setIdFincaEditar(String(t.id_finca));
-    setTelefonoEditar(t.telefono); setCorreoEditar(t.correo);
-    setEstadoEditar(t.estado); setErroresEditar({});
+    setNombreEditar(t.nombre ?? ''); setCedulaEditar(t.cedula ?? '');
+    setCargoEditar(t.cargo ?? ''); setIdFincaEditar(t.id_finca ? String(t.id_finca) : '');
+    setTelefonoEditar(t.telefono ?? ''); setCorreoEditar(t.correo ?? '');
+    setEstadoEditar(t.estado ?? 'Activo'); setErroresEditar({});
     setModalEditarAbierto(true);
   };
 
@@ -149,8 +154,8 @@ const TrabajadoresPage = () => {
       showToast('Trabajador actualizado correctamente', 'success');
       cerrarModalEditar();
       cargarTrabajadores();
-    } catch {
-      showToast('Error al actualizar el trabajador', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Error al actualizar el trabajador', 'error');
     }
   };
 
@@ -228,11 +233,11 @@ const TrabajadoresPage = () => {
               filtered.map((t) => (
                 <tr key={t.id_trabajador}>
                   <td className="pp-td-nombre">{t.nombre}</td>
-                  <td>{t.cedula}</td>
-                  <td><span className="pp-badge">{t.cargo}</span></td>
+                  <td>{t.cedula || '—'}</td>
+                  <td>{t.cargo ? <span className="pp-badge">{t.cargo}</span> : '—'}</td>
                   <td>{t.finca_nombre || '—'}</td>
                   <td>
-                    <div>{t.telefono}</div>
+                    <div>{t.telefono || '—'}</div>
                     <div className="pp-td-correo">{t.correo}</div>
                   </td>
                   <td>
