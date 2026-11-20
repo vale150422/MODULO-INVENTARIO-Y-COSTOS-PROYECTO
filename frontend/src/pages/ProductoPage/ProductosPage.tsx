@@ -38,22 +38,32 @@ const ProductosPage = () => {
     try {
       const res = await getProductos();
       setProductos(Array.isArray(res) ? res : res?.data || []);
-    } catch { setProductos([]); }
+    } catch (error: any) {
+      setProductos([]);
+      showToast(error.message || 'Error al cargar los insumos', 'error');
+    }
   };
 
   const cargarFincas = async () => {
     try {
-      const res = await fetch('https://modulo-inventario-y-costos-proyecto.onrender.com/api/fincas');
+      const token = localStorage.getItem('token');
+      const res = await fetch('https://modulo-inventario-y-costos-proyecto.onrender.com/api/fincas', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       setFincas(Array.isArray(data) ? data : []);
-    } catch { console.error('Error cargando fincas'); }
+    } catch {
+      console.error('Error cargando fincas');
+    }
   };
 
   const cargarCategorias = async () => {
     try {
       const res = await getCategorias();
       setCategorias(Array.isArray(res) ? res : []);
-    } catch { console.error('Error cargando categorías'); }
+    } catch {
+      console.error('Error cargando categorías');
+    }
   };
 
   useEffect(() => {
@@ -63,10 +73,13 @@ const ProductosPage = () => {
   }, []);
 
   const handleCrear = async () => {
-    if (!nombre.trim() || !idCategoria || !unidadMedida || !idFinca) return;
+    if (!nombre.trim() || !idCategoria || !unidadMedida || !idFinca) {
+      showToast('Completa nombre, categoría, unidad y finca', 'warning');
+      return;
+    }
     try {
       await createProducto({
-        nombre,
+        nombre: nombre.trim(),
         id_categoria: Number(idCategoria),
         unidadMedida,
         id_finca: Number(idFinca),
@@ -75,8 +88,8 @@ const ProductosPage = () => {
       showToast('Insumo creado exitosamente', 'success');
       cerrarModal();
       cargarProductos();
-    } catch {
-      showToast('Error al crear el Insumo', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Error al crear el Insumo', 'error');
     }
   };
 
@@ -85,8 +98,8 @@ const ProductosPage = () => {
       await deleteProducto(id);
       showToast('Insumo inactivado', 'warning');
       cargarProductos();
-    } catch {
-      showToast('Error al inactivar el Insumo', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Error al inactivar el Insumo', 'error');
     }
   };
 
@@ -95,26 +108,29 @@ const ProductosPage = () => {
       await reactivarProducto(id);
       showToast('Insumo activado', 'success');
       cargarProductos();
-    } catch {
-      showToast('Error al activar el insumo', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Error al activar el insumo', 'error');
     }
   };
 
   const abrirEditar = (p: any) => {
     setProductoSeleccionado(p);
-    setNombreEditar(p.nombre);
-    setIdCategoriaEditar(String(p.id_categoria));
-    setUnidadMedidaEditar(p.unidadmedida);
-    setIdFincaEditar(String(p.id_finca));
+    setNombreEditar(p.nombre ?? '');
+    setIdCategoriaEditar(p.id_categoria ? String(p.id_categoria) : '');
+    setUnidadMedidaEditar(p.unidadmedida ?? '');
+    setIdFincaEditar(p.id_finca ? String(p.id_finca) : '');
     setStockMinimoEditar(String(p.stock_minimo ?? 10));
     setModalEditarAbierto(true);
   };
 
   const handleEditar = async () => {
-    if (!nombreEditar.trim() || !idCategoriaEditar || !unidadMedidaEditar || !idFincaEditar) return;
+    if (!nombreEditar.trim() || !idCategoriaEditar || !unidadMedidaEditar || !idFincaEditar) {
+      showToast('Completa nombre, categoría, unidad y finca', 'warning');
+      return;
+    }
     try {
       await updateProducto(productoSeleccionado.id_producto, {
-        nombre: nombreEditar,
+        nombre: nombreEditar.trim(),
         id_categoria: Number(idCategoriaEditar),
         unidadMedida: unidadMedidaEditar,
         id_finca: Number(idFincaEditar),
@@ -123,8 +139,8 @@ const ProductosPage = () => {
       showToast('Insumo actualizado correctamente', 'success');
       cerrarModalEditar();
       cargarProductos();
-    } catch {
-      showToast('Error al actualizar el insumo', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Error al actualizar el insumo', 'error');
     }
   };
 
