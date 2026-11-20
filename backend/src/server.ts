@@ -6,7 +6,7 @@ dotenv.config();
 
 import './database';
 
-import { auditContext } from './middlewares/auditContext';
+import { auditContext } from './middleware/auditContext';
 import productoRoutes from './routes/productoRoutes';
 import fincaRoutes from './routes/fincaRoutes';
 import proveedorRoutes from './routes/proveedorRoutes';
