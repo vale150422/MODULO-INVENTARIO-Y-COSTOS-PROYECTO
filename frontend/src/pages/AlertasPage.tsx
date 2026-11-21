@@ -388,7 +388,10 @@ export default function AlertasPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table>            
           )}
         </div>
       )}
+    </div>
+  );
+}
