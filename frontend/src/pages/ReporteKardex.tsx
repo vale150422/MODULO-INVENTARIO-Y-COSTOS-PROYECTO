@@ -2,6 +2,7 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { FileSpreadsheet, Printer, AlertTriangle, ClipboardList } from 'lucide-react';
 
 interface Producto {
   id_producto: number;
@@ -119,14 +120,14 @@ export default function ReporteKardex() {
           <button onClick={exportarExcel} disabled={!data}
             className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2
                        transition-opacity hover:opacity-90 disabled:opacity-40"
-            style={{ background: '#1e6e3a', color: '#ffffff' }}>
-            <span>📊</span> Exportar Excel
+            style={{ background: '#2d4a1e', color: '#ffffff' }}>
+            <FileSpreadsheet size={16} /> Exportar Excel
           </button>
           <button onClick={exportarPDF} disabled={!data}
             className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2
                        transition-opacity hover:opacity-90 disabled:opacity-40"
-            style={{ background: '#d4a843', color: '#2d4a1e' }}>
-            <span>🖨️</span> Exportar PDF
+            style={{ background: '#ffffff', color: '#2d4a1e', border: '1px solid #2d4a1e' }}>
+            <Printer size={16} /> Exportar PDF
           </button>
         </div>
       </div>
@@ -136,7 +137,7 @@ export default function ReporteKardex() {
         {/* Encabezado */}
         <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-[#2d4a1e]">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#d4a843] bg-[#f5f0e0]">
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#c8d9a0] bg-[#f0f7e8]">
               <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-[1.35]"/>
             </div>
             <div>
@@ -161,7 +162,7 @@ export default function ReporteKardex() {
 
         {error && (
           <div className="text-center py-16">
-            <div className="text-4xl mb-3">⚠️</div>
+            <AlertTriangle size={36} className="mx-auto mb-3 text-[#b91c1c]" />
             <p className="text-red-600 font-semibold">{error}</p>
             <p className="text-sm text-[#6b8c3e] mt-1">Verifica que el backend esté corriendo</p>
           </div>
@@ -171,35 +172,35 @@ export default function ReporteKardex() {
           <>
             {/* Resumen ejecutivo */}
             <div className="grid grid-cols-4 gap-3 mb-6">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                <p className="text-[10px] text-green-700 uppercase font-semibold tracking-wider">Valor Inventario</p>
-                <p className="text-base font-bold text-green-700 mt-1">{fmt(data.totalInventario)}</p>
+              <div className="bg-[#f7faf2] border border-[#dfe9cf] rounded-lg p-3 text-center">
+                <p className="text-[10px] text-[#6b8c3e] uppercase font-semibold tracking-wider">Valor Inventario</p>
+                <p className="text-base font-bold text-[#2d4a1e] mt-1">{fmt(data.totalInventario)}</p>
               </div>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-                <p className="text-[10px] text-red-700 uppercase font-semibold tracking-wider">Costo Ventas</p>
-                <p className="text-base font-bold text-red-700 mt-1">{fmt(Number(data.costoVentas))}</p>
+              <div className="bg-[#f7faf2] border border-[#dfe9cf] rounded-lg p-3 text-center">
+                <p className="text-[10px] text-[#6b8c3e] uppercase font-semibold tracking-wider">Costo Ventas</p>
+                <p className="text-base font-bold text-[#b91c1c] mt-1">{fmt(Number(data.costoVentas))}</p>
               </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                <p className="text-[10px] text-blue-700 uppercase font-semibold tracking-wider">Entradas</p>
-                <p className="text-base font-bold text-blue-700 mt-1">{data.totalEntradas} mov.</p>
+              <div className="bg-[#f7faf2] border border-[#dfe9cf] rounded-lg p-3 text-center">
+                <p className="text-[10px] text-[#6b8c3e] uppercase font-semibold tracking-wider">Entradas</p>
+                <p className="text-base font-bold text-[#2d4a1e] mt-1">{data.totalEntradas} mov.</p>
               </div>
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
-                <p className="text-[10px] text-orange-700 uppercase font-semibold tracking-wider">Salidas</p>
-                <p className="text-base font-bold text-orange-700 mt-1">{data.totalSalidas} mov.</p>
+              <div className="bg-[#f7faf2] border border-[#dfe9cf] rounded-lg p-3 text-center">
+                <p className="text-[10px] text-[#6b8c3e] uppercase font-semibold tracking-wider">Salidas</p>
+                <p className="text-base font-bold text-[#2d4a1e] mt-1">{data.totalSalidas} mov.</p>
               </div>
             </div>
 
             {/* Tabla de productos */}
             {data.productos.length === 0 ? (
               <div className="text-center py-12">
-                <div className="text-5xl mb-4">📋</div>
+                <ClipboardList size={44} className="mx-auto mb-4 text-[#6b8c3e]" />
                 <p className="text-[#2d4a1e] font-semibold">No hay productos registrados</p>
                 <p className="text-sm text-[#6b8c3e] mt-1">Registra movimientos en el módulo Kardex</p>
               </div>
             ) : (
               <table className="w-full text-xs border-collapse">
                 <thead>
-                  <tr className="bg-[#2d4a1e] text-white">
+                  <tr style={{ background: '#2d4a1e', color: '#ffffff' }}>
                     <th className="px-3 py-2 text-left">Producto</th>
                     <th className="px-3 py-2 text-left">Categoría</th>
                     <th className="px-3 py-2 text-left">Finca</th>
@@ -210,26 +211,25 @@ export default function ReporteKardex() {
                 </thead>
                 <tbody>
                   {data.productos.map((p, i) => (
-                    <tr key={p.id_producto} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <tr key={p.id_producto} className={i % 2 === 0 ? 'bg-white' : 'bg-[#f7faf2]'}>
                       <td className="px-3 py-2 border-b border-gray-100 font-medium text-[#2d4a1e]">{p.nombre}</td>
                       <td className="px-3 py-2 border-b border-gray-100 text-[#6b8c3e]">{p.categoria}</td>
                       <td className="px-3 py-2 border-b border-gray-100 text-[#6b8c3e]">{p.finca}</td>
                       <td className={`px-3 py-2 border-b border-gray-100 text-right font-mono font-bold
-                        ${Number(p.saldo_cantidad) < 10 ? 'text-red-600' : 'text-[#2d4a1e]'}`}>
+                        ${Number(p.saldo_cantidad) < 10 ? 'text-[#b91c1c]' : 'text-[#2d4a1e]'}`}>
                         {Number(p.saldo_cantidad).toLocaleString('es-CO')} {p.unidadmedida}
                       </td>
                       <td className="px-3 py-2 border-b border-gray-100 text-right font-mono text-[#2d4a1e]">
                         {Number(p.costo_unitario) > 0 ? fmt(p.costo_unitario) : '—'}
                       </td>
-                      <td className={`px-3 py-2 border-b border-gray-100 text-right font-mono font-bold
-                        ${Number(p.saldo_cantidad) < 10 ? 'text-red-600' : 'text-[#2d4a1e]'}`}>
+                      <td className="px-3 py-2 border-b border-gray-100 text-right font-mono font-bold text-[#2d4a1e]">
                         {Number(p.saldo_valor) > 0 ? fmt(p.saldo_valor) : '$0'}
                       </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-[#f5f0e0] font-bold">
+                  <tr className="bg-[#f0f7e8] font-bold">
                     <td colSpan={5} className="px-3 py-2 text-right text-[#2d4a1e] font-semibold uppercase tracking-wider text-xs">
                       TOTAL INVENTARIO:
                     </td>
@@ -242,8 +242,8 @@ export default function ReporteKardex() {
             )}
 
             {data.productos.some(p => Number(p.saldo_cantidad) < 10) && (
-              <p className="text-xs text-red-500 mt-3">
-                ⚠️ Los productos en <span className="font-bold">rojo</span> tienen stock bajo
+              <p className="text-xs text-[#b91c1c] mt-3">
+                Las cantidades en <span className="font-bold">rojo</span> tienen stock bajo
               </p>
             )}
 
@@ -255,7 +255,7 @@ export default function ReporteKardex() {
                 </p>
                 <table className="w-full text-xs border-collapse">
                   <thead>
-                    <tr className="bg-[#f5f0e0]">
+                    <tr className="bg-[#f0f7e8]">
                       <th className="px-3 py-1.5 text-left text-[#2d4a1e]">Cuenta</th>
                       <th className="px-3 py-1.5 text-left text-[#2d4a1e]">Descripción</th>
                       <th className="px-3 py-1.5 text-right text-[#2d4a1e]">Debe</th>
@@ -264,16 +264,16 @@ export default function ReporteKardex() {
                   </thead>
                   <tbody>
                     <tr className="border-b border-gray-100">
-                      <td className="px-3 py-1.5 text-[#d4a843] font-mono">613501</td>
+                      <td className="px-3 py-1.5 text-[#6b8c3e] font-mono">613501</td>
                       <td className="px-3 py-1.5 text-[#2d4a1e]">Costo de Ventas</td>
-                      <td className="px-3 py-1.5 text-right font-mono text-green-700">{fmt(Number(data.costoVentas))}</td>
+                      <td className="px-3 py-1.5 text-right font-mono text-[#2d4a1e]">{fmt(Number(data.costoVentas))}</td>
                       <td className="px-3 py-1.5 text-right text-[#6b8c3e]">—</td>
                     </tr>
                     <tr>
-                      <td className="px-3 py-1.5 text-[#d4a843] font-mono">143501</td>
+                      <td className="px-3 py-1.5 text-[#6b8c3e] font-mono">143501</td>
                       <td className="px-3 py-1.5 text-[#2d4a1e]">Mercancías no fabricadas por la empresa</td>
                       <td className="px-3 py-1.5 text-right text-[#6b8c3e]">—</td>
-                      <td className="px-3 py-1.5 text-right font-mono text-red-600">{fmt(Number(data.costoVentas))}</td>
+                      <td className="px-3 py-1.5 text-right font-mono text-[#2d4a1e]">{fmt(Number(data.costoVentas))}</td>
                     </tr>
                   </tbody>
                 </table>
