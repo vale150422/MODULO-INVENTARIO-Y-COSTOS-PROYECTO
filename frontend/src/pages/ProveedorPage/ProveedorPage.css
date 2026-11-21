@@ -205,18 +205,26 @@
 }
 
 .pp-btn-editar {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 5px 13px;
   border-radius: 6px;
-  background: #f68d42fc;
-  color: #ffffff;
+  background: #f0f7e8;
+  color: #2d4a1e;
+  border: 1px solid #c8d9a0;
   font-family: var(--font-principal);
   font-size: 0.75rem;
-  font-weight: 500;
-  border: none;
+  font-weight: 600;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
-.pp-btn-editar:hover { background: #ea6c0a; }
+
+.pp-btn-editar:hover {
+  background: #4a7c3f;
+  color: #ffffff;
+  border-color: #4a7c3f;
+}
 
 .pp-btn-eliminar {
   padding: 5px 13px;
