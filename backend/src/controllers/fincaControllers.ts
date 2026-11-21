@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { getFincas, createFinca, getFincaById, updateFinca, deleteFinca } from '../models/fincaModels';
 import { currentUserId } from '../utils/currentUser';
+import { fincasPermitidas, SIN_PERMISO_FINCA } from '../utils/fincasUsuario';
 
 // Identifica al usuario a partir del token (igual que en productos y categorías)
 const ctx = (req: Request) => ({
@@ -8,9 +9,10 @@ const ctx = (req: Request) => ({
   ip: req.ip ?? null,
 });
 
-export const getAllFincas = async (_req: Request, res: Response) => {
+// El administrador ve todas; el trabajador solo las que tiene asignadas
+export const getAllFincas = async (req: Request, res: Response) => {
   try {
-    res.json(await getFincas());
+    res.json(await getFincas(await fincasPermitidas(req)));
   } catch (error) {
     console.error('getAllFincas:', error);
     res.status(500).json({ message: 'Error al obtener fincas' });
@@ -28,7 +30,12 @@ export const addFinca = async (req: Request, res: Response) => {
 
 export const getFinca = async (req: Request, res: Response) => {
   try {
-    res.json(await getFincaById(Number(req.params.id)));
+    const id = Number(req.params.id);
+    const fincas = await fincasPermitidas(req);
+    if (fincas !== null && !fincas.includes(id)) {
+      return res.status(403).json({ message: SIN_PERMISO_FINCA });
+    }
+    res.json(await getFincaById(id));
   } catch (error) {
     console.error('getFinca:', error);
     res.status(500).json({ message: 'Error al obtener finca' });

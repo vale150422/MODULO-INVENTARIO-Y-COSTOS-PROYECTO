@@ -19,9 +19,19 @@ const COLS = `
   (estado_registro = 1) AS activa
 `;
 
-export const getFincas = async () => {
+// fincas = null → todas (administrador); fincas = [ids] → solo esas (trabajador)
+export const getFincas = async (fincas: number[] | null = null) => {
+  if (fincas === null) {
+    const result = await pool.query(
+      `SELECT ${COLS} FROM public.finca WHERE estado_registro = 1 ORDER BY idfinca`
+    );
+    return result.rows;
+  }
   const result = await pool.query(
-    `SELECT ${COLS} FROM public.finca WHERE estado_registro = 1 ORDER BY idfinca`
+    `SELECT ${COLS} FROM public.finca
+      WHERE estado_registro = 1 AND idfinca = ANY($1::int[])
+      ORDER BY idfinca`,
+    [fincas]
   );
   return result.rows;
 };
