@@ -17,8 +17,9 @@ const adminItems = [
   { to: '/kardex',         label: 'Kardex',       icon: Package },
   { to: '/reportes',       label: 'Reportes',     icon: BarChart2 },
   { to: '/reporte-kardex', label: 'Rep. Kardex',  icon: ClipboardList },
-  { to: '/perfil',         label: 'Mi Perfil',    icon: UserCircle },
   { to: '/alertas',        label: 'Alertas',      icon: AlertTriangle },
+  { to: '/perfil',         label: 'Mi Perfil',    icon: UserCircle },
+  
 ];
 
 const empleadoItems = [
