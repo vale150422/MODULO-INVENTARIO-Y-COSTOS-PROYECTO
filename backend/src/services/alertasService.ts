@@ -1,4 +1,4 @@
-import { pool } from '../database/index'; 
+import { pool } from '../database/index';
 import { enviarSMS, ResultadoSMS } from './smsService';
 
 
@@ -17,6 +17,7 @@ export interface LoteAlerta {
   dias_restantes: number;
 }
 
+// "cantidad" es lo que entró; lo que queda por consumir es cantidad_disponible
 export const obtenerLotesPorVencer = async (dias = 30): Promise<LoteAlerta[]> => {
   const result = await pool.query(
     `SELECT
@@ -25,15 +26,15 @@ export const obtenerLotesPorVencer = async (dias = 30): Promise<LoteAlerta[]> =>
        p.nombre AS producto,
        p.unidadmedida,
        f.nombre AS finca,
-       l.cantidad,
+       l.cantidad_disponible AS cantidad,
        l.costo_unitario,
        l.factura,
        to_char(l.fecha_vencimiento, 'YYYY-MM-DD') AS fecha_vencimiento,
        (l.fecha_vencimiento::date - CURRENT_DATE) AS dias_restantes
-     FROM kardex_lote l
-     JOIN producto p ON p.id_producto = l.id_producto
-     JOIN finca f ON f.id_finca = l.id_finca
-     WHERE l.cantidad > 0
+     FROM inventario.kardex_lote l
+     JOIN inventario.producto p ON p.id_producto = l.id_producto
+     JOIN public.finca f ON f.idfinca = l.id_finca
+     WHERE l.cantidad_disponible > 0
        AND l.fecha_vencimiento IS NOT NULL
        AND l.fecha_vencimiento <= CURRENT_DATE + $1::int
      ORDER BY l.fecha_vencimiento ASC`,
@@ -91,15 +92,15 @@ export const normalizarTelefono = (raw: string): string | null => {
 export const obtenerTelefonos = async (): Promise<TelefonoAlerta[]> => {
   const result = await pool.query(
     `SELECT id_telefono, nombre, telefono, activo
-     FROM alerta_telefono
-     ORDER BY created_at ASC`
+       FROM inventario.alerta_telefono
+      ORDER BY created_at ASC, id_telefono ASC`
   );
   return result.rows;
 };
 
 export const agregarTelefono = async (nombre: string, telefono: string): Promise<TelefonoAlerta> => {
   const result = await pool.query(
-    `INSERT INTO alerta_telefono (nombre, telefono)
+    `INSERT INTO inventario.alerta_telefono (nombre, telefono)
      VALUES ($1, $2)
      RETURNING id_telefono, nombre, telefono, activo`,
     [nombre, telefono]
@@ -109,18 +110,18 @@ export const agregarTelefono = async (nombre: string, telefono: string): Promise
 
 export const cambiarEstadoTelefono = async (id: number, activo: boolean) => {
   await pool.query(
-    'UPDATE alerta_telefono SET activo = $1 WHERE id_telefono = $2',
+    'UPDATE inventario.alerta_telefono SET activo = $1 WHERE id_telefono = $2',
     [activo, id]
   );
 };
 
 export const eliminarTelefono = async (id: number) => {
-  await pool.query('DELETE FROM alerta_telefono WHERE id_telefono = $1', [id]);
+  await pool.query('DELETE FROM inventario.alerta_telefono WHERE id_telefono = $1', [id]);
 };
 
 const obtenerDestinosActivos = async (): Promise<string[]> => {
   const result = await pool.query(
-    'SELECT telefono FROM alerta_telefono WHERE activo = TRUE ORDER BY created_at ASC'
+    'SELECT telefono FROM inventario.alerta_telefono WHERE activo = TRUE ORDER BY created_at ASC, id_telefono ASC'
   );
   return result.rows.map((r: any) => r.telefono);
 };
