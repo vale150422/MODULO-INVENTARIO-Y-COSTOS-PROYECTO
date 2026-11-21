@@ -8,7 +8,7 @@ interface Cat { categoria: string; valor: number | string; }
 
 const COP = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 const COMPACTO = new Intl.NumberFormat('es-CO', { notation: 'compact', maximumFractionDigits: 1 });
-const COLORES = ['#4a7c3f', '#d4a017', '#2f7fb5', '#b5492f', '#7a5aa6', '#2a9d8f', '#8a8a3a'];
+const COLORES = ['#4a7c3f', '#e88b8b', '#2f7fb5', '#b5492f', '#7a5aa6', '#2a9d8f', '#8a8a3a'];
 
 const card: React.CSSProperties = {
   background: '#fff', border: '1px solid #cfe0b8', borderRadius: 14,
@@ -66,8 +66,8 @@ const DashboardCharts = () => {
                 <div key={a.id_producto} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
                   padding: '10px 14px', borderRadius: 10,
-                  background: agotado ? '#fee2e2' : '#fef3c7',
-                  border: `1px solid ${agotado ? '#fca5a5' : '#fcd34d'}`,
+                  background: agotado ? '#fee2e2' : '#fff1f1',
+                  border: `1px solid ${agotado ? '#fca5a5' : '#fbd0d0'}`,
                 }}>
                   <div>
                     <strong>{a.nombre}</strong>
@@ -75,7 +75,7 @@ const DashboardCharts = () => {
                   </div>
                   <div style={{ textAlign: 'right', fontSize: 13 }}>
                     <strong>{saldo} {a.unidadmedida}</strong> de {Number(a.stock_minimo)} mínimo
-                    <div style={{ fontSize: 11, fontWeight: 700, color: agotado ? '#991b1b' : '#92400e' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: agotado ? '#991b1b' : '#c0504d' }}>
                       {agotado ? 'AGOTADO' : 'BAJO STOCK'}
                     </div>
                   </div>
@@ -107,7 +107,7 @@ const DashboardCharts = () => {
                   <rect x={x + grupo * 0.12} y={H - PAD - alto(d.e)} width={bw} height={alto(d.e)} rx="3" fill="#4a7c3f">
                     <title>Entradas: {COP.format(d.e)}</title>
                   </rect>
-                  <rect x={x + grupo * 0.12 + bw + 3} y={H - PAD - alto(d.s)} width={bw} height={alto(d.s)} rx="3" fill="#d4572f">
+                  <rect x={x + grupo * 0.12 + bw + 3} y={H - PAD - alto(d.s)} width={bw} height={alto(d.s)} rx="3" fill="#ef9a9a">
                     <title>Salidas: {COP.format(d.s)}</title>
                   </rect>
                   <text x={x + grupo / 2} y={H - PAD + 16} fontSize="10" textAnchor="middle" fill="#6b7280">
@@ -119,7 +119,7 @@ const DashboardCharts = () => {
           </svg>
           <div style={{ display: 'flex', gap: 16, fontSize: 12, marginTop: 4 }}>
             <span><span style={{ color: '#4a7c3f' }}>■</span> Entradas</span>
-            <span><span style={{ color: '#d4572f' }}>■</span> Salidas</span>
+            <span><span style={{ color: '#ef9a9a' }}>■</span> Salidas</span>
           </div>
         </div>
 
