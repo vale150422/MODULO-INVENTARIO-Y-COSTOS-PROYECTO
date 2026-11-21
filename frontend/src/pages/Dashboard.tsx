@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { api } from '../services/api';
+import DashboardCharts from '../components/DashboardCharts';
 
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO');
 
@@ -142,6 +143,9 @@ export default function Dashboard() {
           </tbody>
         </table>
       </div>
+
+      {/* Alertas de bajo stock y gráficos */}
+      <DashboardCharts />
     </div>
   );
 }

@@ -264,15 +264,52 @@ export const getDashboardModel = async () => {
     ORDER BY k.fecha DESC, k.id_kardex DESC LIMIT 10
   `);
 
-  const bajoStock = await pool.query(`
-    SELECT COUNT(*) FROM (
-      SELECT DISTINCT ON (k.id_producto) k.saldo_cantidad, p.stock_minimo
-        FROM inventario.kardex k
-        JOIN inventario.producto p ON p.id_producto = k.id_producto
-       WHERE p.activo = true
-       ORDER BY k.id_producto, k.fecha DESC, k.id_kardex DESC
-    ) sub
-    WHERE sub.saldo_cantidad < sub.stock_minimo
+  // Alerta cuando el saldo es menor O IGUAL al stock mínimo
+  const productosBajoStock = await pool.query(`
+    SELECT p.id_producto, p.nombre, p.unidadmedida, p.stock_minimo,
+           f.nombre AS finca,
+           COALESCE(k.saldo_cantidad, 0) AS saldo_cantidad
+      FROM inventario.producto p
+      JOIN public.finca f ON f.idfinca = p.id_finca
+      LEFT JOIN LATERAL (
+        SELECT saldo_cantidad
+          FROM inventario.kardex
+         WHERE id_producto = p.id_producto
+         ORDER BY fecha DESC, id_kardex DESC LIMIT 1
+      ) k ON TRUE
+     WHERE p.activo = true
+       AND COALESCE(k.saldo_cantidad, 0) <= p.stock_minimo
+     ORDER BY COALESCE(k.saldo_cantidad, 0) ASC, p.nombre
+  `);
+
+  // Entradas y salidas (en pesos) de los últimos 7 días
+  const movimientosPorDia = await pool.query(`
+    SELECT to_char(d.dia, 'YYYY-MM-DD') AS dia,
+           COALESCE(SUM(k.total) FILTER (WHERE k.tipo IN ('ENTRADA','INICIO')), 0) AS entradas,
+           COALESCE(SUM(k.total) FILTER (WHERE k.tipo = 'SALIDA'), 0) AS salidas
+      FROM generate_series(
+             (CURRENT_DATE - 6)::timestamp, CURRENT_DATE::timestamp, interval '1 day'
+           ) AS d(dia)
+      LEFT JOIN inventario.kardex k ON DATE(k.fecha) = d.dia::date
+     GROUP BY d.dia
+     ORDER BY d.dia
+  `);
+
+  // Valor del inventario por categoría
+  const valorPorCategoria = await pool.query(`
+    SELECT c.nombre AS categoria, COALESCE(SUM(k.saldo_valor), 0) AS valor
+      FROM inventario.producto p
+      JOIN inventario.categoria c ON c.id_categoria = p.id_categoria
+      LEFT JOIN LATERAL (
+        SELECT saldo_valor
+          FROM inventario.kardex
+         WHERE id_producto = p.id_producto
+         ORDER BY fecha DESC, id_kardex DESC LIMIT 1
+      ) k ON TRUE
+     WHERE p.activo = true
+     GROUP BY c.nombre
+    HAVING COALESCE(SUM(k.saldo_valor), 0) > 0
+     ORDER BY valor DESC
   `);
 
   return {
@@ -283,6 +320,9 @@ export const getDashboardModel = async () => {
       salidas: Number(movimientosHoy.rows[0].salidas),
     },
     ultimosMovimientos: ultimosMovimientos.rows,
-    bajoStock: Number(bajoStock.rows[0].count),
+    bajoStock: productosBajoStock.rows.length,
+    productosBajoStock: productosBajoStock.rows,
+    movimientosPorDia: movimientosPorDia.rows,
+    valorPorCategoria: valorPorCategoria.rows,
   };
 };
