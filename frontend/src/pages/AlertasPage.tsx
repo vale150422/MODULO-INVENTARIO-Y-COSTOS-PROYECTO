@@ -25,7 +25,6 @@ interface Telefono {
   activo: boolean;
 }
 
-
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO');
 const headers = () => ({
   'Content-Type': 'application/json',
@@ -42,11 +41,16 @@ const fmtTel = (t: string) =>
     ? `+57 ${t.slice(3, 6)} ${t.slice(6, 9)} ${t.slice(9)}`
     : t;
 
+// Paleta: verdes para lo normal, rojo solo para alertas
+const ROJO_FUERTE = 'bg-red-600 text-white';
+const ROJO_SUAVE = 'bg-red-500/15 text-red-500 border border-red-500/40';
+const VERDE_SUAVE = 'bg-[#4a7c3f]/15 text-[#4a7c3f] border border-[#4a7c3f]/40';
+
 const estado = (d: number) => {
-  if (d < 0)   return { texto: `Vencido hace ${Math.abs(d)} d`, clase: 'bg-red-900/40 text-red-400' };
-  if (d === 0) return { texto: 'Vence hoy',                      clase: 'bg-red-900/40 text-red-400' };
-  if (d <= 7)  return { texto: `${d} días`,                      clase: 'bg-orange-900/40 text-orange-400' };
-  return           { texto: `${d} días`,                         clase: 'bg-yellow-900/40 text-yellow-500' };
+  if (d < 0)   return { texto: `Vencido hace ${Math.abs(d)} d`, clase: ROJO_FUERTE, critico: true };
+  if (d === 0) return { texto: 'Vence hoy',                      clase: ROJO_FUERTE, critico: true };
+  if (d <= 7)  return { texto: `${d} días`,                      clase: ROJO_SUAVE,  critico: true };
+  return           { texto: `${d} días`,                         clase: VERDE_SUAVE, critico: false };
 };
 
 type Aviso = { tipo: 'ok' | 'info' | 'error'; texto: string } | null;
@@ -110,8 +114,8 @@ export default function AlertasPage() {
         headers: headers(),
         body: JSON.stringify({ nombre, telefono }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'No se pudo guardar');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || data.message || 'No se pudo guardar');
       setNombre('');
       setTelefono('');
       cargarTelefonos();
@@ -168,11 +172,12 @@ export default function AlertasPage() {
   const valorRiesgo = lotes.reduce((a, l) => a + l.cantidad * l.costo_unitario, 0);
   const activos = telefonos.filter(t => t.activo).length;
 
+  // Rojo solo cuando hay algo que atender; el resto en verde
   const kpis = [
-    { label: 'Vencidos',                 value: vencidos.length, color: 'text-red-400' },
-    { label: 'Vencen en ≤ 7 días',       value: criticos.length, color: 'text-orange-400' },
-    { label: `Vencen en ≤ ${dias} días`, value: proximos.length, color: 'text-yellow-500' },
-    { label: 'Valor en riesgo',          value: fmt(valorRiesgo), color: 'text-[#d4a843]' },
+    { label: 'Vencidos',                 value: vencidos.length,  alerta: vencidos.length > 0 },
+    { label: 'Vencen en ≤ 7 días',       value: criticos.length,  alerta: criticos.length > 0 },
+    { label: `Vencen en ≤ ${dias} días`, value: proximos.length,  alerta: false },
+    { label: 'Valor en riesgo',          value: fmt(valorRiesgo), alerta: false },
   ];
 
   return (
@@ -181,9 +186,9 @@ export default function AlertasPage() {
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-white flex items-center gap-2">
-            <Bell className="w-6 h-6 text-white" /> Alertas de Vencimiento
+            <Bell className="w-6 h-6 text-[#4a7c3f]" /> Alertas de Vencimiento
           </h1>
-          <p className="text-sm text-[#8fae5a] mt-1">
+          <p className="text-sm text-[#4a7c3f] mt-1">
             Lotes de insumos vencidos o próximos a vencer
           </p>
         </div>
@@ -202,7 +207,7 @@ export default function AlertasPage() {
             <button
               onClick={enviarSMS}
               disabled={enviando}
-              className="px-4 py-2 bg-[#d4a843] text-[#2d4a1e] rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2">
+              className="px-4 py-2 bg-[#4a7c3f] text-white rounded-lg text-sm font-semibold hover:bg-[#3d6b2e] transition-colors disabled:opacity-50 flex items-center gap-2">
               {enviando ? 'Enviando...' : <><Send className="w-4 h-4" /> Enviar SMS ahora</>}
             </button>
           )}
@@ -211,20 +216,26 @@ export default function AlertasPage() {
 
       {msg && (
         <div className={`mb-4 px-4 py-3 rounded-lg text-sm border ${
-          msg.tipo === 'ok'    ? 'text-green-400 bg-green-900/20 border-green-900/40' :
-          msg.tipo === 'error' ? 'text-red-400 bg-red-900/20 border-red-900/40' :
-                                 'text-blue-400 bg-blue-900/20 border-blue-900/40'
+          msg.tipo === 'error'
+            ? 'text-red-500 bg-red-500/10 border-red-500/40'
+            : 'text-[#4a7c3f] bg-[#4a7c3f]/10 border-[#4a7c3f]/40'
         }`}>
           {msg.texto}
         </div>
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {kpis.map(k => (
-          <div key={k.label} className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
-            <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-2">{k.label}</p>
-            <p className={`text-2xl font-semibold font-mono ${k.color}`}>{k.value}</p>
+          <div key={k.label}
+            className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4 relative overflow-hidden">
+            <div className={`absolute top-0 left-0 right-0 h-[3px] rounded-t-xl ${
+              k.alerta ? 'bg-red-500' : 'bg-[#4a7c3f]'
+            }`} />
+            <p className="text-xs font-semibold text-[#4a7c3f] uppercase tracking-widest mb-2">{k.label}</p>
+            <p className={`text-2xl font-semibold font-mono ${k.alerta ? 'text-red-500' : 'text-white'}`}>
+              {k.value}
+            </p>
           </div>
         ))}
       </div>
@@ -234,14 +245,14 @@ export default function AlertasPage() {
         <h2 className="text-sm font-semibold text-[#4a7c3f] mb-4">Lotes en alerta</h2>
 
         {loading ? (
-          <p className="text-center text-[#8fae5a] text-xs py-10 animate-pulse">Cargando alertas...</p>
+          <p className="text-center text-[#4a7c3f] text-xs py-10 animate-pulse">Cargando alertas...</p>
         ) : error ? (
-          <p className="text-center text-red-400 text-xs py-10">{error}</p>
+          <p className="text-center text-red-500 text-xs py-10">{error}</p>
         ) : lotes.length === 0 ? (
           <div className="text-center py-12">
-            <CircleCheck className="w-14 h-14 text-white mx-auto mb-3" />
+            <CircleCheck className="w-14 h-14 text-[#4a7c3f] mx-auto mb-3" />
             <p className="text-white font-semibold">Sin alertas</p>
-            <p className="text-sm text-[#8fae5a] mt-1">
+            <p className="text-sm text-[#4a7c3f] mt-1">
               No hay insumos vencidos ni próximos a vencer en los próximos {dias} días
             </p>
           </div>
@@ -251,7 +262,7 @@ export default function AlertasPage() {
               <tr className="border-b border-[#264d35]">
                 {['Producto', 'Finca', 'Factura / Detalle', 'Cantidad', 'Vence', 'Estado', 'Valor'].map(h => (
                   <th key={h}
-                    className={`pb-2 px-2 text-[#8fae5a] uppercase text-[10px] tracking-wider
+                    className={`pb-2 px-2 text-[#4a7c3f] uppercase text-[10px] font-semibold tracking-wider
                       ${['Cantidad', 'Valor'].includes(h) ? 'text-right' : 'text-left'}`}>
                     {h}
                   </th>
@@ -262,22 +273,25 @@ export default function AlertasPage() {
               {lotes.map(l => {
                 const e = estado(l.dias_restantes);
                 return (
-                  <tr key={l.id_lote} className="border-b border-[#1a2e2244] hover:bg-[#111c17]">
-                    <td className="py-2 px-2 text-white font-semibold">{l.producto}</td>
-                    <td className="py-2 px-2 text-[#8fae5a]">{l.finca}</td>
-                    <td className="py-2 px-2 text-[#8fae5a]">{l.factura || '—'}</td>
-                    <td className="py-2 px-2 text-right font-mono text-white">
+                  <tr key={l.id_lote}
+                    className={`border-b border-[#264d35]/40 hover:bg-[#111c17] ${
+                      e.critico ? 'shadow-[inset_3px_0_0_#ef4444]' : ''
+                    }`}>
+                    <td className="py-2.5 px-2 text-white font-semibold">{l.producto}</td>
+                    <td className="py-2.5 px-2 text-white">{l.finca}</td>
+                    <td className="py-2.5 px-2 text-white">{l.factura || '—'}</td>
+                    <td className="py-2.5 px-2 text-right font-mono text-white">
                       {l.cantidad.toLocaleString('es-CO')} {l.unidadmedida}
                     </td>
-                    <td className="py-2 px-2 font-mono text-[#c8d9a0]">
+                    <td className="py-2.5 px-2 font-mono text-white">
                       {new Date(l.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO')}
                     </td>
-                    <td className="py-2 px-2">
+                    <td className="py-2.5 px-2">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${e.clase}`}>
                         {e.texto}
                       </span>
                     </td>
-                    <td className="py-2 px-2 text-right font-mono text-[#d4a843] font-semibold">
+                    <td className="py-2.5 px-2 text-right font-mono text-white font-semibold">
                       {fmt(l.cantidad * l.costo_unitario)}
                     </td>
                   </tr>
@@ -293,11 +307,11 @@ export default function AlertasPage() {
         <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-sm font-semibold text-[#4a7c3f] flex items-center gap-2">
-              <Smartphone className="w-4 h-4 text-white" /> Números para recibir alertas por SMS
+              <Smartphone className="w-4 h-4 text-[#4a7c3f]" /> Números para recibir alertas por SMS
             </h2>
-            <span className="text-[10px] text-[#8fae5a]">{activos} activo(s)</span>
+            <span className="text-[10px] font-semibold text-[#4a7c3f]">{activos} activo(s)</span>
           </div>
-          <p className="text-xs text-[#8fae5a] mb-4">
+          <p className="text-xs text-[#4a7c3f] mb-4">
             Solo estos números reciben el SMS. No se toman de la lista de trabajadores.
           </p>
 
@@ -326,46 +340,48 @@ export default function AlertasPage() {
           </form>
 
           {errTel && (
-            <p className="text-red-400 text-xs mb-3 bg-red-900/20 border border-red-900/40 rounded px-3 py-2">
+            <p className="text-red-500 text-xs mb-3 bg-red-500/10 border border-red-500/40 rounded px-3 py-2">
               {errTel}
             </p>
           )}
 
           {telefonos.length === 0 ? (
-            <p className="text-center text-[#8fae5a] text-xs py-6">
+            <p className="text-center text-[#4a7c3f] text-xs py-6">
               Aún no has agregado números. Agrega al menos uno para poder enviar alertas.
             </p>
           ) : (
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[#264d35]">
-                  <th className="pb-2 px-2 text-left text-[#8fae5a] uppercase text-[10px] tracking-wider">Nombre</th>
-                  <th className="pb-2 px-2 text-left text-[#8fae5a] uppercase text-[10px] tracking-wider">Celular</th>
-                  <th className="pb-2 px-2 text-left text-[#8fae5a] uppercase text-[10px] tracking-wider">Estado</th>
-                  <th className="pb-2 px-2 text-right text-[#8fae5a] uppercase text-[10px] tracking-wider">Acciones</th>
+                  <th className="pb-2 px-2 text-left text-[#4a7c3f] uppercase text-[10px] font-semibold tracking-wider">Nombre</th>
+                  <th className="pb-2 px-2 text-left text-[#4a7c3f] uppercase text-[10px] font-semibold tracking-wider">Celular</th>
+                  <th className="pb-2 px-2 text-left text-[#4a7c3f] uppercase text-[10px] font-semibold tracking-wider">Estado</th>
+                  <th className="pb-2 px-2 text-right text-[#4a7c3f] uppercase text-[10px] font-semibold tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {telefonos.map(t => (
                   <tr key={t.id_telefono}
-                    className="border-b border-[#1a2e2244] hover:bg-[#111c17]"
-                    style={{ opacity: t.activo ? 1 : 0.55 }}>
-                    <td className="py-2 px-2 text-white font-semibold">{t.nombre}</td>
-                    <td className="py-2 px-2 font-mono text-[#c8d9a0]">{fmtTel(t.telefono)}</td>
-                    <td className="py-2 px-2">
+                    className="border-b border-[#264d35]/40 hover:bg-[#111c17]"
+                    style={{ opacity: t.activo ? 1 : 0.6 }}>
+                    <td className="py-2.5 px-2 text-white font-semibold">{t.nombre}</td>
+                    <td className="py-2.5 px-2 font-mono text-white">{fmtTel(t.telefono)}</td>
+                    <td className="py-2.5 px-2">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                        t.activo ? 'bg-green-900/60 text-green-400' : 'bg-red-900/40 text-red-400'
+                        t.activo
+                          ? 'bg-[#4a7c3f] text-white'
+                          : 'border border-[#4a7c3f]/50 text-[#4a7c3f]'
                       }`}>
                         {t.activo ? 'Activo' : 'Pausado'}
                       </span>
                     </td>
-                    <td className="py-2 px-2 text-right">
+                    <td className="py-2.5 px-2 text-right">
                       <button onClick={() => cambiarEstado(t)}
-                        className="text-[#d4a843] hover:underline mr-3">
+                        className="text-[#4a7c3f] font-semibold hover:underline mr-3">
                         {t.activo ? 'Pausar' : 'Activar'}
                       </button>
                       <button onClick={() => eliminar(t)}
-                        className="text-red-400 hover:underline">
+                        className="text-red-500 font-semibold hover:underline">
                         Eliminar
                       </button>
                     </td>
@@ -376,6 +392,3 @@ export default function AlertasPage() {
           )}
         </div>
       )}
-    </div>
-  );
-}
