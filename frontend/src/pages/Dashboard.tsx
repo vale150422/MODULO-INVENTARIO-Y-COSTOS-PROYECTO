@@ -50,17 +50,17 @@ export default function Dashboard() {
         {/* Bajo Stock */}
         <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4 relative overflow-hidden">
           <div className={`absolute top-0 left-0 right-0 h-[3px] rounded-t-xl
-            ${data?.bajoStock > 0 ? 'bg-red-500' : 'bg-[#c8871a]'}`} />
+            ${data?.bajoStock > 0 ? 'bg-[#dc4a42]' : 'bg-[#c8871a]'}`} />
           <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-2">
             Bajo Stock
           </p>
           <p className={`text-3xl font-semibold font-mono
-            ${data?.bajoStock > 0 ? 'text-red-400' : 'text-[#d4a843]'}`}>
+            ${data?.bajoStock > 0 ? 'text-[#dc4a42]' : 'text-[#d4a843]'}`}>
             {data?.bajoStock ?? 0}
           </p>
           <span className={`inline-flex items-center gap-1 text-[11px] font-semibold mt-2 px-2 py-0.5 rounded-full
             ${data?.bajoStock > 0
-              ? 'bg-red-900/40 text-red-400'
+              ? 'bg-[#dc4a42]/15 text-[#dc4a42]'
               : 'bg-[#1e3d1e] text-[#6abf6a]'}`}>
             {data?.bajoStock > 0 ? '⚠ Requieren atención' : '✓ Sin alertas'}
           </span>
@@ -68,7 +68,7 @@ export default function Dashboard() {
 
         {/* Valor Inventario */}
         <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#2d7ab5] rounded-t-xl" />
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#1f5130] rounded-t-xl" />
           <p className="text-xs font-semibold text-[#8fae5a] uppercase tracking-widest mb-2">
             Valor Inventario
           </p>
