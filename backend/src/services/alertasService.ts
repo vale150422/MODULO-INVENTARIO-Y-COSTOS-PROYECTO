@@ -1,4 +1,4 @@
-import { pool } from '../database/connection';
+import { pool } from '../database/index'; 
 import { enviarSMS, ResultadoSMS } from './smsService';
 
 
