@@ -3,6 +3,7 @@ import { pool } from '../database/index';
 import {
   getProductos as getProductosModel,
   getKardexByProducto,
+  getReceptoresModel,
   getReporteConsolidadoModel,
   getDashboardModel
 } from '../models/kardexModels';
@@ -14,6 +15,16 @@ export const getProductos = async (_req: Request, res: Response) => {
   } catch (error: any) {
     console.error('getProductos:', error);
     res.status(500).json({ error: error.message || 'Error al obtener productos' });
+  }
+};
+
+// Lista desplegable "Entregar a"
+export const getReceptores = async (_req: Request, res: Response) => {
+  try {
+    res.json(await getReceptoresModel());
+  } catch (error: any) {
+    console.error('getReceptores:', error);
+    res.status(500).json({ error: error.message || 'Error al obtener las personas receptoras' });
   }
 };
 
@@ -55,11 +66,17 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
   const descripcion: string | null = (req.body.descripcion ?? '').toString().trim() || null;
   const id_usuario = currentUserId(req);
 
+  // A quién se le entrega el producto: solo aplica en SALIDA y es obligatorio
+  const idRecibe: number | null = tipo === 'SALIDA' ? Number(req.body.id_usuario_recibe) : null;
+
   if (!id_usuario || Number.isNaN(id_usuario)) {
     return res.status(401).json({ error: 'Sesión inválida. Cierra sesión y vuelve a entrar.' });
   }
   if (!(cantidad > 0)) {
     return res.status(400).json({ error: 'La cantidad debe ser mayor a 0' });
+  }
+  if (tipo === 'SALIDA' && !Number.isInteger(idRecibe)) {
+    return res.status(400).json({ error: 'Selecciona a quién se le entrega el producto' });
   }
 
   const client = await pool.connect();
@@ -83,6 +100,17 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
       return res.status(400).json({
         error: `El producto "${productoResult.rows[0].nombre}" está inactivo y no permite movimientos`
       });
+    }
+
+    // La persona que recibe debe existir y estar activa
+    if (tipo === 'SALIDA') {
+      const receptor = await client.query(
+        'SELECT 1 FROM public.usuario WHERE id_usuario = $1 AND estado_registro = 1',
+        [idRecibe]
+      );
+      if (!receptor.rowCount) {
+        throw new Error('La persona que recibe el producto no existe o está inactiva');
+      }
     }
 
     const saldoResult = await client.query(`
@@ -176,14 +204,15 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
     const kardexResult = await client.query(`
       INSERT INTO inventario.kardex
         (id_producto, id_finca, id_usuario, tipo, cantidad,
-         costo_unitario, total, saldo_cantidad, saldo_valor, detalle, descripcion, id_lote)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         costo_unitario, total, saldo_cantidad, saldo_valor, detalle, descripcion, id_lote,
+         id_usuario_recibe)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *
     `, [
       id_producto, id_finca, id_usuario, tipo,
       cantidad, costoFinal, total,
       nuevaSaldoCant, Math.max(0, nuevaSaldoValor),
-      detalle, descripcion, idLoteKardex
+      detalle, descripcion, idLoteKardex, idRecibe
     ]);
 
     await client.query('COMMIT');

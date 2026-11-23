@@ -36,6 +36,14 @@ interface Movimiento {
   saldo_cantidad: number;
   saldo_valor: number;
   usuario: string;
+  recibe: string | null;    // a quién se le entregó (solo en SALIDA)
+}
+
+interface Receptor {
+  id_usuario: number;
+  nombre: string;
+  cargo: string | null;
+  rol: string;
 }
 
 interface Producto {
@@ -62,6 +70,9 @@ const FACTURA_OBLIGATORIA = false;
 const MAX_MB = 5;
 const TIPOS_OK = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 const ACCEPT = '.jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf';
+
+// Base del backend (la misma que usa la pantalla de Trabajadores para las fincas)
+const API_URL = 'https://modulo-inventario-y-costos-proyecto.onrender.com/api';
 
 /* ───────── Utilidades ───────── */
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO') + ' COP';
@@ -177,9 +188,9 @@ function Badge({ bg, color = '#ffffff', children }: { bg: string; color?: string
   );
 }
 
-const HEADERS = ['Fecha', 'Factura', 'Descripción', 'Usuario', 'Tipo', 'E.Cant', 'E.Costo', 'E.Total',
+const HEADERS = ['Fecha', 'Factura', 'Descripción', 'Usuario', 'Entregado a', 'Tipo', 'E.Cant', 'E.Costo', 'E.Total',
   'S.Cant', 'S.Costo', 'S.Total', 'Sal.Cant', 'Sal.Total', 'Soporte'];
-const HEADERS_IZQ = ['Fecha', 'Factura', 'Descripción', 'Usuario', 'Tipo'];
+const HEADERS_IZQ = ['Fecha', 'Factura', 'Descripción', 'Usuario', 'Entregado a', 'Tipo'];
 
 export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   usePageTitle('Kardex');
@@ -199,10 +210,13 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
   const [subiendoId, setSubiendoId] = useState<number | null>(null);
 
+  const [receptores, setReceptores] = useState<Receptor[]>([]);
+
   const [showForm, setShowForm] = useState(false);
   const [tipo, setTipo] = useState<'ENTRADA' | 'SALIDA'>('ENTRADA');
   const [detalle, setDetalle] = useState('');
   const [descripcion, setDescripcion] = useState('');
+  const [idRecibe, setIdRecibe] = useState('');
   const [loteSeleccionado, setLoteSeleccionado] = useState<Lote | null>(null);
   const [cantidad, setCantidad] = useState('');
   const [costo, setCosto] = useState('');
@@ -258,6 +272,21 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     catch { setAdjuntas([]); }
   }, []);
 
+  // Personas a las que se les puede entregar un producto (lista "Entregar a")
+  const cargarReceptores = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/kardex/receptores`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = await res.json();
+      setReceptores(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      setReceptores([]);
+    }
+  }, []);
+
   // Estado de cada insumo (agotado/inactivo) y fechas de ingreso
   const cargarInfo = useCallback(async (): Promise<Record<number, ProductoInfo>> => {
     const mapa: Record<number, ProductoInfo> = {};
@@ -284,7 +313,10 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     return mapa;
   }, [cargarTodosLotes, cargarInfo]);
 
-  useEffect(() => { void cargarProductos(); }, []); // eslint-disable-line
+  useEffect(() => {
+    void cargarProductos();
+    void cargarReceptores();
+  }, []); // eslint-disable-line
   useEffect(() => {
     if (selectedId) {
       void cargarMovimientos(selectedId);
@@ -374,7 +406,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   };
 
   const resetForm = () => {
-    setDetalle(''); setDescripcion(''); setTipo('ENTRADA');
+    setDetalle(''); setDescripcion(''); setTipo('ENTRADA'); setIdRecibe('');
     setCantidad(''); setCosto(''); setFechaVenc('');
     setLoteSeleccionado(null); setError(''); limpiarArchivo();
   };
@@ -397,6 +429,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     setTipo(t);
     setLoteSeleccionado(null);
     setCantidad(''); setError('');
+    if (t === 'ENTRADA') setIdRecibe('');
     if (t === 'SALIDA') limpiarArchivo();
     if (t === 'SALIDA' && lotes.length > 0) setLoteSeleccionado(lotes[0]);
   };
@@ -455,6 +488,8 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
       return setError('Escribe el número de la factura de la compra');
     if (tipo === 'SALIDA' && !descripcionLimpia)
       return setError('Escribe la descripción de la salida');
+    if (tipo === 'SALIDA' && !idRecibe)
+      return setError('Selecciona a quién se le entrega el producto');
     if (!qty || qty <= 0) return setError('Cantidad inválida');
     if (tipo === 'ENTRADA' && (!cost || cost <= 0)) return setError('Costo inválido');
     if (tipo === 'ENTRADA' && movimientos.some(m =>
@@ -477,6 +512,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
         detalle: detalleLimpio,
         descripcion: descripcionLimpia || null,
         id_lote: tipo === 'SALIDA' ? loteSeleccionado!.id_lote : null,
+        id_usuario_recibe: tipo === 'SALIDA' ? Number(idRecibe) : null,
         id_finca: producto.id_finca,
         fecha_vencimiento: fechaVenc || null,
       });
@@ -521,7 +557,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   /* ───────── Tabla de movimientos (se reutiliza en Resumen e Historial) ───────── */
   const tablaMovs = (lista: Movimiento[], p: Producto, conPie: boolean) => (
     <div className="overflow-x-auto">
-      <table className="w-full text-xs font-mono min-w-[1000px]"
+      <table className="w-full text-xs font-mono min-w-[1150px]"
         style={{ color: C.text, borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ background: C.head }}>
@@ -544,6 +580,9 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
               <td className="py-2 px-2 font-bold" style={{ color: C.text }}>{m.detalle || '—'}</td>
               <td className="py-2 px-2" style={{ color: C.text }}>{m.descripcion || '—'}</td>
               <td className="py-2 px-2 text-[10px]" style={{ color: C.muted }}>{m.usuario}</td>
+              <td className="py-2 px-2 text-[10px] font-bold" style={{ color: C.text }}>
+                {m.tipo === 'SALIDA' ? (m.recibe || '—') : '—'}
+              </td>
               <td className="py-2 px-2">
                 {m.tipo === 'ENTRADA' && <Badge bg="#15803d">ENTRADA</Badge>}
                 {m.tipo === 'SALIDA' && <Badge bg="#4d7c0f">SALIDA</Badge>}
@@ -600,7 +639,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
         {conPie && (
           <tfoot>
             <tr style={{ borderTop: `2px solid ${C.dark}`, background: C.head }}>
-              <td colSpan={11} className="py-2 px-2 text-right font-bold uppercase text-xs"
+              <td colSpan={12} className="py-2 px-2 text-right font-bold uppercase text-xs"
                 style={{ color: C.dark, letterSpacing: '0.08em' }}>
                 Inventario Final:
               </td>
@@ -907,6 +946,28 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                       : 'Ej: usado en cultivo 03'}
                     style={inp} />
                 </div>
+
+                {/* SALIDA: a quién se le entrega el producto */}
+                {tipo === 'SALIDA' && (
+                  <div>
+                    <label style={lbl}>Entregar a</label>
+                    <select value={idRecibe}
+                      onChange={e => setIdRecibe(e.target.value)}
+                      style={inp}>
+                      <option value="">Selecciona quién recibe el producto</option>
+                      {receptores.map(r => (
+                        <option key={r.id_usuario} value={r.id_usuario}>
+                          {r.nombre}{r.cargo ? ` — ${r.cargo}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {receptores.length === 0 && (
+                      <p className="text-[11px] mt-1 font-semibold" style={{ color: C.red }}>
+                        No se pudo cargar la lista de personas. Recarga la página.
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* SALIDA: selector de lote */}
                 {tipo === 'SALIDA' && (

@@ -5,6 +5,7 @@ export interface Kardex {
   id_producto: number;
   id_finca: number;
   id_usuario: number;
+  id_usuario_recibe?: number | null;
   tipo: string;
   cantidad: number;
   costo_unitario: number;
@@ -41,17 +42,28 @@ export const getProductos = async () => {
   return result.rows;
 };
 
+// Personas a las que se les puede entregar un producto (lista desplegable "Entregar a")
+export const getReceptoresModel = async () => {
+  const result = await pool.query(`
+    SELECT id_usuario, nombre, cargo, rol
+      FROM inventario.v_receptores_kardex
+     ORDER BY nombre ASC
+  `);
+  return result.rows;
+};
+
 export const getKardexByProducto = async (id_producto: number) => {
   const result = await pool.query(`
     SELECT
       k.id_kardex, k.tipo, k.cantidad, k.costo_unitario,
       k.total, k.saldo_cantidad, k.saldo_valor,
       k.detalle, k.descripcion, k.fecha,
-      u.nombre AS usuario, p.nombre AS producto,
+      u.nombre AS usuario, ur.nombre AS recibe, p.nombre AS producto,
       p.unidadmedida
     FROM inventario.kardex k
     JOIN inventario.producto p ON p.id_producto = k.id_producto
     JOIN public.usuario u ON u.id_usuario = k.id_usuario
+    LEFT JOIN public.usuario ur ON ur.id_usuario = k.id_usuario_recibe
     WHERE k.id_producto = $1
     ORDER BY k.fecha ASC, k.id_kardex ASC
   `, [id_producto]);
@@ -77,6 +89,7 @@ export const registrarMovimientoModel = async (data: {
   id_producto: number;
   id_finca: number;
   id_usuario: number;
+  id_usuario_recibe?: number | null;
   tipo: string;
   cantidad: number;
   costo_unitario: number;
@@ -87,6 +100,7 @@ export const registrarMovimientoModel = async (data: {
   const detalle = data.detalle;
   const cantidad = Number(data.cantidad);
   const costo_unitario = Number(data.costo_unitario);
+  const idRecibe = tipo === 'SALIDA' ? (data.id_usuario_recibe ?? null) : null;
   const client = await pool.connect();
 
   try {
@@ -165,14 +179,15 @@ export const registrarMovimientoModel = async (data: {
     const kardexResult = await client.query(`
       INSERT INTO inventario.kardex
         (id_producto, id_finca, id_usuario, tipo, cantidad,
-         costo_unitario, total, saldo_cantidad, saldo_valor, detalle, id_lote)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         costo_unitario, total, saldo_cantidad, saldo_valor, detalle, id_lote,
+         id_usuario_recibe)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *
     `, [
       id_producto, id_finca, id_usuario, tipo,
       cantidad, costoFinal, total,
       nuevaSaldoCant, Math.max(0, nuevaSaldoValor),
-      detalle, idLoteKardex
+      detalle, idLoteKardex, idRecibe
     ]);
 
     await client.query('COMMIT');

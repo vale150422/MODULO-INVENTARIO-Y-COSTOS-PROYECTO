@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import {
   getProductos,
+  getReceptores,
   getKardex,
   getLotes,
   registrarMovimiento,
@@ -34,6 +35,7 @@ const upload = multer({
 });
 
 router.get('/productos',          getProductos);
+router.get('/receptores',         getReceptores);   // lista "Entregar a" (antes de '/:id_producto')
 router.get('/reporte',            getReporteConsolidado);
 router.get('/dashboard',          getDashboard);
 
