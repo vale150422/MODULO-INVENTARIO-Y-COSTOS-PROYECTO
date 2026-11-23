@@ -171,6 +171,6 @@ export const deleteTrabajador = async (id: number, ctx?: AuditCtx) => {
         'UPDATE public.usuario SET estado_registro = 0 WHERE id_usuario = $1',
         [id]
       );
-    }s
+    }
   );
 };
