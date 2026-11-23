@@ -9,16 +9,53 @@ import './TrabajadorPage.css';
 
 interface ErroresCrear {
   nombre?: string; cedula?: string; cargo?: string;
-  idFinca?: string; telefono?: string; correo?: string;
+  idFinca?: string; telefono?: string; correo?: string; modulos?: string;
 }
 
 interface ErroresEditar {
   nombreEditar?: string; cedulaEditar?: string; cargoEditar?: string;
-  idFincaEditar?: string; telefonoEditar?: string; correoEditar?: string;
+  idFincaEditar?: string; telefonoEditar?: string; correoEditar?: string; modulosEditar?: string;
 }
+
+// Los códigos deben coincidir con public.modulo en la base de datos
+const MODULOS = [
+  { codigo: 'cultivo', nombre: 'Cultivos' },
+  { codigo: 'inventario', nombre: 'Inventario' },
+  { codigo: 'turismo', nombre: 'Turismo' },
+];
+
+const nombreModulo = (codigo: string) => MODULOS.find((m) => m.codigo === codigo)?.nombre ?? codigo;
 
 const soloNumeros = (value: string) => value.replace(/\D/g, '');
 const correoValido = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+const toggleModulo = (lista: string[], codigo: string) =>
+  lista.includes(codigo) ? lista.filter((c) => c !== codigo) : [...lista, codigo];
+
+interface SelectorModulosProps {
+  seleccionados: string[];
+  onToggle: (codigo: string) => void;
+  error?: string;
+}
+
+const SelectorModulos = ({ seleccionados, onToggle, error }: SelectorModulosProps) => (
+  <>
+    <label className="pp-label">Módulos a los que puede entrar</label>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', marginBottom: 4 }}>
+      {MODULOS.map((m) => (
+        <label key={m.codigo} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={seleccionados.includes(m.codigo)}
+            onChange={() => onToggle(m.codigo)}
+          />
+          {m.nombre}
+        </label>
+      ))}
+    </div>
+    {error && <span className="pp-error">{error}</span>}
+  </>
+);
 
 const TrabajadoresPage = () => {
   usePageTitle('Trabajadores');
@@ -34,6 +71,7 @@ const TrabajadoresPage = () => {
   const [idFinca, setIdFinca] = useState('');
   const [telefono, setTelefono] = useState('');
   const [correo, setCorreo] = useState('');
+  const [modulos, setModulos] = useState<string[]>([]);
   const [erroresCrear, setErroresCrear] = useState<ErroresCrear>({});
   const [estado] = useState('Activo');
 
@@ -43,6 +81,7 @@ const TrabajadoresPage = () => {
   const [idFincaEditar, setIdFincaEditar] = useState('');
   const [telefonoEditar, setTelefonoEditar] = useState('');
   const [correoEditar, setCorreoEditar] = useState('');
+  const [modulosEditar, setModulosEditar] = useState<string[]>([]);
   const [estadoEditar, setEstadoEditar] = useState('Activo');
   const [erroresEditar, setErroresEditar] = useState<ErroresEditar>({});
 
@@ -92,6 +131,7 @@ const TrabajadoresPage = () => {
     else if (telefono.length < 7) e.telefono = 'El teléfono debe tener al menos 7 dígitos';
     if (!correo.trim()) e.correo = 'El correo es obligatorio';
     else if (!correoValido(correo)) e.correo = 'Ingresa un correo válido (ej: correo@gmail.com)';
+    if (modulos.length === 0) e.modulos = 'Selecciona al menos un módulo';
     setErroresCrear(e);
     return Object.keys(e).length === 0;
   };
@@ -108,6 +148,7 @@ const TrabajadoresPage = () => {
     else if (telefonoEditar.length < 7) e.telefonoEditar = 'El teléfono debe tener al menos 7 dígitos';
     if (!correoEditar.trim()) e.correoEditar = 'El correo es obligatorio';
     else if (!correoValido(correoEditar)) e.correoEditar = 'Ingresa un correo válido (ej: correo@gmail.com)';
+    if (modulosEditar.length === 0) e.modulosEditar = 'Selecciona al menos un módulo';
     setErroresEditar(e);
     return Object.keys(e).length === 0;
   };
@@ -115,7 +156,7 @@ const TrabajadoresPage = () => {
   const handleCrear = async () => {
     if (!validarCrear()) return;
     try {
-      await createTrabajador({ nombre, cedula, cargo, id_finca: Number(idFinca), telefono, correo, estado });
+      await createTrabajador({ nombre, cedula, cargo, id_finca: Number(idFinca), telefono, correo, estado, modulos });
       showToast('Trabajador creado exitosamente', 'success');
       cerrarModal();
       cargarTrabajadores();
@@ -139,6 +180,7 @@ const TrabajadoresPage = () => {
     setNombreEditar(t.nombre ?? ''); setCedulaEditar(t.cedula ?? '');
     setCargoEditar(t.cargo ?? ''); setIdFincaEditar(t.id_finca ? String(t.id_finca) : '');
     setTelefonoEditar(t.telefono ?? ''); setCorreoEditar(t.correo ?? '');
+    setModulosEditar(Array.isArray(t.modulos) ? t.modulos : []);
     setEstadoEditar(t.estado ?? 'Activo'); setErroresEditar({});
     setModalEditarAbierto(true);
   };
@@ -149,7 +191,7 @@ const TrabajadoresPage = () => {
       await updateTrabajador(trabajadorSeleccionado.id_trabajador, {
         nombre: nombreEditar, cedula: cedulaEditar, cargo: cargoEditar,
         id_finca: Number(idFincaEditar), telefono: telefonoEditar,
-        correo: correoEditar, estado: estadoEditar,
+        correo: correoEditar, estado: estadoEditar, modulos: modulosEditar,
       });
       showToast('Trabajador actualizado correctamente', 'success');
       cerrarModalEditar();
@@ -163,6 +205,7 @@ const TrabajadoresPage = () => {
     setModalAbierto(false);
     setNombre(''); setCedula(''); setCargo('');
     setIdFinca(''); setTelefono(''); setCorreo('');
+    setModulos([]);
     setErroresCrear({});
   };
 
@@ -217,6 +260,7 @@ const TrabajadoresPage = () => {
               <th>Cédula</th>
               <th>Cargo</th>
               <th>Finca</th>
+              <th>Módulos</th>
               <th>Contacto</th>
               <th>Estado</th>
               <th>Acciones</th>
@@ -225,7 +269,7 @@ const TrabajadoresPage = () => {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="pp-empty-row">
+                <td colSpan={8} className="pp-empty-row">
                   {query ? `No se encontraron resultados para "${query}"` : 'No hay trabajadores registrados aún.'}
                 </td>
               </tr>
@@ -236,6 +280,15 @@ const TrabajadoresPage = () => {
                   <td>{t.cedula || '—'}</td>
                   <td>{t.cargo ? <span className="pp-badge">{t.cargo}</span> : '—'}</td>
                   <td>{t.finca_nombre || '—'}</td>
+                  <td>
+                    {Array.isArray(t.modulos) && t.modulos.length > 0 ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {t.modulos.map((c: string) => (
+                          <span key={c} className="pp-badge">{nombreModulo(c)}</span>
+                        ))}
+                      </div>
+                    ) : '—'}
+                  </td>
                   <td>
                     <div>{t.telefono || '—'}</div>
                     <div className="pp-td-correo">{t.correo}</div>
@@ -298,6 +351,15 @@ const TrabajadoresPage = () => {
               <input className={`pp-input ${erroresCrear.correo ? 'pp-input--error' : ''}`} placeholder="Ej: correo@gmail.com" value={correo}
                 onChange={(e) => { setCorreo(e.target.value); setErroresCrear(prev => ({ ...prev, correo: undefined })); }} />
               {erroresCrear.correo && <span className="pp-error">{erroresCrear.correo}</span>}
+
+              <SelectorModulos
+                seleccionados={modulos}
+                onToggle={(codigo) => {
+                  setModulos((prev) => toggleModulo(prev, codigo));
+                  setErroresCrear(prev => ({ ...prev, modulos: undefined }));
+                }}
+                error={erroresCrear.modulos}
+              />
             </div>
             <div className="pp-modal-footer">
               <button className="pp-btn-cancelar" onClick={cerrarModal}>Cancelar</button>
@@ -349,6 +411,15 @@ const TrabajadoresPage = () => {
               <input className={`pp-input ${erroresEditar.correoEditar ? 'pp-input--error' : ''}`} placeholder="Ej: correo@gmail.com" value={correoEditar}
                 onChange={(e) => { setCorreoEditar(e.target.value); setErroresEditar(prev => ({ ...prev, correoEditar: undefined })); }} />
               {erroresEditar.correoEditar && <span className="pp-error">{erroresEditar.correoEditar}</span>}
+
+              <SelectorModulos
+                seleccionados={modulosEditar}
+                onToggle={(codigo) => {
+                  setModulosEditar((prev) => toggleModulo(prev, codigo));
+                  setErroresEditar(prev => ({ ...prev, modulosEditar: undefined }));
+                }}
+                error={erroresEditar.modulosEditar}
+              />
 
               <label className="pp-label">Estado</label>
               <select className="pp-input" value={estadoEditar} onChange={(e) => setEstadoEditar(e.target.value)}>
