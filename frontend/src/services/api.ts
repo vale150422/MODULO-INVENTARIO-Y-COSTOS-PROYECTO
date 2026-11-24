@@ -15,7 +15,11 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    if (!r.ok) throw new Error('Credenciales incorrectas');
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      // 403 = el trabajador no tiene asignado el módulo de inventario
+      throw new Error(r.status === 403 && d.error ? d.error : 'Credenciales incorrectas');
+    }
     return r.json();
   },
 

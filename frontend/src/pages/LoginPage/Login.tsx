@@ -45,8 +45,11 @@ export default function Login() {
     setError('');
     try {
       await login(email, password);
-    } catch {
-      setError('Usuario o contraseña incorrectos');
+    } catch (e: any) {
+      // Si el trabajador no tiene el módulo de inventario, se muestra ese mensaje
+      setError(e?.message && e.message !== 'Credenciales incorrectas'
+        ? e.message
+        : 'Usuario o contraseña incorrectos');
     } finally {
       setLoading(false);
     }

@@ -2,13 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { pool } from '../database/index';
 import { currentUserId } from '../utils/currentUser';
 
-// Deja pasar solo a quien tenga asignado el módulo (los administradores entran a todos).
-// Consulta la base en cada petición: si el administrador le quita el módulo a alguien,
-// el bloqueo es inmediato, aunque esa persona ya tenga la sesión abierta.
-// Debe ir DESPUÉS de authenticate.
+// ← NUEVO: código del módulo de este sistema en public.modulo
+export const MODULO_INVENTARIO = 'inventario';
 export const requireModulo = (codigo: string) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      // ← NUEVO: el administrador entra a todos los módulos
+      if ((req as any).user?.role === 'admin') return next();
+
       const idUsuario = currentUserId(req);
       if (!idUsuario || Number.isNaN(idUsuario)) {
         return res.status(401).json({ error: 'Sesión inválida. Cierra sesión y vuelve a entrar.' });
