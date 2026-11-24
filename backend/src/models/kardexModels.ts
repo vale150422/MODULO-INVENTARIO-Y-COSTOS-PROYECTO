@@ -13,6 +13,7 @@ export interface Kardex {
   saldo_cantidad: number;
   saldo_valor: number;
   detalle: string;
+  descripcion?: string | null;
   fecha?: Date;
 }
 
@@ -21,6 +22,7 @@ export const getProductos = async () => {
     SELECT
       p.id_producto, p.nombre, p.unidadmedida,
       p.id_finca, p.stock_minimo,
+      p.activo,
       c.nombre AS categoria, f.nombre AS finca,
       COALESCE((
         SELECT k.saldo_cantidad
@@ -39,6 +41,25 @@ export const getProductos = async () => {
     JOIN public.finca f ON f.idfinca = p.id_finca
     ORDER BY p.nombre ASC
   `);
+  return result.rows;
+};
+
+// Movimientos del kardex de UNA finca
+export const getKardexByFinca = async (id_finca: number) => {
+  const result = await pool.query(`
+    SELECT
+      k.id_kardex, k.tipo, k.cantidad, k.costo_unitario,
+      k.total, k.saldo_cantidad, k.saldo_valor,
+      k.detalle, k.descripcion, k.fecha,
+      u.nombre AS usuario, ur.nombre AS recibe, p.nombre AS producto,
+      p.unidadmedida
+    FROM inventario.kardex k
+    JOIN inventario.producto p ON p.id_producto = k.id_producto
+    JOIN public.usuario u ON u.id_usuario = k.id_usuario
+    LEFT JOIN public.usuario ur ON ur.id_usuario = k.id_usuario_recibe
+    WHERE k.id_finca = $1
+    ORDER BY k.fecha DESC, k.id_kardex DESC
+  `, [id_finca]);
   return result.rows;
 };
 
@@ -94,10 +115,13 @@ export const registrarMovimientoModel = async (data: {
   cantidad: number;
   costo_unitario: number;
   detalle: string;
+  descripcion?: string | null;
   fecha_vencimiento?: string | null;
+  ip?: string | null; // IP de quien registra (para la auditoría)
 }) => {
   const { id_producto, id_finca, id_usuario, tipo, fecha_vencimiento } = data;
   const detalle = data.detalle;
+  const descripcion = (data.descripcion ?? '').toString().trim() || null;
   const cantidad = Number(data.cantidad);
   const costo_unitario = Number(data.costo_unitario);
   const idRecibe = tipo === 'SALIDA' ? (data.id_usuario_recibe ?? null) : null;
@@ -105,6 +129,12 @@ export const registrarMovimientoModel = async (data: {
 
   try {
     await client.query('BEGIN');
+
+    // La base unificada exige el contexto de auditoría en cada transacción que escribe
+    await client.query(
+      `SELECT public.fn_auditoria_contexto($1, $2, NULL, NULL, 'INVENTARIO', $3)`,
+      [id_usuario, data.ip ?? null, descripcion || detalle || null]
+    );
 
     const saldoResult = await client.query(`
       SELECT saldo_cantidad, saldo_valor
@@ -179,15 +209,15 @@ export const registrarMovimientoModel = async (data: {
     const kardexResult = await client.query(`
       INSERT INTO inventario.kardex
         (id_producto, id_finca, id_usuario, tipo, cantidad,
-         costo_unitario, total, saldo_cantidad, saldo_valor, detalle, id_lote,
+         costo_unitario, total, saldo_cantidad, saldo_valor, detalle, descripcion, id_lote,
          id_usuario_recibe)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *
     `, [
       id_producto, id_finca, id_usuario, tipo,
       cantidad, costoFinal, total,
       nuevaSaldoCant, Math.max(0, nuevaSaldoValor),
-      detalle, idLoteKardex, idRecibe
+      detalle, descripcion, idLoteKardex, idRecibe
     ]);
 
     await client.query('COMMIT');
@@ -279,7 +309,8 @@ export const getDashboardModel = async () => {
     ORDER BY k.fecha DESC, k.id_kardex DESC LIMIT 10
   `);
 
-  // Alerta cuando el saldo es menor O IGUAL al stock mínimo
+  // Alerta cuando hay existencias y el saldo es menor O IGUAL al stock mínimo.
+  // Un insumo agotado (saldo 0) no es alerta de stock mínimo.
   const productosBajoStock = await pool.query(`
     SELECT p.id_producto, p.nombre, p.unidadmedida, p.stock_minimo,
            f.nombre AS finca,
@@ -293,6 +324,7 @@ export const getDashboardModel = async () => {
          ORDER BY fecha DESC, id_kardex DESC LIMIT 1
       ) k ON TRUE
      WHERE p.activo = true
+       AND COALESCE(k.saldo_cantidad, 0) > 0
        AND COALESCE(k.saldo_cantidad, 0) <= p.stock_minimo
      ORDER BY COALESCE(k.saldo_cantidad, 0) ASC, p.nombre
   `);

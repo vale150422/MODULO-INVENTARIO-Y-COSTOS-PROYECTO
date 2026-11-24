@@ -1,13 +1,29 @@
 import { Request, Response } from 'express';
+import type { PoolClient } from 'pg';
 import { pool } from '../database/index';
 import {
   getProductos as getProductosModel,
   getKardexByProducto,
+  getKardexByFinca,
   getReceptoresModel,
   getReporteConsolidadoModel,
   getDashboardModel
 } from '../models/kardexModels';
 import { currentUserId } from '../utils/currentUser';
+import { fincasPermitidas, SIN_PERMISO_FINCA } from '../utils/fincasUsuario';
+
+// La base unificada exige el contexto de auditoría en CADA transacción que
+// inserta, actualiza o borra en inventario. Se llama justo después del BEGIN.
+const contextoAuditoria = (
+  client: PoolClient,
+  req: Request,
+  idUsuario: number,
+  motivo: string | null
+) =>
+  client.query(
+    `SELECT public.fn_auditoria_contexto($1, $2, $3, NULL, 'INVENTARIO', $4)`,
+    [idUsuario, req.ip ?? null, req.get('user-agent') ?? null, motivo]
+  );
 
 export const getProductos = async (_req: Request, res: Response) => {
   try {
@@ -34,6 +50,24 @@ export const getKardex = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('getKardex:', error);
     res.status(500).json({ error: error.message || 'Error al obtener Kardex' });
+  }
+};
+
+// Kardex de una sola finca (el trabajador solo puede ver las suyas)
+export const getKardexPorFinca = async (req: Request, res: Response) => {
+  try {
+    const idFinca = Number(req.params.id_finca);
+    if (!Number.isInteger(idFinca)) {
+      return res.status(400).json({ error: 'Finca inválida' });
+    }
+    const permitidas = await fincasPermitidas(req);
+    if (permitidas !== null && !permitidas.includes(idFinca)) {
+      return res.status(403).json({ error: SIN_PERMISO_FINCA });
+    }
+    res.json(await getKardexByFinca(idFinca));
+  } catch (error: any) {
+    console.error('getKardexPorFinca:', error);
+    res.status(500).json({ error: error.message || 'Error al obtener el kardex de la finca' });
   }
 };
 
@@ -83,6 +117,7 @@ export const registrarMovimiento = async (req: Request, res: Response) => {
 
   try {
     await client.query('BEGIN');
+    await contextoAuditoria(client, req, id_usuario, descripcion || detalle || null);
 
     // Validar que el producto esté activo
     const productoResult = await client.query(
@@ -245,6 +280,7 @@ export const registrarEntradaFactura = async (req: Request, res: Response) => {
 
   try {
     await client.query('BEGIN');
+    await contextoAuditoria(client, req, id_usuario, `Factura ${factura_proveedor ?? 'S/N'}`);
 
     if (factura_proveedor) {
       const dup = await client.query(

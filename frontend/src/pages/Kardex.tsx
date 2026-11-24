@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useCallback, type ReactNode, type CSSProperties, type ChangeEvent } from 'react';
+import { useState, useEffect, useCallback, useMemo, type ReactNode, type CSSProperties, type ChangeEvent } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { api } from '../services/api';
 import {
@@ -13,7 +13,8 @@ import {
 
 type Unidad = 'GRS' | 'ML' | string;
 type Tab = 'resumen' | 'insumos' | 'consolidado' | 'alertas' | 'historial';
-type NivelAlerta = 'vencido' | 'urgente' | 'proximo' | 'agotado' | 'bajo';
+// Las alertas son SOLO vencimientos y stock mínimo (los agotados no son alerta)
+type NivelAlerta = 'vencido' | 'urgente' | 'proximo' | 'bajo';
 
 interface Lote {
   id_lote: number;
@@ -55,6 +56,8 @@ interface Producto {
   id_finca: number;
   saldo_cantidad: number;
   saldo_valor: number;
+  stock_minimo: number;     // viene de inventario.producto
+  activo?: boolean;         // false = INACTIVO (viene de inventario.producto)
 }
 
 interface Alerta {
@@ -73,6 +76,8 @@ const ACCEPT = '.jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,appli
 
 // Base del backend (la misma que usa la pantalla de Trabajadores para las fincas)
 const API_URL = 'https://modulo-inventario-y-costos-proyecto.onrender.com/api';
+
+const CLAVE_FINCA = 'kardex:finca';
 
 /* ───────── Utilidades ───────── */
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO') + ' COP';
@@ -104,6 +109,10 @@ const textoFecha = (f: string): string => {
   return `${d.toLocaleDateString('es-CO')} ${dia}/${m}/${y} ${y}-${m}-${dia}`;
 };
 
+// Fecha local en formato YYYY-MM-DD (la que usan los <input type="date">)
+const aISO = (d: Date): string => d.toLocaleDateString('en-CA');
+const fechaLocal = (f: string): string => aISO(new Date(f));
+
 const validarArchivo = (f: File): string => {
   if (!TIPOS_OK.includes(f.type)) return 'Formato no permitido: sube una foto JPG, PNG, WEBP o un PDF';
   if (f.size === 0) return 'El archivo está vacío';
@@ -111,7 +120,15 @@ const validarArchivo = (f: File): string => {
   return '';
 };
 
-const STOCK_BAJO = 10; // mismo umbral que usa el Reporte Kardex
+// AGOTADO = sin existencias (sigue visible). INACTIVO = desactivado (se oculta).
+const esAgotado = (p: Producto) => Number(p.saldo_cantidad) <= 0;
+const esInactivo = (p: Producto) => p.activo === false;
+
+// Stock mínimo: hay existencias, pero llegaron al mínimo configurado en el insumo
+const enStockMinimo = (p: Producto) => {
+  const s = Number(p.saldo_cantidad);
+  return s > 0 && s <= Number(p.stock_minimo || 0);
+};
 
 /* ───────── Colores: paleta de verdes + rojo solo para alertas ───────── */
 const C = {
@@ -145,9 +162,8 @@ const etiquetaVenc = (fecha: string | null, dias: number | null): ReactNode => {
 const estiloAlerta: Record<NivelAlerta, { bg: string; border: string; text: string; badge: string; label: string; orden: number }> = {
   vencido: { bg: '#fee2e2', border: '#dc2626', text: '#7f1d1d', badge: '#b91c1c', label: 'VENCIDO', orden: 0 },
   urgente: { bg: '#fef2f2', border: '#ef4444', text: '#991b1b', badge: '#dc2626', label: 'VENCE EN ≤15 DÍAS', orden: 1 },
-  agotado: { bg: '#fee2e2', border: '#dc2626', text: '#7f1d1d', badge: '#991b1b', label: 'AGOTADO', orden: 2 },
-  bajo: { bg: '#fef2f2', border: '#f87171', text: '#991b1b', badge: '#dc2626', label: 'STOCK BAJO', orden: 3 },
-  proximo: { bg: '#fff5f5', border: '#fca5a5', text: '#991b1b', badge: '#ef4444', label: 'VENCE EN ≤30 DÍAS', orden: 4 },
+  bajo: { bg: '#fef2f2', border: '#f87171', text: '#991b1b', badge: '#dc2626', label: 'STOCK MÍNIMO', orden: 2 },
+  proximo: { bg: '#fff5f5', border: '#fca5a5', text: '#991b1b', badge: '#ef4444', label: 'VENCE EN ≤30 DÍAS', orden: 3 },
 };
 
 const card: CSSProperties = {
@@ -188,6 +204,16 @@ function Badge({ bg, color = '#ffffff', children }: { bg: string; color?: string
   );
 }
 
+// Etiquetas de estado: los agotados dicen AGOTADO y los inactivos dicen INACTIVO
+function EstadoBadges({ p }: { p: Producto }) {
+  return (
+    <>
+      {esInactivo(p) && <Badge bg="#3f5f2f">INACTIVO</Badge>}
+      {esAgotado(p) && <Badge bg="#991b1b">AGOTADO</Badge>}
+    </>
+  );
+}
+
 const HEADERS = ['Fecha', 'Factura', 'Descripción', 'Usuario', 'Entregado a', 'Tipo', 'E.Cant', 'E.Costo', 'E.Total',
   'S.Cant', 'S.Costo', 'S.Total', 'Sal.Cant', 'Sal.Total', 'Soporte'];
 const HEADERS_IZQ = ['Fecha', 'Factura', 'Descripción', 'Usuario', 'Entregado a', 'Tipo'];
@@ -195,6 +221,7 @@ const HEADERS_IZQ = ['Fecha', 'Factura', 'Descripción', 'Usuario', 'Entregado a
 export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   usePageTitle('Kardex');
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [fincaSel, setFincaSel] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [lotes, setLotes] = useState<Lote[]>([]);
@@ -204,13 +231,16 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const [tab, setTab] = useState<Tab>('resumen');
 
   const [info, setInfo] = useState<Record<number, ProductoInfo>>({});
-  const [infoListo, setInfoListo] = useState(false);
   const [adjuntas, setAdjuntas] = useState<string[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
   const [subiendoId, setSubiendoId] = useState<number | null>(null);
 
   const [receptores, setReceptores] = useState<Receptor[]>([]);
+
+  // Filtro del historial por fechas (YYYY-MM-DD, vacío = sin límite)
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
 
   const [showForm, setShowForm] = useState(false);
   const [tipo, setTipo] = useState<'ENTRADA' | 'SALIDA'>('ENTRADA');
@@ -229,16 +259,46 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const [showFacturas, setShowFacturas] = useState(false);
 
   /* ───────── Derivados ───────── */
-  const esAgotado = (id: number) => info[id]?.agotado === true;
-  const productosActivos = productos.filter(p => !esAgotado(p.id_producto));
-  const productosAgotados = productos.filter(p => esAgotado(p.id_producto));
-  const producto = productos.find(p => p.id_producto === selectedId);
-  const esAgotadoSel = producto ? esAgotado(producto.id_producto) : false;
-  const totalInventario = productos.reduce((acc, p) => acc + Number(p.saldo_valor), 0);
+  // Fincas que salen en los botones (las de los insumos registrados)
+  const fincas = useMemo(() => {
+    const mapa = new Map<number, string>();
+    productos.forEach(p => { if (!mapa.has(p.id_finca)) mapa.set(p.id_finca, p.finca); });
+    return Array.from(mapa, ([id_finca, nombre]) => ({ id_finca, nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  }, [productos]);
+
+  // Todo lo que se ve en pantalla es SOLO de la finca elegida
+  const productosFinca = productos.filter(p => p.id_finca === fincaSel);
+  // Agotados SÍ se muestran; solo se ocultan los inactivos
+  const productosVisibles = productosFinca.filter(p => !esInactivo(p));
+  const productosInactivos = productosFinca.filter(esInactivo);
+  const producto = productosFinca.find(p => p.id_producto === selectedId);
+  const esAgotadoSel = producto ? esAgotado(producto) : false;
+  const esInactivoSel = producto ? esInactivo(producto) : false;
+  const totalInventario = productosVisibles.reduce((acc, p) => acc + Number(p.saldo_valor), 0);
   const facturasHistorial = Array.from(
     new Set(movimientos.map(m => m.detalle).filter(Boolean))
   );
-  const opcionesSelector = producto && esAgotadoSel ? [...productosActivos, producto] : productosActivos;
+  // En "Historial completo" se pueden elegir también los inactivos
+  const opcionesSelector = tab === 'historial' ? productosFinca : productosVisibles;
+  const nombreFincaRepetido = (n: string) => fincas.filter(f => f.nombre === n).length > 1;
+  const fincaActual = fincas.find(f => f.id_finca === fincaSel);
+
+  // Historial por fechas
+  const hoyStr = aISO(new Date());
+  const hayFiltro = !!(desde || hasta);
+  const rangoInvalido = !!(desde && hasta && desde > hasta);
+  const movimientosFiltrados = movimientos.filter(m => {
+    const d = fechaLocal(m.fecha);
+    return (!desde || d >= desde) && (!hasta || d <= hasta);
+  });
+  const sumaRango = movimientosFiltrados.reduce(
+    (a, m) => m.tipo === 'SALIDA'
+      ? { ...a, salidas: a.salidas + Number(m.total) }
+      : { ...a, entradas: a.entradas + Number(m.total) },
+    { entradas: 0, salidas: 0 }
+  );
+  const ultimoDelRango = movimientosFiltrados[movimientosFiltrados.length - 1];
 
   /* ───────── Carga de datos ───────── */
   const cargarLotes = useCallback(async (id: number) => {
@@ -287,52 +347,68 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     }
   }, []);
 
-  // Estado de cada insumo (agotado/inactivo) y fechas de ingreso
-  const cargarInfo = useCallback(async (): Promise<Record<number, ProductoInfo>> => {
+  // Fechas de ingreso y facturas de cada insumo
+  const cargarInfo = useCallback(async () => {
     const mapa: Record<number, ProductoInfo> = {};
     try {
       const lista = await getProductosInfo();
       lista.forEach(i => { mapa[Number(i.id_producto)] = i; });
     } catch (err) { console.error(err); }
     setInfo(mapa);
-    setInfoListo(true);
-    return mapa;
   }, []);
 
-  const cargarProductos = useCallback(async (): Promise<Record<number, ProductoInfo>> => {
-    setLoadingProd(true);
-    let mapa: Record<number, ProductoInfo> = {};
+  const cargarProductos = useCallback(async (): Promise<Producto[]> => {
+    let data: Producto[] = [];
     try {
-      const data = await api.getKardexProductos();
-      mapa = await cargarInfo();
+      data = await api.getKardexProductos();
+      await cargarInfo();
       setProductos(data);
-      if (data.length > 0) setSelectedId(prev => prev ?? data[0].id_producto);
       void cargarTodosLotes(data);
     } catch (err) { console.error(err); }
     finally { setLoadingProd(false); }
-    return mapa;
+    return data;
   }, [cargarTodosLotes, cargarInfo]);
 
   useEffect(() => {
     void cargarProductos();
     void cargarReceptores();
   }, []); // eslint-disable-line
+
+  // Finca elegida: la última usada, o la primera de la lista
+  useEffect(() => {
+    if (fincas.length === 0) return;
+    setFincaSel(prev => {
+      if (prev !== null && fincas.some(f => f.id_finca === prev)) return prev;
+      let guardada = NaN;
+      try { guardada = Number(localStorage.getItem(CLAVE_FINCA)); } catch { /* sin almacenamiento */ }
+      return fincas.find(f => f.id_finca === guardada)?.id_finca ?? fincas[0].id_finca;
+    });
+  }, [fincas]);
+
+  // El insumo seleccionado debe ser de la finca elegida; un inactivo solo se ve en el historial
+  useEffect(() => {
+    if (fincaSel === null) return;
+    const sel = productosFinca.find(p => p.id_producto === selectedId);
+    const valido = !!sel && (!esInactivo(sel) || tab === 'historial');
+    if (!valido) {
+      const primero = productosVisibles[0] ?? productosFinca[0];
+      setSelectedId(primero ? primero.id_producto : null);
+      setShowForm(false);
+      setShowFacturas(false);
+    }
+  }, [fincaSel, productos, tab, selectedId]); // eslint-disable-line
+
   useEffect(() => {
     if (selectedId) {
       void cargarMovimientos(selectedId);
       void cargarLotes(selectedId);
       void cargarAdjuntas(selectedId);
+    } else {
+      setMovimientos([]);
+      setLotes([]);
+      setAdjuntas([]);
     }
   }, [selectedId]); // eslint-disable-line
-
-  // Un insumo agotado solo se consulta en "Historial completo"
-  useEffect(() => {
-    if (!infoListo || selectedId === null || productosActivos.length === 0) return;
-    if (info[selectedId]?.agotado && tab !== 'historial') {
-      setShowForm(false);
-      setSelectedId(productosActivos[0].id_producto);
-    }
-  }, [infoListo, info, selectedId, tab, productos]); // eslint-disable-line
 
   // Vista previa de la factura (solo imágenes)
   useEffect(() => {
@@ -342,10 +418,10 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     return () => URL.revokeObjectURL(url);
   }, [archivo]);
 
-  /* ───────── Búsqueda ───────── */
+  /* ───────── Búsqueda (solo dentro de la finca elegida) ───────── */
   const q = norm(busqueda.trim());
   const resultados = q
-    ? productos.filter(p => {
+    ? productosFinca.filter(p => {
         const i = info[p.id_producto];
         const texto = norm([
           p.nombre, p.categoria, p.finca,
@@ -356,9 +432,10 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
       }).slice(0, 8)
     : [];
 
-  /* ───────── Alertas (solo insumos activos) ───────── */
+  /* ───────── Alertas: SOLO lotes por vencer/vencidos y stock mínimo ─────────
+     No incluye agotados (sin existencias) ni insumos inactivos. */
   const alertas: Alerta[] = [];
-  productosActivos.forEach(p => {
+  productosVisibles.filter(p => !esAgotado(p)).forEach(p => {
     (todosLotes[p.id_producto] ?? []).forEach(l => {
       const d = diasParaVencer(l.fecha_vencimiento);
       if (d === null) return;
@@ -367,21 +444,26 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
       else if (d <= 15) alertas.push({ id: `u-${l.id_lote}`, nivel: 'urgente', producto: p, detalle: `Lote vence en ${d} días — ${base}` });
       else if (d <= 30) alertas.push({ id: `p-${l.id_lote}`, nivel: 'proximo', producto: p, detalle: `Lote vence en ${d} días — ${base}` });
     });
-    const s = Number(p.saldo_cantidad);
-    if (s <= 0) alertas.push({ id: `a-${p.id_producto}`, nivel: 'agotado', producto: p, detalle: 'Sin existencias disponibles' });
-    else if (s < STOCK_BAJO) alertas.push({ id: `b-${p.id_producto}`, nivel: 'bajo', producto: p, detalle: `Quedan solo ${fmtU(s, p.unidadmedida)}` });
+    if (enStockMinimo(p)) {
+      alertas.push({
+        id: `b-${p.id_producto}`, nivel: 'bajo', producto: p,
+        detalle: `Quedan ${fmtU(Number(p.saldo_cantidad), p.unidadmedida)} · mínimo ${fmtU(Number(p.stock_minimo), p.unidadmedida)}`,
+      });
+    }
   });
   alertas.sort((a, b) => estiloAlerta[a.nivel].orden - estiloAlerta[b.nivel].orden);
 
-  const estadoStock = (p: Producto): 'agotado' | 'bajo' | null => {
-    const s = Number(p.saldo_cantidad);
-    if (s <= 0) return 'agotado';
-    if (s < STOCK_BAJO) return 'bajo';
-    return null;
-  };
-
   /* ───────── Acciones ───────── */
   const limpiarArchivo = () => { setArchivo(null); setErrorArchivo(''); };
+
+  const cambiarFinca = (id: number) => {
+    setFincaSel(id);
+    try { localStorage.setItem(CLAVE_FINCA, String(id)); } catch { /* sin almacenamiento */ }
+    setBusqueda('');
+    setShowForm(false);
+    setShowFacturas(false);
+    setSelectedId(null); // el efecto elige el primer insumo de la finca
+  };
 
   const cambiarProducto = (id: number) => {
     setSelectedId(id);
@@ -401,7 +483,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
 
   const elegirResultado = (p: Producto) => {
     setBusqueda('');
-    if (esAgotado(p.id_producto)) irAHistorial(p.id_producto);
+    if (esInactivo(p)) irAHistorial(p.id_producto);
     else irAInsumo(p.id_producto);
   };
 
@@ -415,14 +497,6 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     if (!showForm) resetForm();
     setShowForm(!showForm);
     setShowFacturas(false);
-  };
-
-  const reabastecer = (id: number) => {
-    setSelectedId(id);
-    setTab('historial');
-    setShowFacturas(false);
-    resetForm();
-    setShowForm(true);
   };
 
   const cambiarTipo = (t: 'ENTRADA' | 'SALIDA') => {
@@ -443,6 +517,20 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     setErrorArchivo('');
     setArchivo(f);
   };
+
+  // Rangos rápidos del historial
+  const aplicarRango = (d: string, h: string) => { setDesde(d); setHasta(h); };
+  const rangoHoy = () => aplicarRango(hoyStr, hoyStr);
+  const rango7dias = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    aplicarRango(aISO(d), hoyStr);
+  };
+  const rangoMes = () => {
+    const d = new Date();
+    aplicarRango(aISO(new Date(d.getFullYear(), d.getMonth(), 1)), hoyStr);
+  };
+  const limpiarRango = () => aplicarRango('', '');
 
   const verFactura = async (idKardex: number) => {
     // Se abre la ventana de inmediato para que el navegador no la bloquee
@@ -501,6 +589,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     if (tipo === 'SALIDA' && qty > loteSeleccionado!.cantidad)
       return setError(`Stock insuficiente en este lote. Disponible: ${loteSeleccionado!.cantidad} ${producto?.unidadmedida}`);
     if (!producto) return;
+    if (esInactivo(producto)) return setError('Este insumo está inactivo y no permite movimientos');
 
     setSaving(true);
     try {
@@ -532,15 +621,16 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
         }
       }
 
-      const mapa = await cargarProductos();
+      const actualizados = await cargarProductos();
       await cargarMovimientos(selectedId!);
       await cargarLotes(selectedId!);
       await cargarAdjuntas(selectedId!);
 
+      const despues = actualizados.find(p => p.id_producto === selectedId);
       if (problemaArchivo) {
         setAviso({ tipo: 'error', texto: problemaArchivo });
-      } else if (tipo === 'SALIDA' && mapa[selectedId!]?.agotado) {
-        setAviso({ tipo: 'ok', texto: `${producto.nombre} se agotó y pasó a inactivo. Su historial queda en "Historial completo".` });
+      } else if (tipo === 'SALIDA' && despues && esAgotado(despues)) {
+        setAviso({ tipo: 'ok', texto: `${producto.nombre} quedó agotado. Sigue visible en el kardex; registra una compra para reabastecerlo.` });
       } else {
         setAviso({ tipo: 'ok', texto: 'Movimiento registrado correctamente' });
       }
@@ -665,12 +755,13 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: 'resumen', label: 'Resumen' },
-    { id: 'insumos', label: 'Insumos', count: productosActivos.length },
+    { id: 'insumos', label: 'Insumos', count: productosVisibles.length },
     { id: 'consolidado', label: 'Inventario consolidado' },
     { id: 'alertas', label: 'Alertas', count: alertas.length },
     { id: 'historial', label: 'Historial completo' },
   ];
 
+  // Un insumo agotado solo admite ENTRADA (no hay con qué hacer una salida)
   const tiposDisponibles: ('ENTRADA' | 'SALIDA')[] = esAgotadoSel ? ['ENTRADA'] : ['ENTRADA', 'SALIDA'];
 
   return (
@@ -718,182 +809,216 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
       ) : (
         <>
           {/* ═════════ BARRA SUPERIOR FIJA ═════════ */}
-          {producto && (
-            <div className="sticky top-0 z-30 mb-4"
-              style={{ ...card, padding: 12, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
+          <div className="sticky top-0 z-30 mb-4"
+            style={{ ...card, padding: 12, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
 
-              {/* Buscador */}
-              <div className="relative mb-3">
-                <label style={lbl}>Buscar insumo</label>
-                <div className="relative">
-                  <Search size={16} strokeWidth={1.75}
-                    style={{ position: 'absolute', left: 10, top: 11, color: C.muted }} />
-                  <input
-                    value={busqueda}
-                    onChange={e => setBusqueda(e.target.value)}
-                    placeholder="Nombre, categoría, finca, N° de factura o fecha de ingreso (ej: 05/06/2026)"
-                    style={{ ...inp, paddingLeft: 34, paddingRight: 34 }} />
-                  {busqueda && (
-                    <button type="button" aria-label="Limpiar búsqueda" onClick={() => setBusqueda('')}
-                      style={{ position: 'absolute', right: 8, top: 8, color: C.muted }}>
-                      <X size={16} strokeWidth={2} />
+            {/* Botones de finca: el kardex muestra SOLO los movimientos de la finca elegida */}
+            <div className="mb-3">
+              <label style={lbl}>Finca</label>
+              <div role="group" aria-label="Seleccionar finca" className="flex flex-wrap gap-2">
+                {fincas.map(f => {
+                  const activa = f.id_finca === fincaSel;
+                  const etiqueta = nombreFincaRepetido(f.nombre) ? `${f.nombre} (#${f.id_finca})` : f.nombre;
+                  return (
+                    <button key={f.id_finca} type="button" aria-pressed={activa}
+                      onClick={() => cambiarFinca(f.id_finca)}
+                      className="px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5"
+                      style={activa
+                        ? { background: C.dark, color: '#ffffff', border: `2px solid ${C.dark}` }
+                        : { background: '#ffffff', color: C.dark, border: `2px solid ${C.border}` }}>
+                      <Leaf size={14} strokeWidth={2} /> {etiqueta}
                     </button>
-                  )}
-                </div>
-                {q && (
-                  <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl overflow-hidden"
-                    style={{ background: '#ffffff', border: `2px solid ${C.dark}`, boxShadow: '0 10px 30px rgba(0,0,0,0.25)' }}>
-                    {resultados.length === 0 ? (
-                      <p className="px-3 py-3 text-xs font-semibold" style={{ color: C.muted }}>
-                        Sin resultados para "{busqueda}"
-                      </p>
-                    ) : resultados.map(p => {
-                      const i = info[p.id_producto];
-                      const agot = esAgotado(p.id_producto);
-                      return (
-                        <button key={p.id_producto} type="button" onClick={() => elegirResultado(p)}
-                          className="w-full text-left px-3 py-2 flex items-center justify-between gap-3"
-                          style={{ borderBottom: `1px solid ${C.border}`, background: '#ffffff', color: C.text }}>
-                          <div>
-                            <p className="text-sm font-bold flex items-center gap-2">
-                              {p.nombre}
-                              {agot && <Badge bg="#3f5f2f">INACTIVO · AGOTADO</Badge>}
-                            </p>
-                            <p className="text-[11px]" style={{ color: C.muted }}>
-                              {p.categoria} · {p.finca}
-                            </p>
-                            <p className="text-[11px] font-semibold" style={{ color: C.valor }}>
-                              {i?.primer_ingreso ? `Ingresó: ${fmtFecha(i.primer_ingreso)}` : 'Sin ingresos registrados'}
-                              {i?.ultimo_ingreso && i.ultimo_ingreso !== i.primer_ingreso
-                                ? ` · Última compra: ${fmtFecha(i.ultimo_ingreso)}` : ''}
-                            </p>
-                          </div>
-                          <span className="text-xs font-mono font-bold flex-shrink-0">
-                            {fmtU(p.saldo_cantidad, p.unidadmedida)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Selector + badges */}
-                <div className="min-w-[260px] flex-1">
-                  <label style={lbl}>Insumo seleccionado</label>
-                  <select value={selectedId ?? ''}
-                    onChange={e => cambiarProducto(Number(e.target.value))}
-                    style={{ ...inp, fontWeight: 700, maxWidth: 520 }}>
-                    {opcionesSelector.map(p => {
-                      const i = info[p.id_producto];
-                      return (
-                        <option key={p.id_producto} value={p.id_producto}>
-                          {p.nombre} — {p.categoria} · {fmtU(p.saldo_cantidad, p.unidadmedida)}
-                          {i?.primer_ingreso ? ` · ingresó ${fmtFecha(i.primer_ingreso)}` : ''}
-                          {esAgotado(p.id_producto) ? ' · AGOTADO' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <div className="flex gap-2 mt-2 flex-wrap">
-                    <Badge bg="#2d6a1e">{producto.categoria}</Badge>
-                    <Badge bg="#3f5f2f">{producto.unidadmedida}</Badge>
-                    <Badge bg="#15803d">MÉTODO PEPS</Badge>
-                    <Badge bg="#1e3d10"><Leaf size={11} strokeWidth={2} /> {producto.finca}</Badge>
-                    {esAgotadoSel && <Badge bg="#4d7c0f">INACTIVO · AGOTADO</Badge>}
-                  </div>
-                </div>
-
-                {/* Saldo actual */}
-                <div className="text-right">
-                  <p style={{ ...lbl, marginBottom: 2 }}>Saldo actual</p>
-                  <p className="text-2xl font-bold font-mono" style={{ color: C.text }}>
-                    {fmtU(producto.saldo_cantidad, producto.unidadmedida)}
-                  </p>
-                  <p className="text-sm font-bold font-mono" style={{ color: C.valor }}>
-                    {fmt(producto.saldo_valor)}
-                  </p>
-                </div>
-
-                {/* Acciones */}
-                <div className="flex items-center gap-2">
-                  {movimientos.length > 0 && (
-                    <div className="relative">
-                      <button
-                        onClick={() => { setShowFacturas(!showFacturas); setShowForm(false); }}
-                        className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
-                        style={{ background: C.dark, color: '#ffffff' }}>
-                        <ClipboardList size={16} strokeWidth={1.75} />
-                        Facturas ({facturasHistorial.length})
-                      </button>
-                      {showFacturas && (
-                        <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-xl overflow-hidden"
-                          style={{ background: '#ffffff', border: `2px solid ${C.dark}`, boxShadow: '0 10px 30px rgba(0,0,0,0.35)' }}>
-                          <div className="px-3 py-2" style={{ background: C.head, borderBottom: `1px solid ${C.border}` }}>
-                            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: C.dark }}>
-                              Historial de Facturas
-                            </p>
-                          </div>
-                          <div className="max-h-64 overflow-y-auto">
-                            {facturasHistorial.map((f, i) => {
-                              const movsFac = movimientos.filter(m => m.detalle === f);
-                              const lotesFac = lotes.filter(l => l.factura === f);
-                              const diasMin = lotesFac
-                                .map(l => diasParaVencer(l.fecha_vencimiento))
-                                .filter((d): d is number => d !== null)
-                                .sort((a, b) => a - b)[0];
-                              const vencido = diasMin !== undefined && diasMin < 0;
-                              const urgente = diasMin !== undefined && diasMin >= 0 && diasMin <= 15;
-                              return (
-                                <div key={i}
-                                  className="px-3 py-2 flex items-center justify-between"
-                                  style={{
-                                    borderBottom: `1px solid ${C.border}`,
-                                    background: vencido ? '#fee2e2' : urgente ? '#fef2f2' : '#ffffff',
-                                  }}>
-                                  <div>
-                                    <p className="text-xs font-bold font-mono"
-                                      style={{ color: vencido ? '#7f1d1d' : urgente ? '#991b1b' : C.text }}>
-                                      {f}
-                                    </p>
-                                    <p className="text-[10px]" style={{ color: C.muted }}>
-                                      {movsFac.length} mov. · {movsFac.filter(m => m.tipo === 'ENTRADA').length} entradas
-                                    </p>
-                                  </div>
-                                  {diasMin !== undefined && (
-                                    <Badge bg={vencido ? '#b91c1c' : urgente ? '#dc2626' : '#3f5f2f'}>
-                                      {vencido
-                                        ? <><AlertTriangle size={10} strokeWidth={2} /> Vencida</>
-                                        : urgente
-                                          ? <><Clock size={10} strokeWidth={2} /> {diasMin}d</>
-                                          : <><CheckCircle size={10} strokeWidth={2} /> {diasMin}d</>}
-                                    </Badge>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {canEdit && (
-                    <button onClick={abrirForm}
-                      className="px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
-                      style={{ background: showForm ? '#3f5f2f' : C.green, color: '#ffffff' }}>
-                      {showForm
-                        ? <><X size={16} strokeWidth={2} /> Cancelar</>
-                        : <><Plus size={16} strokeWidth={2} /> {esAgotadoSel ? 'Reabastecer' : 'Movimiento'}</>}
-                    </button>
-                  )}
-                </div>
+                  );
+                })}
               </div>
             </div>
-          )}
+
+            {productosFinca.length === 0 && (
+              <p className="text-xs font-semibold" style={{ color: C.muted }}>
+                Esta finca no tiene insumos registrados.
+              </p>
+            )}
+
+            {producto && (
+              <>
+                {/* Buscador */}
+                <div className="relative mb-3">
+                  <label style={lbl}>Buscar insumo{fincaActual ? ` en ${fincaActual.nombre}` : ''}</label>
+                  <div className="relative">
+                    <Search size={16} strokeWidth={1.75}
+                      style={{ position: 'absolute', left: 10, top: 11, color: C.muted }} />
+                    <input
+                      value={busqueda}
+                      onChange={e => setBusqueda(e.target.value)}
+                      placeholder="Nombre, categoría, N° de factura o fecha de ingreso (ej: 05/06/2026)"
+                      style={{ ...inp, paddingLeft: 34, paddingRight: 34 }} />
+                    {busqueda && (
+                      <button type="button" aria-label="Limpiar búsqueda" onClick={() => setBusqueda('')}
+                        style={{ position: 'absolute', right: 8, top: 8, color: C.muted }}>
+                        <X size={16} strokeWidth={2} />
+                      </button>
+                    )}
+                  </div>
+                  {q && (
+                    <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl overflow-hidden"
+                      style={{ background: '#ffffff', border: `2px solid ${C.dark}`, boxShadow: '0 10px 30px rgba(0,0,0,0.25)' }}>
+                      {resultados.length === 0 ? (
+                        <p className="px-3 py-3 text-xs font-semibold" style={{ color: C.muted }}>
+                          Sin resultados para "{busqueda}"
+                        </p>
+                      ) : resultados.map(p => {
+                        const i = info[p.id_producto];
+                        return (
+                          <button key={p.id_producto} type="button" onClick={() => elegirResultado(p)}
+                            className="w-full text-left px-3 py-2 flex items-center justify-between gap-3"
+                            style={{ borderBottom: `1px solid ${C.border}`, background: '#ffffff', color: C.text }}>
+                            <div>
+                              <p className="text-sm font-bold flex items-center gap-2">
+                                {p.nombre}
+                                <EstadoBadges p={p} />
+                              </p>
+                              <p className="text-[11px]" style={{ color: C.muted }}>
+                                {p.categoria} · {p.finca}
+                              </p>
+                              <p className="text-[11px] font-semibold" style={{ color: C.valor }}>
+                                {i?.primer_ingreso ? `Ingresó: ${fmtFecha(i.primer_ingreso)}` : 'Sin ingresos registrados'}
+                                {i?.ultimo_ingreso && i.ultimo_ingreso !== i.primer_ingreso
+                                  ? ` · Última compra: ${fmtFecha(i.ultimo_ingreso)}` : ''}
+                              </p>
+                            </div>
+                            <span className="text-xs font-mono font-bold flex-shrink-0">
+                              {fmtU(p.saldo_cantidad, p.unidadmedida)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  {/* Selector + badges */}
+                  <div className="min-w-[260px] flex-1">
+                    <label style={lbl}>Insumo seleccionado</label>
+                    <select value={selectedId ?? ''}
+                      onChange={e => cambiarProducto(Number(e.target.value))}
+                      style={{ ...inp, fontWeight: 700, maxWidth: 520 }}>
+                      {opcionesSelector.map(p => {
+                        const i = info[p.id_producto];
+                        return (
+                          <option key={p.id_producto} value={p.id_producto}>
+                            {p.nombre} — {p.categoria} · {fmtU(p.saldo_cantidad, p.unidadmedida)}
+                            {i?.primer_ingreso ? ` · ingresó ${fmtFecha(i.primer_ingreso)}` : ''}
+                            {esAgotado(p) ? ' · AGOTADO' : ''}
+                            {esInactivo(p) ? ' · INACTIVO' : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <div className="flex gap-2 mt-2 flex-wrap">
+                      <Badge bg="#2d6a1e">{producto.categoria}</Badge>
+                      <Badge bg="#3f5f2f">{producto.unidadmedida}</Badge>
+                      <Badge bg="#15803d">MÉTODO PEPS</Badge>
+                      <Badge bg="#1e3d10"><Leaf size={11} strokeWidth={2} /> {producto.finca}</Badge>
+                      <EstadoBadges p={producto} />
+                    </div>
+                  </div>
+
+                  {/* Saldo actual */}
+                  <div className="text-right">
+                    <p style={{ ...lbl, marginBottom: 2 }}>Saldo actual</p>
+                    <p className="text-2xl font-bold font-mono" style={{ color: C.text }}>
+                      {fmtU(producto.saldo_cantidad, producto.unidadmedida)}
+                    </p>
+                    <p className="text-sm font-bold font-mono" style={{ color: C.valor }}>
+                      {fmt(producto.saldo_valor)}
+                    </p>
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="flex items-center gap-2">
+                    {movimientos.length > 0 && (
+                      <div className="relative">
+                        <button
+                          onClick={() => { setShowFacturas(!showFacturas); setShowForm(false); }}
+                          className="px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                          style={{ background: C.dark, color: '#ffffff' }}>
+                          <ClipboardList size={16} strokeWidth={1.75} />
+                          Facturas ({facturasHistorial.length})
+                        </button>
+                        {showFacturas && (
+                          <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-xl overflow-hidden"
+                            style={{ background: '#ffffff', border: `2px solid ${C.dark}`, boxShadow: '0 10px 30px rgba(0,0,0,0.35)' }}>
+                            <div className="px-3 py-2" style={{ background: C.head, borderBottom: `1px solid ${C.border}` }}>
+                              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: C.dark }}>
+                                Historial de Facturas
+                              </p>
+                            </div>
+                            <div className="max-h-64 overflow-y-auto">
+                              {facturasHistorial.map((f, i) => {
+                                const movsFac = movimientos.filter(m => m.detalle === f);
+                                const lotesFac = lotes.filter(l => l.factura === f);
+                                const diasMin = lotesFac
+                                  .map(l => diasParaVencer(l.fecha_vencimiento))
+                                  .filter((d): d is number => d !== null)
+                                  .sort((a, b) => a - b)[0];
+                                const vencido = diasMin !== undefined && diasMin < 0;
+                                const urgente = diasMin !== undefined && diasMin >= 0 && diasMin <= 15;
+                                return (
+                                  <div key={i}
+                                    className="px-3 py-2 flex items-center justify-between"
+                                    style={{
+                                      borderBottom: `1px solid ${C.border}`,
+                                      background: vencido ? '#fee2e2' : urgente ? '#fef2f2' : '#ffffff',
+                                    }}>
+                                    <div>
+                                      <p className="text-xs font-bold font-mono"
+                                        style={{ color: vencido ? '#7f1d1d' : urgente ? '#991b1b' : C.text }}>
+                                        {f}
+                                      </p>
+                                      <p className="text-[10px]" style={{ color: C.muted }}>
+                                        {movsFac.length} mov. · {movsFac.filter(m => m.tipo === 'ENTRADA').length} entradas
+                                      </p>
+                                    </div>
+                                    {diasMin !== undefined && (
+                                      <Badge bg={vencido ? '#b91c1c' : urgente ? '#dc2626' : '#3f5f2f'}>
+                                        {vencido
+                                          ? <><AlertTriangle size={10} strokeWidth={2} /> Vencida</>
+                                          : urgente
+                                            ? <><Clock size={10} strokeWidth={2} /> {diasMin}d</>
+                                            : <><CheckCircle size={10} strokeWidth={2} /> {diasMin}d</>}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {canEdit && !esInactivoSel && (
+                      <button onClick={abrirForm}
+                        className="px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                        style={{ background: showForm ? '#3f5f2f' : C.green, color: '#ffffff' }}>
+                        {showForm
+                          ? <><X size={16} strokeWidth={2} /> Cancelar</>
+                          : <><Plus size={16} strokeWidth={2} /> {esAgotadoSel ? 'Reabastecer' : 'Movimiento'}</>}
+                      </button>
+                    )}
+                    {esInactivoSel && (
+                      <span className="text-xs font-bold" style={{ color: C.muted }}>
+                        Inactivo: no permite movimientos
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* ═════════ FORMULARIO DE MOVIMIENTO (visible desde cualquier pestaña) ═════════ */}
-          {canEdit && showForm && producto && (
+          {canEdit && showForm && producto && !esInactivoSel && (
             <div className="mb-4" style={{ ...card, border: `2px solid ${C.green}` }}>
               <h3 className="text-sm font-bold mb-4" style={{ color: C.dark }}>
                 {esAgotadoSel ? 'Reabastecer' : 'Registrar movimiento'} — {producto.nombre}
@@ -1184,13 +1309,13 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
 
           {/* ═════════ PESTAÑA: RESUMEN ═════════ */}
           {tab === 'resumen' && producto && (
-            esAgotadoSel ? (
+            esInactivoSel ? (
               <div style={card}>
-                <h3 className="text-sm font-bold mb-1" style={{ color: C.dark }}>
-                  {producto.nombre} está agotado (inactivo)
+                <h3 className="text-sm font-bold mb-1 flex items-center gap-2" style={{ color: C.dark }}>
+                  {producto.nombre} <Badge bg="#3f5f2f">INACTIVO</Badge>
                 </h3>
                 <p className="text-xs mb-3" style={{ color: C.muted }}>
-                  Los insumos agotados no aparecen en el resumen. Sus movimientos se consultan en el historial.
+                  Los insumos inactivos no aparecen en el resumen ni permiten movimientos. Su historial se consulta aparte.
                 </p>
                 <button onClick={() => setTab('historial')}
                   className="px-4 py-2 rounded-lg text-sm font-bold"
@@ -1200,6 +1325,23 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
               </div>
             ) : (
               <div className="space-y-4">
+                {esAgotadoSel && (
+                  <div className="rounded-lg px-3 py-2 text-sm font-bold flex items-center justify-between gap-3"
+                    style={{ background: '#fee2e2', border: '1px solid #dc2626', color: '#7f1d1d' }}>
+                    <span className="flex items-center gap-2">
+                      <AlertTriangle size={16} strokeWidth={2} />
+                      {producto.nombre} está agotado. Registra una nueva compra para reabastecerlo.
+                    </span>
+                    {canEdit && !showForm && (
+                      <button onClick={abrirForm}
+                        className="px-3 py-1 rounded-lg text-xs font-bold flex-shrink-0"
+                        style={{ background: C.dark, color: '#ffffff' }}>
+                        Reabastecer
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Lotes FEFO */}
                 <div style={card}>
                   <h3 className="text-sm font-bold mb-1" style={{ color: C.dark }}>
@@ -1278,50 +1420,58 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
           {tab === 'insumos' && (
             <div style={card}>
               <h3 className="text-sm font-bold mb-1" style={{ color: C.dark }}>
-                Insumos activos ({productosActivos.length})
+                Insumos de {fincaActual?.nombre ?? 'la finca'} ({productosVisibles.length})
               </h3>
               <p className="text-xs mb-4" style={{ color: C.muted }}>
                 Haz clic en un insumo para ver sus lotes y movimientos.
-                {productosAgotados.length > 0 &&
-                  ` Los ${productosAgotados.length} insumos agotados se consultan en "Historial completo".`}
+                {productosInactivos.length > 0 &&
+                  ` Los ${productosInactivos.length} insumos inactivos se consultan en "Historial completo".`}
               </p>
-              <div className="grid grid-cols-3 gap-3">
-                {productosActivos.map(p => {
-                  const sel = p.id_producto === selectedId;
-                  const est = estadoStock(p);
-                  const i = info[p.id_producto];
-                  return (
-                    <button key={p.id_producto} onClick={() => irAInsumo(p.id_producto)}
-                      className="text-left rounded-xl p-3"
-                      style={{
-                        background: sel ? '#dcfce7' : '#ffffff',
-                        border: `2px solid ${sel ? '#15803d' : C.border}`,
-                        color: C.text,
-                      }}>
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-bold">{p.nombre}</p>
-                        {est && (
-                          <Badge bg={estiloAlerta[est].badge}>{estiloAlerta[est].label}</Badge>
-                        )}
-                      </div>
-                      <p className="text-[11px] mt-0.5" style={{ color: C.muted }}>
-                        {p.categoria} · {p.finca}
-                      </p>
-                      {i?.primer_ingreso && (
-                        <p className="text-[11px] font-semibold" style={{ color: C.valor }}>
-                          Ingresó: {fmtFecha(i.primer_ingreso)}
+              {productosVisibles.length === 0 ? (
+                <p className="text-xs py-6 text-center" style={{ color: C.muted }}>
+                  Esta finca no tiene insumos activos.
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-3">
+                  {productosVisibles.map(p => {
+                    const sel = p.id_producto === selectedId;
+                    const i = info[p.id_producto];
+                    return (
+                      <button key={p.id_producto} onClick={() => irAInsumo(p.id_producto)}
+                        className="text-left rounded-xl p-3"
+                        style={{
+                          background: sel ? '#dcfce7' : '#ffffff',
+                          border: `2px solid ${sel ? '#15803d' : C.border}`,
+                          color: C.text,
+                        }}>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-bold">{p.nombre}</p>
+                          <div className="flex gap-1 flex-wrap justify-end">
+                            <EstadoBadges p={p} />
+                            {enStockMinimo(p) && (
+                              <Badge bg={estiloAlerta.bajo.badge}>{estiloAlerta.bajo.label}</Badge>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[11px] mt-0.5" style={{ color: C.muted }}>
+                          {p.categoria} · {p.finca}
                         </p>
-                      )}
-                      <p className="text-lg font-bold font-mono mt-2">
-                        {fmtU(p.saldo_cantidad, p.unidadmedida)}
-                      </p>
-                      <p className="text-xs font-bold font-mono" style={{ color: C.valor }}>
-                        {fmt(p.saldo_valor)}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
+                        {i?.primer_ingreso && (
+                          <p className="text-[11px] font-semibold" style={{ color: C.valor }}>
+                            Ingresó: {fmtFecha(i.primer_ingreso)}
+                          </p>
+                        )}
+                        <p className="text-lg font-bold font-mono mt-2">
+                          {fmtU(p.saldo_cantidad, p.unidadmedida)}
+                        </p>
+                        <p className="text-xs font-bold font-mono" style={{ color: C.valor }}>
+                          {fmt(p.saldo_valor)}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -1329,7 +1479,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
           {tab === 'consolidado' && (
             <div className="space-y-4">
               <div style={{ ...card, border: `2px solid ${C.valor}` }}>
-                <p style={lbl}>Inventario consolidado</p>
+                <p style={lbl}>Inventario consolidado{fincaActual ? ` — ${fincaActual.nombre}` : ''}</p>
                 <p className="text-xs mb-1" style={{ color: C.muted }}>Valor total (COP $):</p>
                 <p className="text-3xl font-bold font-mono" style={{ color: C.valor }}>
                   {fmt(totalInventario)}
@@ -1354,10 +1504,14 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {productosActivos.map((p, idx) => (
+                      {productosVisibles.map((p, idx) => (
                         <tr key={p.id_producto}
                           style={{ background: idx % 2 ? C.zebra : '#ffffff', borderBottom: `1px solid ${C.border}` }}>
-                          <td className="py-2 px-3 font-bold">{p.nombre}</td>
+                          <td className="py-2 px-3 font-bold">
+                            <span className="inline-flex items-center gap-2">
+                              {p.nombre} <EstadoBadges p={p} />
+                            </span>
+                          </td>
                           <td className="py-2 px-3" style={{ color: C.muted }}>{p.categoria}</td>
                           <td className="py-2 px-3" style={{ color: C.muted }}>{p.finca}</td>
                           <td className="py-2 px-3 text-right font-mono font-semibold">
@@ -1396,17 +1550,17 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
           {tab === 'alertas' && (
             <div style={card}>
               <h3 className="text-sm font-bold mb-1" style={{ color: C.dark }}>
-                Alertas del inventario ({alertas.length})
+                Alertas de {fincaActual?.nombre ?? 'la finca'} ({alertas.length})
               </h3>
               <p className="text-xs mb-4" style={{ color: C.muted }}>
-                Lotes vencidos o por vencer (≤30 días) e insumos con stock bajo (menos de {STOCK_BAJO}).
+                Lotes vencidos o por vencer (≤30 días) e insumos que llegaron a su stock mínimo.
               </p>
               {alertas.length === 0 ? (
                 <div className="flex flex-col items-center text-center py-10 rounded-lg"
                   style={{ background: '#dcfce7', border: '1px solid #16a34a' }}>
                   <CheckCircle size={32} strokeWidth={1.75} style={{ color: '#15803d', marginBottom: 4 }} />
                   <p className="text-sm font-bold" style={{ color: '#14532d' }}>Sin alertas</p>
-                  <p className="text-xs" style={{ color: '#166534' }}>Todo el inventario está en orden.</p>
+                  <p className="text-xs" style={{ color: '#166534' }}>Ningún lote por vencer ni insumo en su stock mínimo.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -1438,17 +1592,17 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
           {/* ═════════ PESTAÑA: HISTORIAL COMPLETO ═════════ */}
           {tab === 'historial' && producto && (
             <div className="space-y-4">
-              {productosAgotados.length > 0 && (
+              {productosInactivos.length > 0 && (
                 <div style={card}>
                   <h3 className="text-sm font-bold mb-1" style={{ color: C.dark }}>
-                    Insumos agotados — inactivos ({productosAgotados.length})
+                    Insumos inactivos ({productosInactivos.length})
                   </h3>
                   <p className="text-xs mb-3" style={{ color: C.muted }}>
-                    Cuando un insumo se gasta por completo pasa a inactivo y solo se consulta aquí.
-                    Si registras una nueva compra, se activa de nuevo.
+                    Los insumos inactivos no aparecen en el resumen, las alertas ni el inventario y no permiten
+                    movimientos. Su historial se consulta solo aquí.
                   </p>
                   <div className="space-y-2">
-                    {productosAgotados.map(p => {
+                    {productosInactivos.map(p => {
                       const i = info[p.id_producto];
                       const sel = p.id_producto === selectedId;
                       return (
@@ -1459,7 +1613,9 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                             border: `1px solid ${sel ? '#15803d' : C.border}`,
                           }}>
                           <div>
-                            <p className="text-sm font-bold" style={{ color: C.text }}>{p.nombre}</p>
+                            <p className="text-sm font-bold flex items-center gap-2" style={{ color: C.text }}>
+                              {p.nombre} <EstadoBadges p={p} />
+                            </p>
                             <p className="text-[11px]" style={{ color: C.muted }}>
                               {p.categoria} · {p.finca}
                               {i?.primer_ingreso ? ` · Ingresó: ${fmtFecha(i.primer_ingreso)}` : ''}
@@ -1467,20 +1623,11 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
                                 ? ` · Última compra: ${fmtFecha(i.ultimo_ingreso)}` : ''}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <button onClick={() => setSelectedId(p.id_producto)}
-                              className="px-3 py-1 rounded-lg text-xs font-bold"
-                              style={{ background: C.dark, color: '#ffffff' }}>
-                              Ver historial
-                            </button>
-                            {canEdit && (
-                              <button onClick={() => reabastecer(p.id_producto)}
-                                className="px-3 py-1 rounded-lg text-xs font-bold"
-                                style={{ background: '#ffffff', color: C.dark, border: `1px solid ${C.dark}` }}>
-                                Reabastecer
-                              </button>
-                            )}
-                          </div>
+                          <button onClick={() => setSelectedId(p.id_producto)}
+                            className="px-3 py-1 rounded-lg text-xs font-bold flex-shrink-0"
+                            style={{ background: C.dark, color: '#ffffff' }}>
+                            Ver historial
+                          </button>
                         </div>
                       );
                     })}
@@ -1491,16 +1638,77 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
               <div style={card}>
                 <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: C.dark }}>
                   Historial Kardex — PEPS · {producto.nombre}
-                  {esAgotadoSel && <Badge bg="#4d7c0f">INACTIVO · AGOTADO</Badge>}
+                  <EstadoBadges p={producto} />
                 </h3>
+
+                {/* Filtro por fechas */}
+                <div className="flex flex-wrap items-end gap-3 mb-3">
+                  <div>
+                    <label style={lbl}>Desde</label>
+                    <input type="date" value={desde}
+                      max={hasta || hoyStr}
+                      onChange={e => setDesde(e.target.value)}
+                      style={{ ...inp, width: 170 }} />
+                  </div>
+                  <div>
+                    <label style={lbl}>Hasta</label>
+                    <input type="date" value={hasta}
+                      min={desde || undefined} max={hoyStr}
+                      onChange={e => setHasta(e.target.value)}
+                      style={{ ...inp, width: 170 }} />
+                  </div>
+                  <div className="flex gap-2 flex-wrap pb-0.5">
+                    {([['Hoy', rangoHoy], ['Últimos 7 días', rango7dias], ['Este mes', rangoMes]] as const).map(([txt, fn]) => (
+                      <button key={txt} type="button" onClick={fn}
+                        className="px-3 py-2 rounded-lg text-xs font-bold"
+                        style={{ background: '#ffffff', color: C.dark, border: `1px solid ${C.dark}` }}>
+                        {txt}
+                      </button>
+                    ))}
+                    {hayFiltro && (
+                      <button type="button" onClick={limpiarRango}
+                        className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1"
+                        style={{ background: C.dark, color: '#ffffff' }}>
+                        <X size={12} strokeWidth={2} /> Quitar filtro
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {rangoInvalido && (
+                  <p className="text-xs mb-3 font-bold flex items-center gap-1" style={{ color: C.red }}>
+                    <AlertTriangle size={12} strokeWidth={2} /> La fecha inicial es posterior a la final.
+                  </p>
+                )}
+
+                {hayFiltro && !rangoInvalido && movimientos.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <Badge bg={C.dark}>
+                      Mostrando {movimientosFiltrados.length} de {movimientos.length} movimientos
+                    </Badge>
+                    <Badge bg="#15803d">Entradas: {fmt(sumaRango.entradas)}</Badge>
+                    <Badge bg="#4d7c0f">Salidas: {fmt(sumaRango.salidas)}</Badge>
+                    {ultimoDelRango && (
+                      <Badge bg="#2d6a1e">
+                        Saldo al cierre: {fmtU(ultimoDelRango.saldo_cantidad, producto.unidadmedida)} · {fmt(ultimoDelRango.saldo_valor)}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+
                 {loadingMov ? (
                   <p className="text-center text-xs py-8" style={{ color: C.muted }}>Cargando movimientos...</p>
                 ) : movimientos.length === 0 ? (
                   <p className="text-center text-xs py-8" style={{ color: C.muted }}>
                     Sin movimientos aún. Registra el inventario inicial.
                   </p>
+                ) : movimientosFiltrados.length === 0 ? (
+                  <p className="text-center text-xs py-8" style={{ color: C.muted }}>
+                    No hay movimientos en ese rango de fechas.
+                  </p>
                 ) : (
-                  tablaMovs(movimientos, producto, true)
+                  // Con filtro no se muestra "Inventario Final" porque no corresponde al rango
+                  tablaMovs(movimientosFiltrados, producto, !hayFiltro)
                 )}
               </div>
             </div>
