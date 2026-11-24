@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool } from '../database/index';
 import { withAudit } from '../database/audit';
+import { MODULO_INVENTARIO } from '../middleware/moduloMiddlewar';
 
 const SECRET = process.env.JWT_SECRET || 'secret123';
 
@@ -36,6 +37,22 @@ export const login = async (req: Request, res: Response) => {
     // Si tu frontend espera otros nombres de rol (por ejemplo 'admin'), cámbialo aquí:
     
     const role = user.rol === 'administrador' ? 'admin' : 'empleado';
+
+    // Los trabajadores solo entran si tienen asignado el módulo de inventario
+    if (role !== 'admin') {
+      const acceso = await pool.query(
+        `SELECT 1 FROM public.v_usuario_modulos
+          WHERE id_usuario = $1 AND codigo = $2
+          LIMIT 1`,
+        [user.id_usuario, MODULO_INVENTARIO]
+      );
+      if (!acceso.rowCount) {
+        return res.status(403).json({
+          error: 'No tienes acceso al módulo de inventario. Pídele al administrador que te lo asigne.',
+          codigo: 'MODULO_NO_ASIGNADO',
+        });
+      }
+    }
 
     const token = jwt.sign(
       { id: user.id_usuario, email: user.email, role, nombre: user.nombre },
