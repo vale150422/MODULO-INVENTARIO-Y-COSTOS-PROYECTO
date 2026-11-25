@@ -4,25 +4,31 @@ import { api } from './api';
 export interface Finca {
   id_finca: number;
   nombre: string;
-  ubicacion?: string | null;
+  municipio?: string | null;
+  vereda?: string | null;
+  created_at?: string | null;
 }
 
 export interface FincaEntrada {
   nombre: string;
-  ubicacion?: string | null;
+  municipio: string;
+  vereda: string;
 }
 
 function normalizar(f: Record<string, unknown>): Finca {
   return {
     id_finca: Number(f.id_finca ?? f.idfinca ?? f.id),
     nombre: String(f.nombre),
-    ubicacion: f.ubicacion ? String(f.ubicacion) : null,
+    municipio: f.municipio ? String(f.municipio) : null,
+    vereda: f.vereda ? String(f.vereda) : null,
+    created_at: f.created_at ? String(f.created_at) : null,
   };
 }
 
 // /fincas ya filtra por usuario en el backend (admin: todas; trabajador: las suyas).
 export async function getFincas(): Promise<Finca[]> {
-  const filas = await api<Array<Record<string, unknown>>>('/fincas');
+  const res = await api<Array<Record<string, unknown>> | { data: Array<Record<string, unknown>> }>('/fincas');
+  const filas = Array.isArray(res) ? res : res?.data ?? [];
   return filas.map(normalizar);
 }
 

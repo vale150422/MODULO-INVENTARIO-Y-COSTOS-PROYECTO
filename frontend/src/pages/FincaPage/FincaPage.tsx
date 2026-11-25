@@ -49,7 +49,8 @@ const FincasPage = () => {
   const cargarFincas = async () => {
     try {
       const res = await getFincas();
-      setFincas(Array.isArray(res) ? res : res?.data || []);
+     
+      setFincas(res);
     } catch (error) {
       console.error(error);
       setFincas([]);
