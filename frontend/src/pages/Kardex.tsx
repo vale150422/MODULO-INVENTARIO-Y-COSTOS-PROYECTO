@@ -1,7 +1,8 @@
 /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useCallback, useMemo, type ReactNode, type CSSProperties, type ChangeEvent } from 'react';
+import { useState, useEffect, useCallback, useMemo, useContext, type ReactNode, type CSSProperties, type ChangeEvent } from 'react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { api } from '../services/api';
+import { FincaActivaContext } from '../context/fincaActivaContext';
 import {
   getProductosInfo, getFacturasAdjuntas, subirFacturaArchivo, obtenerUrlFactura,
   type ProductoInfo
@@ -74,11 +75,6 @@ const MAX_MB = 5;
 const TIPOS_OK = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 const ACCEPT = '.jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf';
 
-// Base del backend (la misma que usa la pantalla de Trabajadores para las fincas)
-const API_URL = 'https://modulo-inventario-y-costos-proyecto.onrender.com/api';
-
-const CLAVE_FINCA = 'kardex:finca';
-
 /* ───────── Utilidades ───────── */
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CO') + ' COP';
 const fmtU = (n: number, u: string) => Number(n).toLocaleString('es-CO') + ' ' + u;
@@ -120,7 +116,7 @@ const validarArchivo = (f: File): string => {
   return '';
 };
 
-// AGOTADO = sin existencias (sigue visible). INACTIVO = desactivado (se oculta).
+// AGOTADO = sin existencias (sigue visible). INACTIVO = desactivado (solo aparece al buscarlo).
 const esAgotado = (p: Producto) => Number(p.saldo_cantidad) <= 0;
 const esInactivo = (p: Producto) => p.activo === false;
 
@@ -220,6 +216,11 @@ const HEADERS_IZQ = ['Fecha', 'Factura', 'Descripción', 'Usuario', 'Entregado a
 
 export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   usePageTitle('Kardex');
+
+  // Finca activa del menú lateral: manda sobre todo lo que se ve en el Kardex
+  const ctxFinca = useContext(FincaActivaContext);
+  const idFincaActiva = ctxFinca?.fincaActiva?.id_finca ?? null;
+
   const [productos, setProductos] = useState<Producto[]>([]);
   const [fincaSel, setFincaSel] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -259,7 +260,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const [showFacturas, setShowFacturas] = useState(false);
 
   /* ───────── Derivados ───────── */
-  // Fincas que salen en los botones (las de los insumos registrados)
+  // Fincas presentes en los insumos recibidos (el backend ya filtra por la finca activa)
   const fincas = useMemo(() => {
     const mapa = new Map<number, string>();
     productos.forEach(p => { if (!mapa.has(p.id_finca)) mapa.set(p.id_finca, p.finca); });
@@ -267,9 +268,9 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   }, [productos]);
 
-  // Todo lo que se ve en pantalla es SOLO de la finca elegida
+  // Todo lo que se ve en pantalla es SOLO de la finca activa
   const productosFinca = productos.filter(p => p.id_finca === fincaSel);
-  // Agotados SÍ se muestran; solo se ocultan los inactivos
+  // Agotados SÍ se muestran; los inactivos NO se listan (solo se encuentran con el buscador)
   const productosVisibles = productosFinca.filter(p => !esInactivo(p));
   const productosInactivos = productosFinca.filter(esInactivo);
   const producto = productosFinca.find(p => p.id_producto === selectedId);
@@ -279,9 +280,10 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   const facturasHistorial = Array.from(
     new Set(movimientos.map(m => m.detalle).filter(Boolean))
   );
-  // En "Historial completo" se pueden elegir también los inactivos
-  const opcionesSelector = tab === 'historial' ? productosFinca : productosVisibles;
-  const nombreFincaRepetido = (n: string) => fincas.filter(f => f.nombre === n).length > 1;
+  // El selector solo lista activos; si se llegó a un inactivo por la búsqueda, se agrega solo ese
+  const opcionesSelector = producto && esInactivo(producto)
+    ? [...productosVisibles, producto]
+    : productosVisibles;
   const fincaActual = fincas.find(f => f.id_finca === fincaSel);
 
   // Historial por fechas
@@ -335,12 +337,8 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   // Personas a las que se les puede entregar un producto (lista "Entregar a")
   const cargarReceptores = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/kardex/receptores`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const data = await res.json();
-      setReceptores(Array.isArray(data) ? data : []);
+      const data = await api<unknown>('/kardex/receptores');
+      setReceptores(Array.isArray(data) ? (data as Receptor[]) : []);
     } catch (err) {
       console.error(err);
       setReceptores([]);
@@ -370,22 +368,26 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
   }, [cargarTodosLotes, cargarInfo]);
 
   useEffect(() => {
-    void cargarProductos();
     void cargarReceptores();
   }, []); // eslint-disable-line
 
-  // Finca elegida: la última usada, o la primera de la lista
+  // Al entrar y cada vez que cambia la finca activa del menú: se recarga todo
+  useEffect(() => {
+    if (idFincaActiva !== null) setFincaSel(idFincaActiva);
+    setBusqueda('');
+    setShowForm(false);
+    setShowFacturas(false);
+    setSelectedId(null); // el efecto de abajo elige el primer insumo de la finca
+    void cargarProductos();
+  }, [idFincaActiva]); // eslint-disable-line
+
+  // Respaldo: si no hay finca activa en el contexto, se usa la primera finca recibida
   useEffect(() => {
     if (fincas.length === 0) return;
-    setFincaSel(prev => {
-      if (prev !== null && fincas.some(f => f.id_finca === prev)) return prev;
-      let guardada = NaN;
-      try { guardada = Number(localStorage.getItem(CLAVE_FINCA)); } catch { /* sin almacenamiento */ }
-      return fincas.find(f => f.id_finca === guardada)?.id_finca ?? fincas[0].id_finca;
-    });
+    setFincaSel(prev => (prev !== null && fincas.some(f => f.id_finca === prev)) ? prev : fincas[0].id_finca);
   }, [fincas]);
 
-  // El insumo seleccionado debe ser de la finca elegida; un inactivo solo se ve en el historial
+  // El insumo seleccionado debe ser de la finca activa; un inactivo solo se mantiene en el historial
   useEffect(() => {
     if (fincaSel === null) return;
     const sel = productosFinca.find(p => p.id_producto === selectedId);
@@ -418,13 +420,14 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
     return () => URL.revokeObjectURL(url);
   }, [archivo]);
 
-  /* ───────── Búsqueda (solo dentro de la finca elegida) ───────── */
+  /* ───────── Búsqueda (dentro de la finca activa; incluye los inactivos) ───────── */
   const q = norm(busqueda.trim());
   const resultados = q
     ? productosFinca.filter(p => {
         const i = info[p.id_producto];
         const texto = norm([
           p.nombre, p.categoria, p.finca,
+          esInactivo(p) ? 'inactivo' : '',
           ...(i?.facturas ?? []),
           ...(i?.ingresos ?? []).map(textoFecha),
         ].join(' '));
@@ -455,15 +458,6 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
 
   /* ───────── Acciones ───────── */
   const limpiarArchivo = () => { setArchivo(null); setErrorArchivo(''); };
-
-  const cambiarFinca = (id: number) => {
-    setFincaSel(id);
-    try { localStorage.setItem(CLAVE_FINCA, String(id)); } catch { /* sin almacenamiento */ }
-    setBusqueda('');
-    setShowForm(false);
-    setShowFacturas(false);
-    setSelectedId(null); // el efecto elige el primer insumo de la finca
-  };
 
   const cambiarProducto = (id: number) => {
     setSelectedId(id);
@@ -812,26 +806,12 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
           <div className="sticky top-0 z-30 mb-4"
             style={{ ...card, padding: 12, boxShadow: '0 4px 14px rgba(0,0,0,0.25)' }}>
 
-            {/* Botones de finca: el kardex muestra SOLO los movimientos de la finca elegida */}
-            <div className="mb-3">
-              <label style={lbl}>Finca</label>
-              <div role="group" aria-label="Seleccionar finca" className="flex flex-wrap gap-2">
-                {fincas.map(f => {
-                  const activa = f.id_finca === fincaSel;
-                  const etiqueta = nombreFincaRepetido(f.nombre) ? `${f.nombre} (#${f.id_finca})` : f.nombre;
-                  return (
-                    <button key={f.id_finca} type="button" aria-pressed={activa}
-                      onClick={() => cambiarFinca(f.id_finca)}
-                      className="px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5"
-                      style={activa
-                        ? { background: C.dark, color: '#ffffff', border: `2px solid ${C.dark}` }
-                        : { background: '#ffffff', color: C.dark, border: `2px solid ${C.border}` }}>
-                      <Leaf size={14} strokeWidth={2} /> {etiqueta}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {/* La finca se cambia desde el menú lateral: el kardex muestra SOLO la finca activa */}
+            {fincaActual && (
+              <p className="text-xs font-bold mb-3 flex items-center gap-1.5" style={{ color: C.dark }}>
+                <Leaf size={14} strokeWidth={2} /> Finca activa: {fincaActual.nombre}
+              </p>
+            )}
 
             {productosFinca.length === 0 && (
               <p className="text-xs font-semibold" style={{ color: C.muted }}>
@@ -841,9 +821,14 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
 
             {producto && (
               <>
-                {/* Buscador */}
+                {/* Buscador (también encuentra los insumos inactivos) */}
                 <div className="relative mb-3">
-                  <label style={lbl}>Buscar insumo{fincaActual ? ` en ${fincaActual.nombre}` : ''}</label>
+                  <label style={lbl}>
+                    Buscar insumo{fincaActual ? ` en ${fincaActual.nombre}` : ''}
+                    <span style={{ textTransform: 'none', fontWeight: 400, marginLeft: 6 }}>
+                      — aquí también aparecen los inactivos
+                    </span>
+                  </label>
                   <div className="relative">
                     <Search size={16} strokeWidth={1.75}
                       style={{ position: 'absolute', left: 10, top: 11, color: C.muted }} />
@@ -1425,7 +1410,7 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
               <p className="text-xs mb-4" style={{ color: C.muted }}>
                 Haz clic en un insumo para ver sus lotes y movimientos.
                 {productosInactivos.length > 0 &&
-                  ` Los ${productosInactivos.length} insumos inactivos se consultan en "Historial completo".`}
+                  ` Hay ${productosInactivos.length} insumo(s) inactivo(s) que no se listan: búscalos con el buscador de arriba.`}
               </p>
               {productosVisibles.length === 0 ? (
                 <p className="text-xs py-6 text-center" style={{ color: C.muted }}>
@@ -1592,49 +1577,6 @@ export default function Kardex({ canEdit = true }: { canEdit?: boolean }) {
           {/* ═════════ PESTAÑA: HISTORIAL COMPLETO ═════════ */}
           {tab === 'historial' && producto && (
             <div className="space-y-4">
-              {productosInactivos.length > 0 && (
-                <div style={card}>
-                  <h3 className="text-sm font-bold mb-1" style={{ color: C.dark }}>
-                    Insumos inactivos ({productosInactivos.length})
-                  </h3>
-                  <p className="text-xs mb-3" style={{ color: C.muted }}>
-                    Los insumos inactivos no aparecen en el resumen, las alertas ni el inventario y no permiten
-                    movimientos. Su historial se consulta solo aquí.
-                  </p>
-                  <div className="space-y-2">
-                    {productosInactivos.map(p => {
-                      const i = info[p.id_producto];
-                      const sel = p.id_producto === selectedId;
-                      return (
-                        <div key={p.id_producto}
-                          className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
-                          style={{
-                            background: sel ? '#dcfce7' : C.zebra,
-                            border: `1px solid ${sel ? '#15803d' : C.border}`,
-                          }}>
-                          <div>
-                            <p className="text-sm font-bold flex items-center gap-2" style={{ color: C.text }}>
-                              {p.nombre} <EstadoBadges p={p} />
-                            </p>
-                            <p className="text-[11px]" style={{ color: C.muted }}>
-                              {p.categoria} · {p.finca}
-                              {i?.primer_ingreso ? ` · Ingresó: ${fmtFecha(i.primer_ingreso)}` : ''}
-                              {i?.ultimo_ingreso && i.ultimo_ingreso !== i.primer_ingreso
-                                ? ` · Última compra: ${fmtFecha(i.ultimo_ingreso)}` : ''}
-                            </p>
-                          </div>
-                          <button onClick={() => setSelectedId(p.id_producto)}
-                            className="px-3 py-1 rounded-lg text-xs font-bold flex-shrink-0"
-                            style={{ background: C.dark, color: '#ffffff' }}>
-                            Ver historial
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               <div style={card}>
                 <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: C.dark }}>
                   Historial Kardex — PEPS · {producto.nombre}

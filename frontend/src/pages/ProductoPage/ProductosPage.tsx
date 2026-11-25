@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { getProductos, createProducto, updateProducto, deleteProducto, reactivarProducto } from '../../services/productoService';
 import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
 import { getCategorias } from '../../services/categoriaService';
+import { FincaActivaContext } from '../../context/fincaActivaContext';
 import SearchBar from '../../components/search/SearchBar';
 import { useSearch } from '../../hooks/useSearch';
 import './ProductoPage.css';
@@ -12,6 +13,12 @@ const UNIDADES = ['kg', 'unidad', 'litro', 'arroba', 'bulto'];
 
 const ProductosPage = () => {
   usePageTitle('Productos');
+
+  // Finca activa del menú lateral
+  const ctxFinca = useContext(FincaActivaContext);
+  const fincaActiva = ctxFinca?.fincaActiva ?? null;
+  const idFincaActiva = fincaActiva?.id_finca ?? null;
+
   const [productos, setProductos] = useState<any[]>([]);
   const [fincas, setFincas] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
@@ -67,10 +74,20 @@ const ProductosPage = () => {
   };
 
   useEffect(() => {
-    cargarProductos();
     cargarFincas();
     cargarCategorias();
   }, []);
+
+  // La lista se recarga al entrar y cada vez que cambia la finca activa del menú
+  useEffect(() => {
+    cargarProductos();
+  }, [idFincaActiva]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const abrirNuevo = () => {
+    // El insumo nuevo se propone en la finca activa (se puede cambiar)
+    setIdFinca(idFincaActiva ? String(idFincaActiva) : '');
+    setModalAbierto(true);
+  };
 
   const handleCrear = async () => {
     if (!nombre.trim() || !idCategoria || !unidadMedida || !idFinca) {
@@ -160,9 +177,11 @@ const ProductosPage = () => {
       <div className="pp-header">
         <div>
           <h1 className="pp-title">Insumos</h1>
-          <p className="pp-subtitle">Gestión del inventario agrícola</p>
+          <p className="pp-subtitle">
+            Gestión del inventario agrícola{fincaActiva ? ` · ${fincaActiva.nombre}` : ''}
+          </p>
         </div>
-        <button className="pp-btn-nuevo" onClick={() => setModalAbierto(true)}>
+        <button className="pp-btn-nuevo" onClick={abrirNuevo}>
           + Nuevo Insumo
         </button>
       </div>

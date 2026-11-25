@@ -1,40 +1,20 @@
-const API = 'https://modulo-inventario-y-costos-proyecto.onrender.com/api/productos';
+// frontend/src/services/productoService.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { api } from './api';
 
-const headers = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
+// Todas las llamadas pasan por `api`, que agrega el token y la cabecera
+// X-Finca-Id (finca activa del menú), así el backend filtra por finca.
 
-const manejar = async (res: Response) => {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || data.error || 'Error en el servidor');
-  return data;
-};
+export const getProductos = () => api<any>('/productos');
 
-export const getProductos = async () => {
-  const res = await fetch(API, { headers: headers() });
-  return manejar(res);
-};
+export const createProducto = (data: any) =>
+  api<any>('/productos', { method: 'POST', body: JSON.stringify(data) });
 
-export const createProducto = async (data: any) => {
-  const res = await fetch(API, { method: 'POST', headers: headers(), body: JSON.stringify(data) });
-  return manejar(res);
-};
+export const updateProducto = (id: number, data: any) =>
+  api<any>(`/productos/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 
-export const updateProducto = async (id: number, data: any) => {
-  const res = await fetch(`${API}/${id}`, { method: 'PUT', headers: headers(), body: JSON.stringify(data) });
-  return manejar(res);
-};
+export const deleteProducto = (id: number) =>
+  api<any>(`/productos/${id}/inactivar`, { method: 'PATCH' });
 
-export const deleteProducto = async (id: number) => {
-  const res = await fetch(`${API}/${id}/inactivar`, { method: 'PATCH', headers: headers() });
-  return manejar(res);
-};
-
-export const reactivarProducto = async (id: number) => {
-  const res = await fetch(`${API}/${id}/activar`, { method: 'PATCH', headers: headers() });
-  return manejar(res);
-};
+export const reactivarProducto = (id: number) =>
+  api<any>(`/productos/${id}/activar`, { method: 'PATCH' });
