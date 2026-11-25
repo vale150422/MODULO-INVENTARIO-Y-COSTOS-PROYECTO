@@ -1,6 +1,6 @@
 // frontend/src/context/fincaActivaContext.ts
 import { createContext } from 'react';
-import type { Finca } from '../services/fincasService';
+import type { Finca } from '../services/fincaService';
 
 export interface FincaActivaValor {
   fincas: Finca[];

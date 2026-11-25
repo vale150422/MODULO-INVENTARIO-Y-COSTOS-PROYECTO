@@ -3,7 +3,7 @@
 // así las fincas se cargan después de iniciar sesión, cuando ya hay token.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { CLAVE_FINCA_ACTIVA } from '../services/api';
-import { getFincas, type Finca } from '../services/fincasService';
+import { getFincas, type Finca } from '../services/fincaService';
 import { FincaActivaContext } from './fincaActivaContext';
 
 export function FincaActivaProvider({ children }: { children: ReactNode }) {

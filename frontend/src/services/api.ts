@@ -2,13 +2,18 @@
 // Helper único para hablar con el backend. Agrega solo:
 //  - el token de sesión
 //  - la finca activa (cabecera X-Finca-Id)
-// Úsalo en TODOS los services (trabajadores, proveedores, kardex, reportes...).
+// Se puede usar de dos formas:
+//  - api<T>('/ruta', opciones)      -> función genérica (services nuevos)
+//  - api.getKardex(id), api.login() -> métodos (páginas existentes)
 const API_URL =
   import.meta.env.VITE_API_URL ?? 'https://modulo-inventario-y-costos-proyecto.onrender.com/api';
 
+// Algunas páginas (p. ej. AlertasPage) importan BASE directamente.
+export const BASE: string = API_URL;
+
 export const CLAVE_FINCA_ACTIVA = 'finca:activa';
 
-export async function api<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
+async function peticion<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
   const headers = new Headers(opciones.headers);
 
   const token = localStorage.getItem('token'); // <- ajusta si guardas el token con otro nombre
@@ -28,3 +33,68 @@ export async function api<T>(ruta: string, opciones: RequestInit = {}): Promise<
   }
   return res.json() as Promise<T>;
 }
+
+export interface MovimientoEntrada {
+  id_producto: number;
+  tipo: string;
+  cantidad: number;
+  costo_unitario: number;
+  detalle: string;
+  id_finca: number;
+}
+
+// Los métodos devuelven `any` igual que la versión anterior, para que las
+// páginas (Kardex, Dashboard, Reportes, useAuth) sigan compilando sin cambios.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const metodos = {
+  async login(email: string, password: string): Promise<any> {
+    try {
+      return await peticion<any>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+    } catch {
+      throw new Error('Credenciales incorrectas');
+    }
+  },
+
+  async registro(nombre: string, email: string, password: string): Promise<any> {
+    return peticion<any>('/auth/registro', {
+      method: 'POST',
+      body: JSON.stringify({ nombre, email, password, rol: 'empleado' }),
+    });
+  },
+
+  // DASHBOARD  (!) ruta supuesta: confirma que exista en el backend
+  async getDashboard(): Promise<any> {
+    return peticion<any>('/dashboard');
+  },
+
+  // KARDEX
+  async getKardexProductos(): Promise<any> {
+    return peticion<any>('/kardex/productos');
+  },
+
+  async getKardex(id_producto: number): Promise<any> {
+    return peticion<any>(`/kardex/${id_producto}`);
+  },
+
+  async getLotes(id_producto: number): Promise<any> {
+    return peticion<any>(`/kardex/${id_producto}/lotes`);
+  },
+
+  async registrarMovimiento(data: MovimientoEntrada): Promise<any> {
+    return peticion<any>('/kardex/movimiento', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getReporteKardex(): Promise<any> {
+    return peticion<any>('/kardex/reporte');
+  },
+};
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+// `api` sigue siendo la función genérica, pero ahora también trae los métodos.
+export const api = Object.assign(peticion, metodos);
