@@ -39,9 +39,12 @@ export interface MovimientoEntrada {
   tipo: string;
   cantidad: number;
   costo_unitario: number;
-  descripcion?: string | null;
   detalle?: string | null;
+  descripcion?: string | null;
+  id_lote?: number | null;
+  id_usuario_recibe?: number | null;
   id_finca?: number;
+  fecha_vencimiento?: string | null;
 }
 
 // Los métodos devuelven `any` igual que la versión anterior, para que las
