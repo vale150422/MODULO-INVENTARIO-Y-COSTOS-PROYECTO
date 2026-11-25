@@ -18,9 +18,10 @@ const mensajeError = (error: any, porDefecto: string) => {
   return error?.message || porDefecto;
 };
 
+// Solo los trabajadores de la finca activa (res.locals.idFinca lo pone el middleware fincaActiva)
 export const getAllTrabajadores = async (_req: Request, res: Response) => {
   try {
-    res.json(await getTrabajadores());
+    res.json(await getTrabajadores(res.locals.idFinca ?? null));
   } catch (error: any) {
     console.error('getAllTrabajadores:', error);
     res.status(500).json({ message: mensajeError(error, 'Error al obtener trabajadores') });
@@ -36,9 +37,11 @@ export const getTrabajador = async (req: Request, res: Response) => {
   }
 };
 
+// Si el formulario no manda finca, se asigna a la finca activa
 export const addTrabajador = async (req: Request, res: Response) => {
   try {
-    res.json(await createTrabajador(req.body, ctx(req)));
+    const datos = { ...req.body, id_finca: req.body.id_finca ?? res.locals.idFinca ?? null };
+    res.json(await createTrabajador(datos, ctx(req)));
   } catch (error: any) {
     console.error('addTrabajador:', error);
     res.status(500).json({

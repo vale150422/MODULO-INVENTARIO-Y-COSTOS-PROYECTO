@@ -15,17 +15,20 @@ const fail = (res: Response, error: any, porDefecto: string, nombre: string) => 
   res.status(500).json({ message: error?.message || porDefecto });
 };
 
+// Solo los insumos de la finca activa (res.locals.idFinca lo pone el middleware fincaActiva)
 export const getAllProducts = async (_req: Request, res: Response) => {
   try {
-    res.json(await getProducts());
+    res.json(await getProducts(res.locals.idFinca ?? null));
   } catch (error) {
     fail(res, error, 'Error al obtener productos', 'getAllProducts');
   }
 };
 
+// Si el formulario no manda finca, el insumo se crea en la finca activa
 export const addProduct = async (req: Request, res: Response) => {
   try {
-    res.json(await createProduct(req.body, ctx(req)));
+    const datos = { ...req.body, id_finca: req.body.id_finca ?? res.locals.idFinca ?? null };
+    res.json(await createProduct(datos, ctx(req)));
   } catch (error) {
     fail(res, error, 'Error al crear producto', 'addProduct');
   }

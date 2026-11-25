@@ -7,6 +7,7 @@ dotenv.config();
 import './database';
 
 import { auditContext } from './middleware/auditContext';
+import { fincaActiva } from './middleware/fincaActiva';
 import productoRoutes from './routes/productoRoutes';
 import fincaRoutes from './routes/fincaRoutes';
 import proveedorRoutes from './routes/proveedorRoutes';
@@ -55,13 +56,13 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/productos', productoRoutes);
+app.use('/api/productos', fincaActiva, productoRoutes);
 app.use('/api/fincas', fincaRoutes);
 app.use('/api/proveedores', proveedorRoutes);
-app.use('/api/trabajadores', trabajadorRoutes);
-app.use('/api/kardex', kardexRoutes);
+app.use('/api/trabajadores', fincaActiva, trabajadorRoutes);
+app.use('/api/kardex', fincaActiva, kardexRoutes);
 app.use('/api/categorias', categoriaRoutes);
-app.use('/api/alertas', alertasRoutes);
+app.use('/api/alertas', fincaActiva, alertasRoutes);
 
 const PORT = process.env.PORT || 3001;
 

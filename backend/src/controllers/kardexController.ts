@@ -27,7 +27,7 @@ const contextoAuditoria = (
 
 export const getProductos = async (_req: Request, res: Response) => {
   try {
-    res.json(await getProductosModel());
+    res.json(await getProductosModel(res.locals.idFinca ?? null));
   } catch (error: any) {
     console.error('getProductos:', error);
     res.status(500).json({ error: error.message || 'Error al obtener productos' });
@@ -374,7 +374,7 @@ export const registrarEntradaFactura = async (req: Request, res: Response) => {
 
 export const getReporteConsolidado = async (_req: Request, res: Response) => {
   try {
-    res.json(await getReporteConsolidadoModel());
+    res.json(await getReporteConsolidadoModel(res.locals.idFinca ?? null));
   } catch (error: any) {
     console.error('getReporteConsolidado:', error);
     res.status(500).json({ error: error.message || 'Error al generar reporte' });
@@ -383,7 +383,7 @@ export const getReporteConsolidado = async (_req: Request, res: Response) => {
 
 export const getDashboard = async (_req: Request, res: Response) => {
   try {
-    res.json(await getDashboardModel());
+    res.json(await getDashboardModel(res.locals.idFinca ?? null));
   } catch (error: any) {
     console.error('getDashboard:', error);
     res.status(500).json({ error: error.message || 'Error al cargar dashboard' });

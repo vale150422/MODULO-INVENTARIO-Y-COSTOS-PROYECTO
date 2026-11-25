@@ -62,14 +62,16 @@ const SELECT_TRABAJADOR = `
     LEFT JOIN public.finca f ON f.idfinca = uf.idfinca
 `;
 
-export const getTrabajadores = async () => {
+// idFinca = finca activa de la app. null = sin filtro (todas).
+export const getTrabajadores = async (idFinca: number | null = null) => {
   const result = await pool.query(`
     SELECT * FROM (
       ${SELECT_TRABAJADOR}
+      WHERE ($1::int IS NULL OR uf.idfinca = $1)
       ORDER BY u.id_usuario, uf.idusuario_finca
     ) t
     ORDER BY created_at DESC, id_trabajador DESC
-  `);
+  `, [idFinca]);
   return result.rows;
 };
 

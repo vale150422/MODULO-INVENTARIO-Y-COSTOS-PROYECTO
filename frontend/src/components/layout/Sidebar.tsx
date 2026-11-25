@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
+import FincaActivaSelector from '../FincaActivaSelector';
 import {
   LayoutDashboard, Leaf, Users, Store, Tag, ShoppingCart,
   Package, BarChart2, ClipboardList, UserCircle, Home,
@@ -57,6 +58,11 @@ export default function Sidebar() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Finca activa: define con qué finca trabaja TODA la app */}
+      <div className="px-3 py-3 border-b border-[#4a7c3f] shrink-0">
+        <FincaActivaSelector />
       </div>
 
       {/* Nav: aquí está el scroll */}

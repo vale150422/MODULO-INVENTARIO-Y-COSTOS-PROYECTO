@@ -1,92 +1,30 @@
-export const BASE = import.meta.env.VITE_API_URL || 'https://modulo-inventario-y-costos-proyecto.onrender.com/api';
+// frontend/src/services/api.ts
+// Helper único para hablar con el backend. Agrega solo:
+//  - el token de sesión
+//  - la finca activa (cabecera X-Finca-Id)
+// Úsalo en TODOS los services (trabajadores, proveedores, kardex, reportes...).
+const API_URL =
+  import.meta.env.VITE_API_URL ?? 'https://modulo-inventario-y-costos-proyecto.onrender.com/api';
 
-function getHeaders() {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+export const CLAVE_FINCA_ACTIVA = 'finca:activa';
+
+export async function api<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
+  const headers = new Headers(opciones.headers);
+
+  const token = localStorage.getItem('token'); // <- ajusta si guardas el token con otro nombre
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const finca = localStorage.getItem(CLAVE_FINCA_ACTIVA);
+  if (finca) headers.set('X-Finca-Id', finca);
+
+  if (opciones.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  const res = await fetch(`${API_URL}${ruta}`, { ...opciones, headers });
+  if (!res.ok) {
+    const cuerpo = await res.json().catch(() => null);
+    throw new Error(cuerpo?.error ?? cuerpo?.message ?? `Error ${res.status}`);
+  }
+  return res.json() as Promise<T>;
 }
-
-export const api = {
-  async login(email: string, password: string) {
-    const r = await fetch(`${BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    if (!r.ok) {
-      const d = await r.json().catch(() => ({}));
-      // 403 = el trabajador no tiene asignado el módulo de inventario
-      throw new Error(r.status === 403 && d.error ? d.error : 'Credenciales incorrectas');
-    }
-    return r.json();
-  },
-
-  async registro(nombre: string, email: string, password: string) {
-    const r = await fetch(`${BASE}/auth/registro`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, email, password, rol: 'empleado' }),
-    });
-    if (!r.ok) {
-      const data = await r.json();
-      throw new Error(data.error || 'Error al registrar');
-    }
-    return r.json();
-  },
-
-  async getKardexProductos() {
-    const r = await fetch(`${BASE}/kardex/productos`, { headers: getHeaders() });
-    if (!r.ok) throw new Error('Error al cargar productos');
-    return r.json();
-  },
-
-  async getKardex(id_producto: number) {
-    const r = await fetch(`${BASE}/kardex/${id_producto}`, { headers: getHeaders() });
-    if (!r.ok) throw new Error('Error al cargar Kardex');
-    return r.json();
-  },
-
-  async getLotes(id_producto: number) {
-    const r = await fetch(`${BASE}/kardex/${id_producto}/lotes`, { headers: getHeaders() });
-    if (!r.ok) throw new Error('Error al cargar lotes');
-    return r.json();
-  },
-
-  async registrarMovimiento(data: {
-    id_producto: number;
-    tipo: string;
-    cantidad: number;
-    costo_unitario: number;
-    detalle: string;
-    id_finca: number;
-    fecha_vencimiento?: string | null;
-    descripcion?: string | null;
-    id_lote?: number | null;
-    id_usuario_recibe?: number | null;
-  }) {
-    const r = await fetch(`${BASE}/kardex/movimiento`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!r.ok) {
-      const d = await r.json();
-      throw new Error(d.error || 'Error al registrar');
-    }
-    return r.json();
-  },
-
-  async getReporteKardex() {
-    const r = await fetch(`${BASE}/kardex/reporte`, { headers: getHeaders() });
-    if (!r.ok) throw new Error('Error al cargar reporte');
-    return r.json();
-  },
-
-  async getDashboard() {
-    const r = await fetch(`${BASE}/kardex/dashboard`, { headers: getHeaders() });
-    if (!r.ok) throw new Error('Error al cargar dashboard');
-    return r.json();
-  },
-};

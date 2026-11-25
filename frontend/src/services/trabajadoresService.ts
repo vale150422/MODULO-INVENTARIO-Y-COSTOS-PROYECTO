@@ -1,36 +1,14 @@
-const API = 'https://modulo-inventario-y-costos-proyecto.onrender.com/api/trabajadores';
+// frontend/src/services/trabajadoresService.ts
+// Ahora usa api(): agrega solo el token y la finca activa (X-Finca-Id).
+import { api } from './api';
 
-const headers = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
+export const getTrabajadores = () => api<any>('/trabajadores');
 
-// Si el servidor responde con error, lo lanza con el mensaje real
-const manejar = async (res: Response) => {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || data.error || 'Error en el servidor');
-  return data;
-};
+export const createTrabajador = (data: any) =>
+  api<any>('/trabajadores', { method: 'POST', body: JSON.stringify(data) });
 
-export const getTrabajadores = async () => {
-  const res = await fetch(API, { headers: headers() });
-  return manejar(res);
-};
+export const updateTrabajador = (id: number, data: any) =>
+  api<any>(`/trabajadores/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 
-export const createTrabajador = async (data: any) => {
-  const res = await fetch(API, { method: 'POST', headers: headers(), body: JSON.stringify(data) });
-  return manejar(res);
-};
-
-export const updateTrabajador = async (id: number, data: any) => {
-  const res = await fetch(`${API}/${id}`, { method: 'PUT', headers: headers(), body: JSON.stringify(data) });
-  return manejar(res);
-};
-
-export const deleteTrabajador = async (id: number) => {
-  const res = await fetch(`${API}/${id}`, { method: 'DELETE', headers: headers() });
-  return manejar(res);
-};
+export const deleteTrabajador = (id: number) =>
+  api<any>(`/trabajadores/${id}`, { method: 'DELETE' });

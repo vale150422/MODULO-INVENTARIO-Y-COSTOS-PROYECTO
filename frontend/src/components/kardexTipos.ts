@@ -1,10 +1,4 @@
 // frontend/src/components/kardexTipos.ts
-export interface Finca {
-  id_finca: number;
-  nombre: string;
-  ubicacion?: string | null;
-}
-
 // Coincide con lo que devuelve getKardexByFinca en el backend
 export interface Movimiento {
   id_kardex: number;

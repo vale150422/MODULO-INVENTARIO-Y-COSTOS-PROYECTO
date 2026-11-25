@@ -17,7 +17,8 @@ export interface Kardex {
   fecha?: Date;
 }
 
-export const getProductos = async () => {
+// idFinca = finca activa de la app. null = sin filtro (todas).
+export const getProductos = async (idFinca: number | null = null) => {
   const result = await pool.query(`
     SELECT
       p.id_producto, p.nombre, p.unidadmedida,
@@ -39,8 +40,9 @@ export const getProductos = async () => {
     FROM inventario.producto p
     JOIN inventario.categoria c ON c.id_categoria = p.id_categoria
     JOIN public.finca f ON f.idfinca = p.id_finca
+    WHERE ($1::int IS NULL OR p.id_finca = $1)
     ORDER BY p.nombre ASC
-  `);
+  `, [idFinca]);
   return result.rows;
 };
 
@@ -231,7 +233,8 @@ export const registrarMovimientoModel = async (data: {
   }
 };
 
-export const getReporteConsolidadoModel = async () => {
+// idFinca = finca activa de la app. null = sin filtro (todas).
+export const getReporteConsolidadoModel = async (idFinca: number | null = null) => {
   const productosResult = await pool.query(`
     SELECT
       p.id_producto, p.nombre, p.unidadmedida,
@@ -249,8 +252,9 @@ export const getReporteConsolidadoModel = async () => {
        WHERE id_producto = p.id_producto
        ORDER BY fecha DESC, id_kardex DESC LIMIT 1
     ) k ON TRUE
+    WHERE ($1::int IS NULL OR p.id_finca = $1)
     ORDER BY c.nombre, p.nombre
-  `);
+  `, [idFinca]);
 
   const totalInventario = productosResult.rows.reduce(
     (acc: number, r: any) => acc + Number(r.saldo_valor), 0
@@ -258,15 +262,17 @@ export const getReporteConsolidadoModel = async () => {
 
   const costoVentas = await pool.query(`
     SELECT COALESCE(SUM(total), 0) AS total
-      FROM inventario.kardex WHERE tipo = 'SALIDA'
-  `);
+      FROM inventario.kardex
+     WHERE tipo = 'SALIDA' AND ($1::int IS NULL OR id_finca = $1)
+  `, [idFinca]);
 
   const movimientos = await pool.query(`
     SELECT
       COUNT(*) FILTER (WHERE tipo = 'ENTRADA' OR tipo = 'INICIO') AS entradas,
       COUNT(*) FILTER (WHERE tipo = 'SALIDA') AS salidas
     FROM inventario.kardex
-  `);
+    WHERE ($1::int IS NULL OR id_finca = $1)
+  `, [idFinca]);
 
   return {
     productos: productosResult.rows,
@@ -277,9 +283,12 @@ export const getReporteConsolidadoModel = async () => {
   };
 };
 
-export const getDashboardModel = async () => {
+// idFinca = finca activa de la app. null = sin filtro (todas).
+export const getDashboardModel = async (idFinca: number | null = null) => {
   const totalProductos = await pool.query(
-    'SELECT COUNT(*) FROM inventario.producto WHERE activo = true'
+    `SELECT COUNT(*) FROM inventario.producto
+      WHERE activo = true AND ($1::int IS NULL OR id_finca = $1)`,
+    [idFinca]
   );
 
   const valorInventario = await pool.query(`
@@ -287,17 +296,18 @@ export const getDashboardModel = async () => {
     FROM (
       SELECT DISTINCT ON (id_producto) saldo_valor
         FROM inventario.kardex
+       WHERE ($1::int IS NULL OR id_finca = $1)
        ORDER BY id_producto, fecha DESC, id_kardex DESC
     ) k
-  `);
+  `, [idFinca]);
 
   const movimientosHoy = await pool.query(`
     SELECT
       COUNT(*) FILTER (WHERE tipo = 'ENTRADA') AS entradas,
       COUNT(*) FILTER (WHERE tipo = 'SALIDA') AS salidas
     FROM inventario.kardex
-    WHERE DATE(fecha) = CURRENT_DATE
-  `);
+    WHERE DATE(fecha) = CURRENT_DATE AND ($1::int IS NULL OR id_finca = $1)
+  `, [idFinca]);
 
   const ultimosMovimientos = await pool.query(`
     SELECT
@@ -306,8 +316,9 @@ export const getDashboardModel = async () => {
       p.unidadmedida
     FROM inventario.kardex k
     JOIN inventario.producto p ON p.id_producto = k.id_producto
+    WHERE ($1::int IS NULL OR k.id_finca = $1)
     ORDER BY k.fecha DESC, k.id_kardex DESC LIMIT 10
-  `);
+  `, [idFinca]);
 
   // Alerta cuando hay existencias y el saldo es menor O IGUAL al stock mínimo.
   // Un insumo agotado (saldo 0) no es alerta de stock mínimo.
@@ -326,10 +337,12 @@ export const getDashboardModel = async () => {
      WHERE p.activo = true
        AND COALESCE(k.saldo_cantidad, 0) > 0
        AND COALESCE(k.saldo_cantidad, 0) <= p.stock_minimo
+       AND ($1::int IS NULL OR p.id_finca = $1)
      ORDER BY COALESCE(k.saldo_cantidad, 0) ASC, p.nombre
-  `);
+  `, [idFinca]);
 
   // Entradas y salidas (en pesos) de los últimos 7 días
+  // (el filtro de finca va en el ON para no perder los días sin movimientos)
   const movimientosPorDia = await pool.query(`
     SELECT to_char(d.dia, 'YYYY-MM-DD') AS dia,
            COALESCE(SUM(k.total) FILTER (WHERE k.tipo IN ('ENTRADA','INICIO')), 0) AS entradas,
@@ -337,10 +350,12 @@ export const getDashboardModel = async () => {
       FROM generate_series(
              (CURRENT_DATE - 6)::timestamp, CURRENT_DATE::timestamp, interval '1 day'
            ) AS d(dia)
-      LEFT JOIN inventario.kardex k ON DATE(k.fecha) = d.dia::date
+      LEFT JOIN inventario.kardex k
+             ON DATE(k.fecha) = d.dia::date
+            AND ($1::int IS NULL OR k.id_finca = $1)
      GROUP BY d.dia
      ORDER BY d.dia
-  `);
+  `, [idFinca]);
 
   // Valor del inventario por categoría
   const valorPorCategoria = await pool.query(`
@@ -353,11 +368,11 @@ export const getDashboardModel = async () => {
          WHERE id_producto = p.id_producto
          ORDER BY fecha DESC, id_kardex DESC LIMIT 1
       ) k ON TRUE
-     WHERE p.activo = true
+     WHERE p.activo = true AND ($1::int IS NULL OR p.id_finca = $1)
      GROUP BY c.nombre
     HAVING COALESCE(SUM(k.saldo_valor), 0) > 0
      ORDER BY valor DESC
-  `);
+  `, [idFinca]);
 
   return {
     totalProductos: Number(totalProductos.rows[0].count),

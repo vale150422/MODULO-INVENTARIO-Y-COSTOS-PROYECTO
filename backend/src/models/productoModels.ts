@@ -33,9 +33,13 @@ const SELECT_PRODUCTO = `
     LEFT JOIN public.finca f ON f.idfinca = p.id_finca
 `;
 
-export const getProducts = async () => {
+// idFinca = finca activa de la app. null = sin filtro (todas).
+export const getProducts = async (idFinca: number | null = null) => {
   const result = await pool.query(
-    `${SELECT_PRODUCTO} ORDER BY p.activo DESC, p.nombre ASC`
+    `${SELECT_PRODUCTO}
+     WHERE ($1::int IS NULL OR p.id_finca = $1)
+     ORDER BY p.activo DESC, p.nombre ASC`,
+    [idFinca]
   );
   return result.rows;
 };

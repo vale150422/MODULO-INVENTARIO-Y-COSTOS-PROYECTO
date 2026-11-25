@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getTrabajadores, createTrabajador, updateTrabajador, deleteTrabajador } from '../../services/trabajadoresService';
+import { useFincaActiva } from '../../context/useFincaActiva';
 import { useToast } from '../../components/toast/useToast';
 import ToastContainer from '../../components/toast/ToastContainer';
 import { usePageTitle } from '../../hooks/usePageTitle';
@@ -59,8 +60,9 @@ const SelectorModulos = ({ seleccionados, onToggle, error }: SelectorModulosProp
 
 const TrabajadoresPage = () => {
   usePageTitle('Trabajadores');
+  // Fincas disponibles y finca activa de toda la app (se elige en el menú lateral)
+  const { fincas, fincaActiva } = useFincaActiva();
   const [trabajadores, setTrabajadores] = useState<any[]>([]);
-  const [fincas, setFincas] = useState<any[]>([]);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [trabajadorSeleccionado, setTrabajadorSeleccionado] = useState<any>(null);
@@ -91,6 +93,7 @@ const TrabajadoresPage = () => {
   const activos = trabajadores.filter(t => t.estado === 'Activo').length;
   const inactivos = trabajadores.filter(t => t.estado === 'Inactivo').length;
 
+  // El backend ya devuelve solo los trabajadores de la finca activa
   const cargarTrabajadores = async () => {
     try {
       const res = await getTrabajadores();
@@ -101,22 +104,8 @@ const TrabajadoresPage = () => {
     }
   };
 
-  const cargarFincas = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('https://modulo-inventario-y-costos-proyecto.onrender.com/api/fincas', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const data = await res.json();
-      setFincas(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   useEffect(() => {
     cargarTrabajadores();
-    cargarFincas();
   }, []);
 
   const validarCrear = (): boolean => {
@@ -175,6 +164,12 @@ const TrabajadoresPage = () => {
     }
   };
 
+  // Al crear, la finca viene preseleccionada con la finca activa
+  const abrirCrear = () => {
+    setIdFinca(fincaActiva ? String(fincaActiva.id_finca) : '');
+    setModalAbierto(true);
+  };
+
   const abrirEditar = (t: any) => {
     setTrabajadorSeleccionado(t);
     setNombreEditar(t.nombre ?? ''); setCedulaEditar(t.cedula ?? '');
@@ -220,9 +215,11 @@ const TrabajadoresPage = () => {
       <div className="pp-header">
         <div>
           <h1 className="pp-title">Trabajadores</h1>
-          <p className="pp-subtitle">Gestión de trabajadores registrados</p>
+          <p className="pp-subtitle">
+            Trabajadores de {fincaActiva ? fincaActiva.nombre : 'la finca seleccionada'}
+          </p>
         </div>
-        <button className="pp-btn-nuevo" onClick={() => setModalAbierto(true)}>
+        <button className="pp-btn-nuevo" onClick={abrirCrear}>
           + Nuevo Trabajador
         </button>
       </div>
@@ -270,7 +267,7 @@ const TrabajadoresPage = () => {
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={8} className="pp-empty-row">
-                  {query ? `No se encontraron resultados para "${query}"` : 'No hay trabajadores registrados aún.'}
+                  {query ? `No se encontraron resultados para "${query}"` : 'No hay trabajadores registrados en esta finca aún.'}
                 </td>
               </tr>
             ) : (
