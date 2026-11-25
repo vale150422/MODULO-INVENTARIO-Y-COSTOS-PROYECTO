@@ -69,9 +69,9 @@ const metodos = {
     });
   },
 
-  // DASHBOARD  (!) ruta supuesta: confirma que exista en el backend
+  // DASHBOARD (getDashboard está en kardexController, junto a /kardex/reporte)
   async getDashboard(): Promise<any> {
-    return peticion<any>('/dashboard');
+    return peticion<any>('/kardex/dashboard');
   },
 
   // KARDEX
