@@ -19,18 +19,28 @@ import { iniciarAlertasJob } from './job/alertasJob';
 
 const app = express();
 
+// Orígenes que pueden llamar a la API (sin barra final).
+// Extra opcional: variable FRONTEND_URL en el backend, separada por comas.
+const origenesPermitidos = [
+  'https://agrogestioninventario.vercel.app', // Vercel (producción)
+  'https://agrogestioninventario.netlify.app', // Netlify (quítalo cuando lo apagues)
+  'http://localhost:5173', // desarrollo local
+  ...(process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((u) => u.trim().replace(/\/$/, ''))
+    : []),
+];
+
+// Previews de Vercel de ESTE proyecto: agrogestioninventario-xxxx.vercel.app
+const previewVercel = /^https:\/\/agrogestioninventario(-[a-z0-9-]+)?\.vercel\.app$/;
+
 app.use(cors({
   origin: (origin, callback) => {
-    const allowed = [
-      'https://agrogestioninventario.netlify.app',
-      'http://localhost:5173'
-    ];
-
-    if (!origin || allowed.includes(origin) || origin.endsWith('.netlify.app')) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Sin origin = Postman, curl o llamadas servidor a servidor
+    if (!origin || origenesPermitidos.includes(origin) || previewVercel.test(origin)) {
+      return callback(null, true);
     }
+    console.warn(`CORS bloqueado para el origen: ${origin}`);
+    callback(null, false);
   },
   credentials: true
 }));
