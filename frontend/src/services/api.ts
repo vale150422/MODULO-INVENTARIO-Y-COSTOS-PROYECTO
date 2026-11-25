@@ -39,8 +39,8 @@ export interface MovimientoEntrada {
   tipo: string;
   cantidad: number;
   costo_unitario: number;
-  descripcion?: string;
-  detalle?: string;
+  descripcion?: string | null;
+  detalle?: string | null;
   id_finca?: number;
 }
 
