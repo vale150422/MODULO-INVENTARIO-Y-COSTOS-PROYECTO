@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { ejecutarAlertasSMS } from '../services/alertasService';
+import { ejecutarAlertasCorreo } from '../services/alertasService';
 
 // Todos los días a las 7:00 a.m. hora de Colombia
 export const iniciarAlertasJob = () => {
@@ -7,13 +7,13 @@ export const iniciarAlertasJob = () => {
     '0 7 * * *',
     async () => {
       try {
-        console.log('[Alertas] Revisando vencimientos...');
-        await ejecutarAlertasSMS();
+        console.log('[Alertas] Revisando vencimientos y stock mínimo...');
+        await ejecutarAlertasCorreo();
       } catch (err) {
         console.error('[Alertas] Error en la tarea programada:', err);
       }
     },
     { timezone: 'America/Bogota' }
   );
-  console.log('⏰ Tarea de alertas programada (7:00 a.m. todos los días)');
+  console.log('⏰ Tarea de alertas programada (7:00 a.m. todos los días, por correo)');
 };

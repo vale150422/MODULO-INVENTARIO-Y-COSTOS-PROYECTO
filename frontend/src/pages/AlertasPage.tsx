@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, Send, CircleCheck, Smartphone } from 'lucide-react';
+import { Bell, Send, CircleCheck, Mail } from 'lucide-react';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useAuth } from '../hooks/useAuth';
 import { BASE } from '../services/api';
@@ -18,10 +18,10 @@ interface LoteAlerta {
   dias_restantes: number;
 }
 
-interface Telefono {
-  id_telefono: number;
+interface Correo {
+  id_correo: number;
   nombre: string;
-  telefono: string;
+  correo: string;
   activo: boolean;
 }
 
@@ -34,12 +34,6 @@ const headers = () => ({
 // Extrae el mensaje de cualquier error sin usar `any`
 const msgError = (err: unknown, porDefecto = 'Ocurrió un error') =>
   err instanceof Error && err.message ? err.message : porDefecto;
-
-// +573001234567 → +57 300 123 4567
-const fmtTel = (t: string) =>
-  t.startsWith('+57') && t.length === 13
-    ? `+57 ${t.slice(3, 6)} ${t.slice(6, 9)} ${t.slice(9)}`
-    : t;
 
 // Paleta: verdes para lo normal, rojo solo para alertas
 const ROJO_FUERTE = 'bg-red-600 text-white';
@@ -68,11 +62,11 @@ export default function AlertasPage() {
   const [enviando, setEnviando] = useState(false);
   const [msg, setMsg] = useState<Aviso>(null);
 
-  // Números
-  const [telefonos, setTelefonos] = useState<Telefono[]>([]);
+  // Correos
+  const [correos, setCorreos] = useState<Correo[]>([]);
   const [nombre, setNombre] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [errTel, setErrTel] = useState('');
+  const [correo, setCorreo] = useState('');
+  const [errCorreo, setErrCorreo] = useState('');
   const [guardando, setGuardando] = useState(false);
 
   const cargar = async () => {
@@ -89,10 +83,10 @@ export default function AlertasPage() {
     }
   };
 
-  const cargarTelefonos = async () => {
+  const cargarCorreos = async () => {
     try {
-      const res = await fetch(`${API}/telefonos`, { headers: headers() });
-      if (res.ok) setTelefonos(await res.json());
+      const res = await fetch(`${API}/correos`, { headers: headers() });
+      if (res.ok) setCorreos(await res.json());
     } catch (e) {
       console.error(e);
     }
@@ -102,62 +96,66 @@ export default function AlertasPage() {
   useEffect(() => { cargar(); }, [dias]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
-  useEffect(() => { if (esAdmin) cargarTelefonos(); }, [esAdmin]);
+  useEffect(() => { if (esAdmin) cargarCorreos(); }, [esAdmin]);
 
-  const agregarTelefono = async (e: React.FormEvent) => {
+  const agregarCorreo = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrTel('');
+    setErrCorreo('');
     setGuardando(true);
     try {
-      const res = await fetch(`${API}/telefonos`, {
+      const res = await fetch(`${API}/correos`, {
         method: 'POST',
         headers: headers(),
-        body: JSON.stringify({ nombre, telefono }),
+        body: JSON.stringify({ nombre, correo }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || data.message || 'No se pudo guardar');
       setNombre('');
-      setTelefono('');
-      cargarTelefonos();
+      setCorreo('');
+      cargarCorreos();
     } catch (err) {
-      setErrTel(msgError(err, 'No se pudo guardar el número'));
+      setErrCorreo(msgError(err, 'No se pudo guardar el correo'));
     } finally {
       setGuardando(false);
     }
   };
 
-  const cambiarEstado = async (t: Telefono) => {
-    await fetch(`${API}/telefonos/${t.id_telefono}`, {
+  const cambiarEstado = async (c: Correo) => {
+    await fetch(`${API}/correos/${c.id_correo}`, {
       method: 'PATCH',
       headers: headers(),
-      body: JSON.stringify({ activo: !t.activo }),
+      body: JSON.stringify({ activo: !c.activo }),
     });
-    cargarTelefonos();
+    cargarCorreos();
   };
 
-  const eliminar = async (t: Telefono) => {
-    if (!window.confirm(`¿Eliminar a ${t.nombre} (${fmtTel(t.telefono)}) de las alertas?`)) return;
-    await fetch(`${API}/telefonos/${t.id_telefono}`, { method: 'DELETE', headers: headers() });
-    cargarTelefonos();
+  const eliminar = async (c: Correo) => {
+    if (!window.confirm(`¿Eliminar a ${c.nombre} (${c.correo}) de las alertas?`)) return;
+    await fetch(`${API}/correos/${c.id_correo}`, { method: 'DELETE', headers: headers() });
+    cargarCorreos();
   };
 
-  const enviarSMS = async () => {
+  const enviarCorreo = async () => {
     setEnviando(true);
     setMsg(null);
     try {
-      const res = await fetch(`${API}/enviar-sms`, { method: 'POST', headers: headers() });
+      const res = await fetch(`${API}/enviar-correo`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ dias }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar');
 
-      if (data.sinNumeros) {
-        setMsg({ tipo: 'error', texto: 'No tienes números activos para enviar el SMS. Agrega uno abajo.' });
+      if (data.sinCorreos) {
+        setMsg({ tipo: 'error', texto: 'No tienes correos activos para enviar las alertas. Agrega uno abajo.' });
       } else if (data.resultado?.simulado) {
-        setMsg({ tipo: 'ok', texto: `Notificación procesada correctamente para ${telefonos.filter(t => t.activo).length} destinatario(s). Entorno de pruebas: el envío por SMS fue simulado.` });
+        setMsg({ tipo: 'info', texto: `Envío simulado para ${correos.filter(c => c.activo).length} destinatario(s): falta configurar BREVO_API_KEY en el servidor.` });
       } else if (data.resultado?.errores?.length) {
         setMsg({ tipo: 'error', texto: `Enviado a ${data.resultado.enviados}. Fallaron: ${data.resultado.errores.join(' | ')}` });
       } else {
-        const detalle = data.total === 0 ? ' (aviso: no hay insumos por vencer)' : '';
-        setMsg({ tipo: 'ok', texto: `SMS enviado a ${data.resultado.enviados} número(s)${detalle}.` });
+        const detalle = data.total === 0 ? ' (aviso: no hay insumos por vencer ni en stock mínimo)' : '';
+        setMsg({ tipo: 'ok', texto: `Correo enviado a ${data.resultado.enviados} destinatario(s)${detalle}.` });
       }
     } catch (err) {
       setMsg({ tipo: 'error', texto: msgError(err, 'Error al enviar') });
@@ -170,7 +168,7 @@ export default function AlertasPage() {
   const criticos = lotes.filter(l => l.dias_restantes >= 0 && l.dias_restantes <= 7);
   const proximos = lotes.filter(l => l.dias_restantes > 7);
   const valorRiesgo = lotes.reduce((a, l) => a + l.cantidad * l.costo_unitario, 0);
-  const activos = telefonos.filter(t => t.activo).length;
+  const activos = correos.filter(c => c.activo).length;
 
   // Rojo solo cuando hay algo que atender; el resto en verde
   const kpis = [
@@ -205,10 +203,10 @@ export default function AlertasPage() {
           </select>
           {esAdmin && (
             <button
-              onClick={enviarSMS}
+              onClick={enviarCorreo}
               disabled={enviando}
               className="px-4 py-2 bg-[#4a7c3f] text-white rounded-lg text-sm font-semibold hover:bg-[#3d6b2e] transition-colors disabled:opacity-50 flex items-center gap-2">
-              {enviando ? 'Enviando...' : <><Send className="w-4 h-4" /> Enviar SMS ahora</>}
+              {enviando ? 'Enviando...' : <><Send className="w-4 h-4" /> Enviar correo ahora</>}
             </button>
           )}
         </div>
@@ -302,20 +300,21 @@ export default function AlertasPage() {
         )}
       </div>
 
-      {/* Números para SMS — solo administrador */}
+      {/* Correos para las alertas — solo administrador */}
       {esAdmin && (
         <div className="bg-[#1a2e22] border border-[#264d35] rounded-xl p-4">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-sm font-semibold text-[#4a7c3f] flex items-center gap-2">
-              <Smartphone className="w-4 h-4 text-[#4a7c3f]" /> Números para recibir alertas por SMS
+              <Mail className="w-4 h-4 text-[#4a7c3f]" /> Correos para recibir alertas
             </h2>
             <span className="text-[10px] font-semibold text-[#4a7c3f]">{activos} activo(s)</span>
           </div>
           <p className="text-xs text-[#4a7c3f] mb-4">
-            Solo estos números reciben el SMS. No se toman de la lista de trabajadores.
+            Solo estos correos reciben las alertas (cada día a las 7:00 a.m. y al pulsar el botón).
+            No se toman de la lista de trabajadores.
           </p>
 
-          <form onSubmit={agregarTelefono} className="flex gap-2 flex-wrap mb-3">
+          <form onSubmit={agregarCorreo} className="flex gap-2 flex-wrap mb-3">
             <input
               value={nombre}
               onChange={e => setNombre(e.target.value)}
@@ -324,63 +323,64 @@ export default function AlertasPage() {
               className="flex-1 min-w-[160px] bg-[#111c17] border border-[#264d35] rounded-lg px-3 py-2
                          text-sm text-white outline-none focus:border-[#4a7c3f]"/>
             <input
-              value={telefono}
-              onChange={e => setTelefono(e.target.value)}
-              placeholder="Celular (ej: 300 123 4567)"
+              type="email"
+              value={correo}
+              onChange={e => setCorreo(e.target.value)}
+              placeholder="Correo (ej: admin@gmail.com)"
               required
               className="flex-1 min-w-[160px] bg-[#111c17] border border-[#264d35] rounded-lg px-3 py-2
-                         text-sm text-white outline-none focus:border-[#4a7c3f] font-mono"/>
+                         text-sm text-white outline-none focus:border-[#4a7c3f]"/>
             <button
               type="submit"
               disabled={guardando}
               className="px-4 py-2 bg-[#4a7c3f] text-white rounded-lg text-sm font-semibold
                          hover:bg-[#3d6b2e] transition-colors disabled:opacity-50">
-              {guardando ? 'Guardando...' : '+ Agregar número'}
+              {guardando ? 'Guardando...' : '+ Agregar correo'}
             </button>
           </form>
 
-          {errTel && (
+          {errCorreo && (
             <p className="text-red-500 text-xs mb-3 bg-red-500/10 border border-red-500/40 rounded px-3 py-2">
-              {errTel}
+              {errCorreo}
             </p>
           )}
 
-          {telefonos.length === 0 ? (
+          {correos.length === 0 ? (
             <p className="text-center text-[#4a7c3f] text-xs py-6">
-              Aún no has agregado números. Agrega al menos uno para poder enviar alertas.
+              Aún no has agregado correos. Agrega al menos uno para poder enviar alertas.
             </p>
           ) : (
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-[#264d35]">
                   <th className="pb-2 px-2 text-left text-[#4a7c3f] uppercase text-[10px] font-semibold tracking-wider">Nombre</th>
-                  <th className="pb-2 px-2 text-left text-[#4a7c3f] uppercase text-[10px] font-semibold tracking-wider">Celular</th>
+                  <th className="pb-2 px-2 text-left text-[#4a7c3f] uppercase text-[10px] font-semibold tracking-wider">Correo</th>
                   <th className="pb-2 px-2 text-left text-[#4a7c3f] uppercase text-[10px] font-semibold tracking-wider">Estado</th>
                   <th className="pb-2 px-2 text-right text-[#4a7c3f] uppercase text-[10px] font-semibold tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {telefonos.map(t => (
-                  <tr key={t.id_telefono}
+                {correos.map(c => (
+                  <tr key={c.id_correo}
                     className="border-b border-[#264d35]/40 hover:bg-[#111c17]"
-                    style={{ opacity: t.activo ? 1 : 0.6 }}>
-                    <td className="py-2.5 px-2 text-white font-semibold">{t.nombre}</td>
-                    <td className="py-2.5 px-2 font-mono text-white">{fmtTel(t.telefono)}</td>
+                    style={{ opacity: c.activo ? 1 : 0.6 }}>
+                    <td className="py-2.5 px-2 text-white font-semibold">{c.nombre}</td>
+                    <td className="py-2.5 px-2 font-mono text-white">{c.correo}</td>
                     <td className="py-2.5 px-2">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                        t.activo
+                        c.activo
                           ? 'bg-[#4a7c3f] text-white'
                           : 'border border-[#4a7c3f]/50 text-[#4a7c3f]'
                       }`}>
-                        {t.activo ? 'Activo' : 'Pausado'}
+                        {c.activo ? 'Activo' : 'Pausado'}
                       </span>
                     </td>
                     <td className="py-2.5 px-2 text-right">
-                      <button onClick={() => cambiarEstado(t)}
+                      <button onClick={() => cambiarEstado(c)}
                         className="text-[#4a7c3f] font-semibold hover:underline mr-3">
-                        {t.activo ? 'Pausar' : 'Activar'}
+                        {c.activo ? 'Pausar' : 'Activar'}
                       </button>
-                      <button onClick={() => eliminar(t)}
+                      <button onClick={() => eliminar(c)}
                         className="text-red-500 font-semibold hover:underline">
                         Eliminar
                       </button>
@@ -388,7 +388,7 @@ export default function AlertasPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>            
+            </table>
           )}
         </div>
       )}
