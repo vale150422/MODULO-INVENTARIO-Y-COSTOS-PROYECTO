@@ -283,7 +283,7 @@ export default function ReporteKardex() {
         )}
 
         <div className="mt-8 pt-4 border-t border-[#c8d9a0] flex justify-between text-xs text-[#6b8c3e]">
-          <span>AgroGestión — Sistema de Inventario PEPS · Miraflores Monterrey</span>
+          <span>AgroGestión — Sistema de Inventario PEPS </span>
           <span>Generado: {new Date().toLocaleString('es-CO')}</span>
         </div>
       </div>
